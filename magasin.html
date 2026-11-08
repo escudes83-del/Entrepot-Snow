@@ -599,6 +599,10 @@ function vSettings(){
   const arm=k=>st.armed===k;
   return `<div><h2>Réglages</h2><p class="sub">Listes utilisées dans les fiches articles. Elles changent selon les fabricants et les saisons.</p></div>
     ${role==='magasin'?'<div class="info">Ces réglages sont réservés à l\'entrepôt (rôle Admin dans la vraie version).</div>':`
+    <div class="card"><h3>Transférer le stock</h3>
+      <p class="sub">Pour passer le stock d'un appareil à un autre : téléchargez une copie ici, puis chargez-la dans l'appli en ligne. ${S.articles.length} articles sur cet appareil.</p>
+      <div class="inline"><button type="button" class="btn" data-act="export">⬇ Télécharger une copie du stock</button>
+        <label class="btn" style="cursor:pointer">⬆ Charger une copie<input type="file" id="importFile" accept=".json,application/json" hidden></label></div></div>
     <div class="card"><h3>Marques</h3>${tagList('brands',S.brands)}</div>
     <div class="card"><h3>Tailles bottes (US et cm)</h3>${tagList('sizesB',S.sizesB)}</div>
     <div class="card"><h3>Tailles fixations</h3>${tagList('sizesF',S.sizesF)}</div>
@@ -1000,6 +1004,10 @@ document.addEventListener('click',e=>{
   const order=()=>S.orders.find(o=>o.id===oid);
   switch(act){
     case'close':closeSheet();break;
+    case'export':{const data={app:'entrepot-snow',at:Date.now(),stock:Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]]))};
+      const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const a=document.createElement('a');
+      a.href=url;a.download=`stock-entrepot-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+      toast(`Copie téléchargée : <b>${S.articles.length} articles</b>. Elle est dans le dossier Téléchargements.`);break;}
     case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
     case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
     case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
@@ -1045,6 +1053,12 @@ document.addEventListener('input',e=>{
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
 document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='importFile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const sk=d&&d.stock;
+      if(!sk||!Array.isArray(sk.articles))throw new Error('format');
+      STOCK_KEYS.forEach(k=>{if(sk[k]!==undefined)S[k]=sk[k];});
+      if(cloud.on){cloud.empty=false;cloud.sent.stock='';cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();}
+      save();render();toast(`Copie chargée : <b>${S.articles.length} articles</b>${cloud.on?' · envoyés en ligne':''}`);}
+    catch(err){toast("Ce fichier n'est pas une copie du stock.");}};r.readAsText(t.files[0]);t.value='';return;}
   const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fCouleur:'fCouleur',fSerrage:'fSerrage'};
   if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id==='freeTxt'){e.preventDefault();document.querySelector('[data-act="free"]').click();}
@@ -1077,7 +1091,9 @@ function cloudPush(){
 function cloudErr(e){console.warn('Synchro',e);setSync('off','Hors ligne');}
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 async function cloudStart(){
+  if(location.protocol==='file:'){setSync('off','Fichier local, pas en ligne');return;}
   setSync('wait','Connexion…');
+  const late=setTimeout(()=>{if(!cloud.on)setSync('off','Hors ligne');},15000);
   try{
     const [app,auth,fs]=await Promise.all([import(FBU+'firebase-app.js'),import(FBU+'firebase-auth.js'),import(FBU+'firebase-firestore.js')]);
     const a=app.initializeApp(FB_CONFIG);
