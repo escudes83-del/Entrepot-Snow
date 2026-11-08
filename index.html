@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17212b">
+<title>Entrepôt Snow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout : appli mobile, en-tête sombre type signalétique d'entrepôt, barre d'onglets en bas, plan du U au centre */
+:root{
+  --bg:#edf1f4; --surface:#ffffff; --surface-2:#f5f8fa; --ink:#17212b; --muted:#5a6876;
+  --line:#d2dae1; --line-strong:#9fb0bf; --head:#17212b; --head-ink:#f2f5f7;
+  --accent:#e2570f; --accent-ink:#ffffff; --fill:#d6e6f3; --fill-line:#8fb4d3;
+  --ok:#2c7d47; --ok-bg:#dcefe2; --warn:#99610d; --warn-bg:#f8ecd3; --bad:#b2322a; --bad-bg:#f6dcd9; --info:#1f5f99; --info-bg:#dbe9f6;
+  --hatch:#c9d3dc;
+  --f-disp:'Barlow Condensed','Arial Narrow',sans-serif;
+  --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#18212a; --surface-2:#1d2832; --ink:#e6ecf1; --muted:#94a3b1;
+  --line:#2b3844; --line-strong:#4b5e70; --head:#0a0f14; --head-ink:#e6ecf1;
+  --accent:#ff7a33; --accent-ink:#1a0d04; --fill:#20384d; --fill-line:#3f6d93;
+  --ok:#6fcf8e; --ok-bg:#183a25; --warn:#e7b25a; --warn-bg:#3b2c12; --bad:#f08a80; --bad-bg:#43201d; --info:#7db7ea; --info-bg:#173149;
+  --hatch:#2f3d4a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#18212a; --surface-2:#1d2832; --ink:#e6ecf1; --muted:#94a3b1;
+  --line:#2b3844; --line-strong:#4b5e70; --head:#0a0f14; --head-ink:#e6ecf1;
+  --accent:#ff7a33; --accent-ink:#1a0d04; --fill:#20384d; --fill-line:#3f6d93;
+  --ok:#6fcf8e; --ok-bg:#183a25; --warn:#e7b25a; --warn-bg:#3b2c12; --bad:#f08a80; --bad-bg:#43201d; --info:#7db7ea; --info-bg:#173149;
+  --hatch:#2f3d4a; color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.4}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--head);color:var(--head-ink);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--f-disp);font-weight:700;font-size:22px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.brand i{display:inline-block;width:10px;height:22px;background:var(--accent);transform:skewX(-14deg)}
+.role{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--head-ink)}
+.role .seg{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
+.role .seg button{color:var(--head-ink)}
+.role .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+main{max-width:980px;margin:0 auto;padding-block:16px 110px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h2{font-family:var(--f-disp);font-weight:700;font-size:24px;letter-spacing:.02em;margin:0;text-wrap:balance}
+h3{font-family:var(--f-disp);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.sub{color:var(--muted);margin:0;font-size:14px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+.tabs-in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs button{background:none;border:0;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:600;position:relative}
+.tabs button svg{width:22px;height:22px}
+.tabs button[aria-current="page"]{color:var(--accent)}
+.tabs button[aria-current="page"]::before{content:"";position:absolute;top:0;left:25%;right:25%;height:3px;background:var(--accent)}
+.badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font:700 11px/18px var(--f-mono);padding:0 5px}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 10px;cursor:pointer;font-weight:600;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:6px;padding:8px 12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+input[type=text],input[type=number],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;padding:9px 10px;width:100%;box-sizing:border-box;min-width:0}
+textarea{resize:vertical;min-height:60px}
+.search{font-size:17px;padding:12px 14px !important}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters select{width:auto;padding:6px 8px;font-size:14px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.fgrid select{padding:7px 8px;font-size:14px}
+.szs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.szl{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.sz{min-width:44px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);font:700 14px var(--f-mono);cursor:pointer;display:inline-flex;align-items:baseline;gap:3px;justify-content:center}
+.sz small{font:500 10px var(--f-body);color:var(--muted)}
+.sz[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sz[aria-pressed="true"] small{color:var(--accent-ink);opacity:.85}
+.sz.have{border-style:dashed}
+.sz .qx{font:600 11px var(--f-mono);color:var(--muted);margin-left:2px}
+.sz[aria-pressed="true"] .qx{color:var(--accent-ink)}
+.sz.zero{border-color:var(--bad);border-style:dashed;color:var(--bad)}
+.sz.zero .qx{color:var(--bad)}
+.qn{color:var(--ink);font-weight:700}
+.qn.zero{color:var(--bad)}
+.qrows{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.qhead{display:flex;justify-content:space-between;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.qrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qsz{font:700 15px var(--f-mono)}
+.m3{display:grid;grid-template-columns:62px minmax(0,1fr) auto 30px;gap:6px;align-items:center}
+.m3 .del{width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);color:var(--bad);font-size:15px;cursor:pointer;padding:0}
+.qrow.gone{opacity:.45}.qrow.gone .qsz{text-decoration:line-through;color:var(--bad)}
+.qrow.gone input,.qrow.gone .stepper button{pointer-events:none}
+.qrow.gone .del{background:var(--bad);color:#fff;border-color:var(--bad)}
+.m3 input[type=text]{min-width:0;width:100%;box-sizing:border-box}
+@media (max-width:480px){.m3{grid-template-columns:58px minmax(0,1fr) auto 28px;gap:5px}
+  .m3 .stepper button{width:28px}.m3 .qty{width:38px !important}.m3 .del{width:28px;height:28px}
+  .m3 input[type=text]{padding:9px 6px}}
+.mixed{font-size:12px;color:var(--warn)}
+.var{display:flex;flex-direction:column;gap:4px;padding-left:8px;border-left:3px solid var(--line-strong)}
+.vl{font-size:12px;font-weight:600;color:var(--muted)}
+.mk{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--info);margin-right:10px}
+
+.code{font:700 15px var(--f-mono);letter-spacing:.02em;background:var(--ink);color:var(--surface);border-radius:4px;padding:6px 8px;border:0;cursor:pointer;white-space:nowrap;min-width:64px;text-align:center}
+.code.none{background:var(--surface-2);color:var(--muted);border:1px dashed var(--line-strong);cursor:default;font-size:12px}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:600}
+.row .d{color:var(--muted);font-size:13px}
+.row .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.count{font-size:13px;color:var(--muted)}
+.demo{font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:2px 6px}
+
+/* Plan */
+.plan-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
+.plan{display:grid;min-width:280px;gap:5px;
+  grid-template-columns:minmax(46px,.8fr) minmax(12px,.35fr) minmax(126px,1.6fr) minmax(12px,.35fr) minmax(66px,1fr);
+  grid-template-areas:"fond fond fond fond fond" "g pl m al d" "ent ent ent ext ext"}
+.col{display:flex;flex-direction:column;gap:5px}
+.rack{border:1.5px solid var(--line-strong);border-radius:4px;background:var(--surface-2);padding:4px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:46px;box-sizing:border-box}
+.mrow{display:flex;gap:5px;align-items:center}
+.mrow .sep{width:1px;align-self:stretch;background:var(--line-strong)}
+.rack.off{border-style:dashed;opacity:.55;justify-content:center}
+.rk{font-family:var(--f-disp);font-weight:700;font-size:13px;letter-spacing:.03em;white-space:nowrap}
+.rack.off .rk{font-weight:600;color:var(--muted)}
+.chips{display:flex;gap:2px}
+.chip{width:18px;height:22px;border-radius:3px;border:1px solid var(--line-strong);background:var(--surface);font:600 11px var(--f-mono);color:var(--muted);cursor:pointer;padding:0;display:grid;place-items:center}
+.chip.has{background:var(--fill);color:var(--ink);border-color:var(--fill-line)}
+.chip.hit{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.chip.void{visibility:hidden}
+.zone-lbl{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--f-disp);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.pl{background:repeating-linear-gradient(-55deg,var(--hatch) 0 2px,transparent 2px 7px);border-radius:3px}
+.fond{grid-area:fond}
+.fond .rack{flex-direction:row;justify-content:center;gap:12px;min-height:34px}
+.ent{grid-area:ent;display:flex;align-items:flex-end;justify-content:center;padding-top:6px}
+.ent span{font-family:var(--f-disp);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--accent);display:flex;flex-direction:column;align-items:center;gap:2px}
+.ext{grid-area:ext;display:flex;flex-direction:column;gap:5px;padding-top:8px;border-top:1px dashed var(--line-strong)}
+.mface{font:600 9px var(--f-mono);color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);align-items:center}
+.legend .chip{cursor:default;width:18px;height:18px;font-size:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* Commandes */
+.order{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.order.new{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.order-h{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;background:none;border:0;width:100%;text-align:left}
+.order-h .num{font:700 15px var(--f-mono)}
+.order-h .main{flex:1;min-width:0}
+.order-b{border-top:1px solid var(--line);padding:4px 0 10px}
+.order-b .row{border-top:1px solid var(--line)}
+.order-b .row:first-child{border-top:0}
+.order-foot{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px 0;align-items:center}
+.pill{font-size:12px;font-weight:700;letter-spacing:.03em;border-radius:20px;padding:3px 9px;white-space:nowrap}
+.st-demandee{background:var(--info-bg);color:var(--info)}
+.st-prep{background:var(--warn-bg);color:var(--warn)}
+.st-prete{background:var(--ok-bg);color:var(--ok)}
+.st-recue{background:var(--surface-2);color:var(--muted)}
+.ln-ok{background:var(--ok-bg);color:var(--ok)}
+.ln-rupture{background:var(--bad-bg);color:var(--bad)}
+.tog button[aria-pressed="true"].ok{background:var(--ok);color:#fff}
+.tog button[aria-pressed="true"].ko{background:var(--bad);color:#fff}
+.qty{width:52px !important;text-align:center;font-weight:700;font-size:16px;padding:7px 4px !important;border-radius:0 !important;border-left:0 !important;border-right:0 !important;-moz-appearance:textfield}
+.qty::-webkit-inner-spin-button,.qty::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.stepper{display:flex;align-items:center;flex-direction:column;gap:2px}
+.stepper .lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stepper .in{display:flex}
+.stepper button{width:36px;border:1px solid var(--line-strong);background:var(--surface-2);font-size:18px;font-weight:700;cursor:pointer}
+.stepper button:first-child{border-radius:6px 0 0 6px}.stepper button:last-child{border-radius:0 6px 6px 0}
+.qbig{font:700 16px var(--f-mono);min-width:44px;text-align:center;border:2px solid var(--ink);border-radius:6px;padding:4px 6px;white-space:nowrap}
+[hidden]{display:none !important}
+.opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
+.who{margin:8px 12px 0;font-size:14px}
+.pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
+.pick h4{margin:0;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.pick .pr{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pick .pr .code{min-width:58px;font-size:14px;padding:4px 6px}
+.pick .pr small{color:var(--muted)}
+.note{margin:6px 12px 0;padding:8px 10px;background:var(--surface-2);border-radius:6px;font-size:14px}
+.info{background:var(--info-bg);color:var(--info);border-radius:8px;padding:10px 12px;font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.inline{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.inline .field{flex:1 1 160px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:3px 4px 3px 10px;font-size:14px}
+.tag button{border:0;background:none;cursor:pointer;color:var(--muted);width:22px;height:22px;border-radius:50%;font-size:15px;line-height:1}
+.tag button:hover{background:var(--bad-bg);color:var(--bad)}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(8,12,16,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:620px;max-height:88%;overflow:auto;border-radius:14px 14px 0 0;
+  padding-block:16px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:14px}}
+.sheet-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.25);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;text-align:center}
+.toast b{color:var(--accent)}
+/* ---------- Couleurs conviviales ---------- */
+:root{--zD:#1f6fb2;--zG:#7a4cc2;--zM:#0f8676;--zF:#b0601a;--zE:#3b8a2a;--zB:#c2416b;
+  --t1:#1f6fb2;--t2:#0f8676;--t3:#e2570f;--t4:#7a4cc2;
+  --head-grad:linear-gradient(120deg,#0f2a44 0%,#16507a 55%,#1b7d8f 100%)}
+body{background:linear-gradient(180deg,#dfeaf4 0,var(--bg) 360px) no-repeat,var(--bg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body{background:linear-gradient(180deg,#132536 0,var(--bg) 360px) no-repeat,var(--bg)}}
+:root[data-theme="dark"] body{background:linear-gradient(180deg,#132536 0,var(--bg) 360px) no-repeat,var(--bg)}
+.top{background:var(--head-grad);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+body::before{background:#0f2a44}
+.brand::after{content:"❄";font-size:18px;color:#9fd8ff;margin-left:2px}
+main h2{padding-left:10px;border-left:4px solid var(--accent)}
+.sheet h2{border-left:0;padding-left:0}
+/* Une couleur par zone d'entrepôt */
+.code[data-z]{color:#fff}
+.code[data-z="D"]{background:var(--zD)}.code[data-z="G"]{background:var(--zG)}.code[data-z="M"]{background:var(--zM)}
+.code[data-z="F"]{background:var(--zF)}.code[data-z="E"]{background:var(--zE)}.code[data-z="B"]{background:var(--zB)}
+.rack[data-z]{border-width:1.5px 1.5px 1.5px 4px}
+.rack[data-z="D"]{border-color:var(--zD)}.rack[data-z="G"]{border-color:var(--zG)}.rack[data-z="M"]{border-color:var(--zM)}
+.rack[data-z="F"]{border-color:var(--zF)}.rack[data-z="E"]{border-color:var(--zE)}.rack[data-z="B"]{border-color:var(--zB)}
+.rack[data-z="D"] .rk{color:var(--zD)}.rack[data-z="G"] .rk{color:var(--zG)}.rack[data-z="M"] .rk{color:var(--zM)}
+.rack[data-z="F"] .rk{color:var(--zF)}.rack[data-z="E"] .rk{color:var(--zE)}.rack[data-z="B"] .rk{color:var(--zB)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .rk{filter:brightness(1.6)}}
+:root[data-theme="dark"] .rk{filter:brightness(1.6)}
+/* Onglets : chacun sa couleur */
+.tabs button:nth-child(1)[aria-current="page"]{--tc:var(--t1)}.tabs button:nth-child(2)[aria-current="page"]{--tc:var(--t2)}
+.tabs button:nth-child(3)[aria-current="page"]{--tc:var(--t3)}.tabs button:nth-child(4)[aria-current="page"]{--tc:var(--t4)}
+.tabs button[aria-current="page"]{color:var(--tc)}
+.tabs button[aria-current="page"]::before{background:var(--tc)}
+.tabs button[aria-current="page"] svg{background:color-mix(in srgb,var(--tc) 16%,transparent);border-radius:10px;padding:3px 12px;box-sizing:content-box;margin:-3px 0}
+/* Commandes : liseré selon l'état */
+.order{border-left-width:5px}
+.order.o-demandee{border-left-color:var(--info)}.order.o-prep{border-left-color:var(--warn)}
+.order.o-prete{border-left-color:var(--ok)}.order.o-recue{border-left-color:var(--line-strong)}
+.card{border-top:3px solid var(--accent)}
+.btn.primary{background:linear-gradient(180deg,#ff8a3d,var(--accent));box-shadow:0 2px 6px rgba(226,87,15,.3)}
+.list{box-shadow:0 1px 3px rgba(15,42,68,.06)}
+.row .acts .btn.sm.primary{box-shadow:none}
+@media (prefers-reduced-motion:no-preference){.toast{animation:pop .25s ease-out}@keyframes pop{from{transform:translate(-50%,12px);opacity:0}}}
+/* Magasin : mini-appli téléphone, gros boutons */
+body.shop main{max-width:520px}
+body.shop .tabs-in{max-width:520px;grid-template-columns:repeat(3,1fr)}
+.shead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn.back{padding:8px 12px;font-size:15px}
+.crumbs{display:flex;flex-wrap:wrap;gap:4px}
+.crumbs span{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600}
+h2.q{font-size:28px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tiles.three{grid-template-columns:repeat(3,1fr)}
+.tiles.sizes{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+.tile{min-height:68px;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:14px;background:var(--surface);font:700 18px/1.2 var(--f-body);color:var(--ink);text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;cursor:pointer;box-shadow:0 1px 2px rgba(15,42,68,.06)}
+.tile small{font:500 13px var(--f-body);color:var(--ok)}
+.tile.zero small{color:var(--bad);font-weight:700}
+.tile.zero{border-style:dashed}
+.tile:active{transform:scale(.98)}
+.tile.big{min-height:96px;font:700 24px var(--f-disp);letter-spacing:.03em;border-left-width:8px}
+.tiles.sizes .tile{font-family:var(--f-mono);font-size:17px;text-align:center;align-items:center}
+.tile.t-botte{border-left-color:var(--zD)}.tile.t-fix{border-left-color:var(--zG)}.tile.t-board{border-left-color:var(--zM)}
+.tiles.three .tile{min-height:52px;font-size:15px;text-align:center;align-items:center;border-left-width:5px}
+.tile[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tiles.big-1{grid-template-columns:1fr}
+.alert{padding:12px 14px;border-radius:12px;font-size:16px;border:1px solid}
+.alert.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.alert.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.alert.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.alert.sm{padding:3px 8px;font-size:13px;font-weight:700;border-radius:6px;display:inline-block;margin-top:4px}
+.d.ok{color:var(--ok);font-weight:600}
+.bigstep{display:flex;align-items:center;justify-content:center;gap:18px}
+.bigstep button{width:64px;height:64px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);font:700 30px var(--f-body);cursor:pointer}
+.bigstep output{font:700 44px var(--f-mono);min-width:70px;text-align:center}
+.btn.block{width:100%;min-height:54px;font-size:18px;border-radius:12px}
+.btn.add{border-style:dashed;border-width:2px;color:var(--accent);border-color:var(--accent)}
+.card.pickd .t{font-size:20px;font-weight:700}.card.pickd .d{color:var(--muted)}
+.cart{display:flex;flex-direction:column;gap:8px}
+.cline{display:grid;grid-template-columns:minmax(0,1fr) auto 32px;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.cline .t{font-weight:700}.cline .d{font-size:13px;color:var(--muted)}
+.cline .del{width:32px;height:32px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);color:var(--bad);cursor:pointer;padding:0}
+details.libre{border:1px dashed var(--line-strong);border-radius:12px;padding:10px 12px}
+details.libre summary{cursor:pointer;font-weight:600;color:var(--muted)}
+details.libre .inline{margin-top:10px}
+.fcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.fcard .t{font-size:18px;font-weight:700}.fcard .d{color:var(--muted);font-size:13px}
+.fcard .where{font-size:14px;background:var(--surface-2);border-radius:8px;padding:6px 10px}
+.oline{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.oline span:not(.pill){flex:1}
+.bell{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--ok-bg);color:var(--ok);border:1.5px solid var(--ok);border-radius:12px;padding:10px 12px;font-size:15px}
+.edited{color:var(--warn)}
+/* Pastille de synchro */
+.sync{font:600 11px var(--f-body);letter-spacing:.04em;padding:3px 9px 3px 20px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--head-ink);position:relative;margin-right:auto}
+.sync::before{content:"";position:absolute;left:8px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#e7b25a}
+.sync[data-s="on"]::before{background:#4cd07d}.sync[data-s="off"]::before{background:#f08a80}
+.sync:empty{display:none}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<header class="top"><div class="top-in">
+  <div class="brand"><i></i>Entrepôt Snow</div>
+  <span id="sync" class="sync" data-s="wait" role="status"></span>
+  <div class="role"><span>Je suis</span><div class="seg" id="roleSeg">
+    <button type="button" data-role="entrepot">Entrepôt</button><button type="button" data-role="magasin">Magasin</button>
+  </div></div>
+</div></header>
+
+<main id="view"></main>
+
+<nav class="tabs"><div class="tabs-in" id="tabs"></div></nav>
+
+<div id="sheetRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ---------- Emplacements ---------- */
+const LV=[1,2,3];
+const ZONES={G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière'};
+const LOCS=(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
+  [2,3].forEach(l=>add('G',4,l));
+  for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
+  for(let r=1;r<=6;r++)LV.forEach(l=>add('MD',r,l));
+  for(let r=1;r<=5;r++)LV.forEach(l=>add('D',r,l));
+  LV.forEach(l=>add('F',1,l));
+  LV.forEach(l=>add('E',1,l)); /* une seule étagère, 3 niveaux */
+  LV.forEach(l=>add('BAV',1,l));LV.forEach(l=>add('BAR',1,l));
+  return L;})();
+function locLabel(c){const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
+  let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):['F','BAV','BAR'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${r}`;
+  return `${s} · niveau ${l}${l==='1'?' (bas)':l==='3'?' (haut)':''}`;}
+
+/* ---------- Données ---------- */
+const TYPE={botte:'Bottes',fix:'Fixations',board:'Snowboards'};
+const sizesS=()=>{const a=[];for(let n=138;n<=166;n++)a.push(n+' cm');return a;};
+const sizesOf=t=>t==='botte'?S.sizesB:t==='board'?S.sizesS:S.sizesF;
+const szLbl=(type,t)=>type==='botte'&&!/cm/.test(t)?'US '+t:t;
+const GENRE={H:'Homme',F:'Femme',U:'Unisexe'};
+const ST={demandee:'Demandée',prep:'En préparation',prete:'Prête',recue:'Reçue'};
+const SERRAGE={boa:'BOA',dboa:'Double BOA',speed:'Lacets rapides',lacets:'Lacets'};
+const KEY='entrepot-snow-v2';
+function sizesB(){const a=[];for(let s=4;s<=14;s+=.5)a.push(String(s));a.push('15');for(let s=22;s<=30;s+=.5)a.push(s+' cm');return a;}
+function seed(){
+  const R=[],add=(emp,type,marque,modele,genre,tailles)=>tailles.forEach(t=>R.push({type,marque,modele,genre,taille:t,annee:'',emp,note:''}));
+  add('D1.1','botte','Ride','Sage','F',['10','9.5','9','8.5','8','7.5','7']);
+  add('D1.2','fix','Nitro','Rambler','H',['M','L']);
+  add('D1.2','fix','Ride','Circuit','U',['L']);
+  add('D1.2','fix','Ride','Specter','F',['S','M']);
+  add('D1.2','botte','Ride','Sage','F',['6','6.5','7']);
+  add('D1.3','fix','Nitro','Rambler','H',['L','M']);
+  add('D1.3','fix','Nitro','Cosmic','F',['S/M']);
+  add('D1.3','fix','Nitro','Fate','F',['S/M','S']);
+  add('D1.3','fix','K2','Clicker X HB','H',['L']);
+  add('D2.1','botte','Northwave','Dahlia','F',['24.5 cm','25.5 cm']);
+  add('D2.1','fix','Nitro','Talent','U',['S','M','L']);
+  return {v:1,demo:false,seq:1000,articles:R.map((a,i)=>({id:'a'+(i+1),...a})),
+    brands:['Burton','DC','Flux','K2','Nitro','Northwave','Ride','Salomon','ThirtyTwo','Union','Vans'],
+    sizesB:sizesB(),sizesF:['S','M','L','XL','S/M','M/L','L/XL'],sizesS:sizesS(),orders:[],notifs:[],cart:[],cartNote:''};
+}
+function seedExemples(){
+  const rows=[
+    ['botte','Burton','Ion','H','9.5',2025,'D1.2'],['botte','Burton','Ion','H','10',2025,'D1.2'],['botte','Burton','Ion','H','10.5',2025,'D1.3'],
+    ['botte','Burton','Photon Step On','H','11',2025,'D2.1'],['botte','Burton','Ritual','F','7',2025,'D2.2'],['botte','Burton','Ritual','F','7.5',2025,'D2.2'],
+    ['botte','Salomon','Launch Boa','H','9',2025,'D3.1'],['botte','Salomon','Ivy Boa','F','6.5',2024,'D3.2'],['botte','ThirtyTwo','Lashed','H','10',2025,'D4.1'],
+    ['botte','ThirtyTwo','Lashed','H','11',2025,'D4.1'],['botte','Vans','Hi-Standard OG','H','9.5',2024,'D4.2'],['botte','DC','Phase Boa','H','10.5',2025,'D5.1'],
+    ['botte','Nitro','Team TLS','H','12',2024,'D5.3'],['botte','K2','Maysis','H','9',2023,'G4.2'],['botte','Ride','Hera','F','8',2023,'G4.3'],
+    ['fix','Union','Force','U','M',2025,'MG1.1'],['fix','Union','Force','U','L',2025,'MG1.2'],['fix','Union','Strata','U','L',2025,'MG2.1'],
+    ['fix','Union','Juliet','F','S',2025,'MG2.3'],['fix','Burton','Cartel','H','M',2025,'MD1.1'],['fix','Burton','Cartel','H','L',2025,'MD1.1'],
+    ['fix','Burton','Lexa','F','S',2025,'MD1.2'],['fix','Burton','Malavita','H','XL',2024,'MD2.3'],['fix','Salomon','Hologram','U','M/L',2025,'MD3.1'],
+    ['fix','Nitro','Team','H','L',2024,'MG4.2'],['fix','Flux','DS','U','M',2025,'MG5.1'],['fix','K2','Lien AT','H','L/XL',2023,'E1.2'],
+    ['fix','Ride','A-6','H','L',2024,'BAV1.1'],['fix','Union','Ultra','F','S/M',2024,'F1.2']];
+  const articles=rows.map((r,i)=>({id:'a'+(i+1),type:r[0],marque:r[1],modele:r[2],genre:r[3],taille:r[4],annee:r[5],emp:r[6],note:''}));
+  const now=Date.now();
+  return {v:1,demo:true,seq:1001,articles,
+    brands:['Burton','DC','Flux','K2','Nitro','Ride','Salomon','ThirtyTwo','Union','Vans'],
+    sizesB:sizesB(),sizesF:['S','M','L','XL','S/M','M/L','L/XL'],sizesS:sizesS(),
+    orders:[
+      {id:1001,at:now-12*60000,status:'demandee',note:'Client en caisse pour essayer',lines:[{aid:'a2',qty:1,st:null},{aid:'a20',qty:1,st:null},{txt:'Burton Ion noir 11 si vous l\'avez',qty:1,st:null}]},
+      {id:1000,at:now-26*3600000,status:'recue',note:'',lines:[{aid:'a16',qty:2,st:'ok'},{aid:'a12',qty:1,st:'rupture'}]}],
+    notifs:[{id:1,to:'entrepot',text:'Nouvelle commande #1001 du magasin',at:now-12*60000,read:false}],
+    cart:[],cartNote:''};
+}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1){
+  /* ajoute la taille US 15 aux données déjà enregistrées sur l'appareil */
+  if(!s.sizesB.includes('15')){const i=s.sizesB.indexOf('14');s.sizesB.splice(i<0?s.sizesB.length:i+1,0,'15');}
+  /* « Noir » déjà saisi devient « Black » */
+  (s.articles||[]).forEach(a=>{if(a.couleur)a.couleur=fixColor(a.couleur);});
+  if(!s.sizesS)s.sizesS=sizesS();
+  return s;}}catch(e){}return seed();}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}if(typeof cloudPush==='function')cloudPush();}
+let role='entrepot';try{role=localStorage.getItem(KEY+'-role')||'entrepot';}catch(e){}
+const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
+if(role==='magasin')st.tab='cmd';
+const ZONE_OF={D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B'};
+const ZONE_LBL={D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
+const zoneOf=emp=>ZONE_OF[(/^[A-Z]+/.exec(emp||'')||[''])[0]]||'';
+function sizeRankStr(t){if(/cm/.test(t))return 100+parseFloat(t);const n=parseFloat(t);if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
+
+/* ---------- Utilitaires ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const art=id=>S.articles.find(a=>a.id===id);
+const artName=a=>`${a.marque} ${a.modele}`;
+const qOf=a=>a&&a.qty!=null?a.qty:1; /* les articles saisis avant les quantités comptent pour 1 */
+const qHtml=a=>{const q=qOf(a);return q?`<b class="qn">Qté ${q}</b>`:`<b class="qn zero">Rupture</b>`;};
+const serOf=a=>a.type==='botte'&&SERRAGE[a.serrage]||'';
+const artDesc=a=>`${TYPE[a.type]} · ${GENRE[a.genre]} · ${szLbl(a.type,a.taille)}${a.couleur?' · '+a.couleur:''}${serOf(a)?' · '+serOf(a):''} · ${a.annee||'—'}`;
+const fmtDT=t=>new Date(t).toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+const locRank=c=>{const i=LOCS.indexOf(c);return i<0?999:i;};
+function sizeRank(a){if(a.type!=='fix')return parseFloat(a.taille)||0;const i=S.sizesF.indexOf(a.taille);return i<0?99:i;}
+function sortArts(list){return list.slice().sort((x,y)=>x.type.localeCompare(y.type)||x.marque.localeCompare(y.marque)||x.modele.localeCompare(y.modele)||sizeRank(x)-sizeRank(y));}
+function ago(t){const m=Math.round((Date.now()-t)/60000);if(m<1)return"à l'instant";if(m<60)return`il y a ${m} min`;const h=Math.round(m/60);if(h<24)return`il y a ${h} h`;return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}
+const filtering=()=>!!(st.q.trim()||st.fType||st.fGenre||st.fMarque||st.fModele||st.fAnnee||st.fZone||st.fCouleur||st.fSerrage||st.fTailles.length);
+const isSizeTok=t=>/^\d{1,2}(\.5)?$/.test(t)||/^(xs|s|m|l|xl|xxl|s\/m|m\/l|l\/xl)$/.test(t);
+/* skip : nom du filtre à ignorer, pour calculer les choix encore possibles dans ce filtre */
+function matches(a,skip){
+  if(skip!=='type'&&st.fType&&a.type!==st.fType)return false;
+  if(skip!=='genre'&&st.fGenre&&a.genre!==st.fGenre)return false;
+  if(skip!=='marque'&&st.fMarque&&a.marque!==st.fMarque)return false;
+  if(skip!=='modele'&&st.fModele&&a.modele!==st.fModele)return false;
+  if(skip!=='annee'&&st.fAnnee&&String(a.annee)!==st.fAnnee)return false;
+  if(skip!=='zone'&&st.fZone&&zoneOf(a.emp)!==st.fZone)return false;
+  if(skip!=='couleur'&&st.fCouleur&&(a.couleur||'')!==st.fCouleur)return false;
+  if(skip!=='serrage'&&st.fSerrage&&serOf(a)!==st.fSerrage)return false;
+  if(skip!=='taille'&&st.fTailles.length&&!st.fTailles.includes(a.taille))return false;
+  return textMatch(a,st.q);}
+function textMatch(a,q){
+  const toks=norm(q).replace(/(\d),5/g,'$1.5').split(/\s+/).filter(Boolean);if(!toks.length)return true;
+  const sz=toks.filter(isSizeTok),other=toks.filter(t=>!isSizeTok(t));
+  if(sz.length){const full=norm(a.taille).replace(/\s*cm$/,''),parts=full.split('/');if(!sz.some(t=>t===full||parts.includes(t)))return false;}
+  const hay=norm(`${a.marque} ${a.modele} ${TYPE[a.type]} ${a.type==='fix'?'fix fixation':a.type==='board'?'snowboard board planche':'botte boots'} ${GENRE[a.genre]} ${a.taille} ${a.annee} ${a.emp} ${ZONE_LBL[zoneOf(a.emp)]||''} ${a.couleur||''} ${serOf(a)} ${a.note}`);
+  const words=new Set(hay.split(/\s+/));
+  return other.every(t=>t.length<=2?words.has(t):hay.includes(t));}
+function facet(skip,get){const m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+1);});return m;}
+const focusOrd=()=>st.focusOrder&&S.orders.find(o=>o.id===st.focusOrder);
+function hits(){const fo=focusOrd();if(fo)return new Set(fo.lines.map(l=>l.aid&&art(l.aid)).filter(Boolean).map(a=>a.emp));
+  if(st.focus){const a=art(st.focus);return new Set(a?[a.emp]:[]);}if(!filtering())return new Set();return new Set(S.articles.filter(matches).map(a=>a.emp));}
+const unread=()=>S.notifs.filter(n=>n.to===role&&!n.read);
+
+let actx;function beep(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();const t=actx.currentTime;[0,.18].forEach((d,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=i?1175:880;g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.18,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.25);o.connect(g).connect(actx.destination);o.start(t+d);o.stop(t+d+.3);});}catch(e){}}
+let toastT;function toast(html,sound){const r=$('#toastRoot');r.innerHTML=`<div class="toast" role="status">${html}</div>`;if(sound)beep();clearTimeout(toastT);toastT=setTimeout(()=>r.innerHTML='',3800);}
+function notify(to,text){S.notifs.push({id:Date.now()+Math.random(),to,text,at:Date.now(),read:false});}
+
+const IC={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h4V8h8v12h4V4z"/></svg>',
+  orders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+  cmd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h2l2.4 11h11L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'};
+const TABS={entrepot:[['search','Rechercher','search'],['plan','Plan','plan'],['orders','Commandes','orders'],['settings','Réglages','settings']],
+  magasin:[['cmd','Commander','cmd'],['find','Chercher','search'],['mine','Mes commandes','orders']]};
+/* ---------- Rendu ---------- */
+function render(){
+  document.body.classList.toggle('shop',role==='magasin');
+  const tabs=$('#tabs');tabs.innerHTML=TABS[role].map(([k,l,i])=>`<button type="button" data-tab="${k}"${k===st.tab?' aria-current="page"':''}>${IC[i]}${l}</button>`).join('');
+  document.querySelectorAll('#roleSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.role===role));
+  document.querySelectorAll('#tabs button').forEach(b=>{
+    if(b.dataset.tab==='orders'||b.dataset.tab==='mine'){const n=unread().length;if(n)b.insertAdjacentHTML('beforeend',`<span class="badge">${n}</span>`);}});
+  const v=$('#view');
+  v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='mine'?vShopMine():vShopCmd())
+    :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='orders'?vOrders():vSettings());
+  tint(v);
+}
+/* Colore les codes d'emplacement et les racks du plan selon leur zone */
+function tint(root){
+  root.querySelectorAll('.code').forEach(c=>{const z=zoneOf(c.textContent.trim());if(z)c.dataset.z=z;});
+  root.querySelectorAll('.rack:not(.off)').forEach(r=>{const k=r.querySelector('.rk');const m=k&&/([A-Z]+)\d*$/.exec(k.textContent.trim());const z=m&&ZONE_OF[m[1]==='M'?'MG':m[1]];if(z)r.dataset.z=z;});}
+function filterBar(){
+  const sel=(id,label,cur,m,sortFn,lblFn=v=>v)=>{const keys=[...m.keys()];if(cur&&!keys.includes(cur))keys.push(cur);keys.sort(sortFn);
+    return `<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Tous</option>${keys.map(k=>`<option value="${esc(k)}"${k===cur?' selected':''}>${esc(lblFn(k))} (${m.get(k)||0})</option>`).join('')}</select></div>`;};
+  const alpha=(x,y)=>x.localeCompare(y);
+  const tailles=facet('taille',a=>a.taille);const tk=[...new Set([...tailles.keys(),...st.fTailles])].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));
+  return `<input class="search" type="search" id="q" placeholder="Ex. : ride sage 7 8, nitro L, D1.2…" value="${esc(st.q)}" autocomplete="off">
+  <div class="filters">
+    <div class="seg">${[['','Tout'],['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" data-ftype="${v}" aria-pressed="${st.fType===v}">${l}</button>`).join('')}</div>
+    <div class="seg">${[['','H/F'],['H','Homme'],['F','Femme'],['U','Unisexe']].map(([v,l])=>`<button type="button" data-fgenre="${v}" aria-pressed="${st.fGenre===v}">${l}</button>`).join('')}</div>
+  </div>
+  <div class="fgrid">
+    ${sel('fMarque','Marque',st.fMarque,facet('marque',a=>a.marque),alpha)}
+    ${sel('fModele','Modèle',st.fModele,facet('modele',a=>a.modele),alpha)}
+    ${sel('fAnnee','Année',st.fAnnee,facet('annee',a=>a.annee),(x,y)=>y-x)}
+    ${sel('fZone','Zone',st.fZone,facet('zone',a=>zoneOf(a.emp)),alpha,z=>ZONE_LBL[z]||z)}
+    ${sel('fCouleur','Couleur',st.fCouleur,facet('couleur',a=>a.couleur),alpha)}
+    ${sel('fSerrage','Serrage bottes',st.fSerrage,facet('serrage',a=>serOf(a)),alpha)}
+  </div>
+  ${tk.length?`<div class="szs" role="group" aria-label="Tailles"><span class="szl">Tailles</span>${tk.map(t=>`<button type="button" class="sz" data-fsize="${esc(t)}" aria-pressed="${st.fTailles.includes(t)}">${esc(t.replace(' cm',''))}${/cm/.test(t)?'<small> cm</small>':''}<small>${tailles.get(t)||0}</small></button>`).join('')}</div>`:''}
+  ${filtering()?`<div><button type="button" class="btn sm" data-act="clear">✕ Effacer tous les filtres</button></div>`:''}`;}
+function artRow(a,opts={}){
+  const acts=role==='entrepot'
+    ?`<button type="button" class="btn sm" data-act="edit" data-id="${a.id}">Modifier</button>`
+    :`<button type="button" class="btn sm primary" data-act="cart" data-id="${a.id}">Commander</button>`;
+  return `<div class="row">
+    <button type="button" class="code" data-act="locate" data-id="${a.id}" title="Voir sur le plan">${esc(a.emp)}</button>
+    <div class="main"><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div><div class="d">${esc(artDesc(a))} · ${qHtml(a)}${a.note?' · '+esc(a.note):''}</div></div>
+    <div class="acts">${acts}</div></div>`;}
+/* Base en ligne encore vide : l'entrepôt choisit d'y envoyer ce qu'il a sur cet appareil */
+function cloudBanner(){if(!cloud.on||!cloud.empty||role!=='entrepot')return'';
+  return `<div class="alert warn"><b>La base en ligne est vide.</b> Si cet appareil contient votre vrai stock (${S.articles.length} articles), envoyez-le pour que le magasin le voie.<div style="margin-top:8px"><button type="button" class="btn primary" data-act="cloudinit">Envoyer ces ${S.articles.length} articles en ligne</button></div></div>`;}
+function vSearch(){
+  const list=sortArts(S.articles.filter(matches));
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
+      <div><h2>Où est rangé…</h2><p class="sub">Tapez une marque, un modèle ou une taille. Touchez le code pour le voir sur le plan.</p></div>
+      ${role==='entrepot'?`<button type="button" class="btn primary" data-act="new">+ Nouvel article</button>`:''}
+    </div>
+    ${filterBar()}
+    <div class="count">${list.length} article${list.length>1?'s':''} · ${(t=>`${t} pièce${t>1?'s':''}`)(list.reduce((s,a)=>s+qOf(a),0))}${filtering()&&list.length?` · emplacement${new Set(list.map(a=>a.emp)).size>1?'s':''} : <b>${[...new Set(list.map(a=>a.emp))].sort().join(', ')}</b>`:''}${S.demo?' <span class="demo">données d\'exemple</span>':''}</div>
+    <div class="list">${list.length?list.map(a=>artRow(a)).join(''):`<div class="empty">Aucun article ne correspond.${role==='entrepot'?' Ajoutez-le avec « Nouvel article ».':''}</div>`}</div>`;}
+
+function chip(code,l,H,count){
+  const n=count[code]||0;const cls=['chip',n?'has':'',H.has(code)?'hit':''].join(' ');
+  return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${n} article${n>1?'s':''}" aria-label="${code}, ${n} articles">${l}</button>`;}
+function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
+function vPlan(){
+  const H=hits(),count={};S.articles.forEach(a=>count[a.emp]=(count[a.emp]||0)+1);
+  const focusArt=st.focus&&art(st.focus);
+  const nb=filtering()?S.articles.filter(matches).length:0;
+  let g='',m='',d='';
+  for(let r=5;r>=1;r--){
+    g+=r===4?`<div class="rack"><span class="rk">G4</span><div class="chips">${[2,3].map(l=>chip(`G4.${l}`,l,H,count)).join('')}</div></div>`
+             :`<div class="rack off"><span class="rk">G${r}</span></div>`;
+    d+=`<div class="rack"><span class="rk">D${r}</span>${chips('D',r,H,count)}</div>`;}
+  for(let r=6;r>=1;r--)m+=`<div class="rack"><span class="rk">M${r}</span><div class="mrow">${chips('MG',r,H,count)}<i class="sep"></i>${chips('MD',r,H,count)}</div></div>`;
+  const ext=`<div class="rack"><span class="rk">E1</span>${chips('E',1,H,count)}</div>`
+    +`<div class="rack"><span class="rk">BAV</span>${chips('BAV',1,H,count)}</div><div class="rack"><span class="rk">BAR</span>${chips('BAR',1,H,count)}</div>`;
+  return `<div><h2>Plan de l'entrepôt</h2><p class="sub">Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l'entrée.</p></div>
+    ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${focusOrd().id}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
+    ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${nb} article${nb>1?'s':''} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
+    <div class="plan-wrap"><div class="plan" role="group" aria-label="Plan de l'entrepôt">
+      <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
+      <div class="col" style="grid-area:g">${g}</div>
+      <div class="pl zone-lbl" style="grid-area:pl">planches debout</div>
+      <div class="col" style="grid-area:m"><div style="display:flex;justify-content:space-between" class="mface"><span>côté G</span><span>côté D</span></div>${m}</div>
+      <div class="zone-lbl" style="grid-area:al">allée</div>
+      <div class="col" style="grid-area:d">${d}</div>
+      <div class="ent"><span><svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 17V2M2 8l6-6 6 6"/></svg>Entrée</span></div>
+      <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}</div>
+    </div></div>
+    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 2 et 3</span></div>
+    <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`;}
+
+function lineRow(o,l,i){
+  const a=l.aid&&art(l.aid);
+  const code=a?`<button type="button" class="code" data-act="locate" data-id="${a.id}">${esc(a.emp)}</button>`:`<span class="code none">${l.aid?'supprimé':'à chercher'}</span>`;
+  const title=a?esc(artName(a)):l.aid?'Article supprimé du catalogue':`« ${esc(l.txt)} »`;
+  const live=a&&(o.status==='demandee'||o.status==='prep'); /* avant préparation : montrer le stock disponible */
+  const desc=a?esc(artDesc(a))+`<br><span class="opt">📍 ${esc(locLabel(a.emp))}</span>`+(live?` · <b class="qn${qOf(a)?'':' zero'}">Stock ${qOf(a)}</b>${qOf(a)<l.qty?' <span class="pill ln-rupture">stock insuffisant</span>':''}`:''):l.txt?'Demande en texte libre':'';
+  let right=l.st?`<span class="pill ln-${l.st}">${l.st==='ok'?'OK':'Rupture'}</span>`:'';
+  if(role==='entrepot'&&o.status==='prep')right=`<div class="seg tog"><button type="button" class="ok" data-act="lst" data-o="${o.id}" data-i="${i}" data-v="ok" aria-pressed="${l.st==='ok'}">OK</button><button type="button" class="ko" data-act="lst" data-o="${o.id}" data-i="${i}" data-v="rupture" aria-pressed="${l.st==='rupture'}">Rupture</button></div>`;
+  return `<div class="row">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div></div>`;}
+const lineRank=l=>{const a=l.aid&&art(l.aid);return a?locRank(a.emp):9999;};
+/* Où aller chercher : un emplacement par ligne, dans l'ordre des racks */
+function pickList(o){
+  const by=new Map();o.lines.forEach(l=>{const a=l.aid&&art(l.aid);if(!a)return;if(!by.has(a.emp))by.set(a.emp,[]);by.get(a.emp).push(`${a.marque} ${a.modele} ${szLbl(a.type,a.taille)}${a.couleur?' '+a.couleur:''} ×${l.qty}`);});
+  if(!by.size)return'';
+  const rows=[...by.keys()].sort((x,y)=>locRank(x)-locRank(y)).map(c=>`<div class="pr"><span class="code" style="cursor:default">${esc(c)}</span><span><small>${esc(locLabel(c))}</small><br>${by.get(c).map(esc).join('<br>')}</span></div>`).join('');
+  const libres=o.lines.filter(l=>!l.aid).length;
+  return `<div class="pick"><h4>À prendre · ${by.size} emplacement${by.size>1?'s':''}</h4>${rows}${libres?`<small class="opt">+ ${libres} demande${libres>1?'s':''} libre${libres>1?'s':''} à chercher</small>`:''}
+    <div><button type="button" class="btn sm" data-act="oplan" data-o="${o.id}">Voir sur le plan</button></div></div>`;}
+function orderCard(o){
+  const open=st.open===o.id;const fresh=role==='entrepot'&&o.status==='demandee';
+  const nOk=o.lines.filter(l=>l.st==='ok').length,nKo=o.lines.filter(l=>l.st==='rupture').length;
+  let foot='';
+  if(role==='entrepot'&&o.status==='demandee')foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prep">Commencer la préparation</button>`;
+  if(role==='entrepot'&&o.status==='prep'){const all=o.lines.every(l=>l.st);
+    foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prete"${all?'':' disabled'}>Prête, prévenir le magasin</button>${all?'':'<span class="count">Indiquez OK ou Rupture pour chaque ligne.</span>'}`;}
+  if(role==='magasin'&&o.status==='prete')foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`;
+  return `<div class="order o-${o.status}${fresh?' new':''}">
+    <button type="button" class="order-h" data-act="open" data-o="${o.id}" aria-expanded="${open}">
+      <span class="num">#${o.id}</span>
+      <span class="main"><span class="t">${o.by?esc(o.by)+' · ':''}${(n=>`${n} pièce${n>1?'s':''}`)(o.lines.reduce((s,l)=>s+l.qty,0))}</span> <span class="count">· ${o.lines.length} ligne${o.lines.length>1?'s':''}</span> <span class="count">· ${fmtDT(o.at)} (${ago(o.at)})${o.status==='prete'||o.status==='recue'?` · ${nOk} OK${nKo?`, ${nKo} rupture${nKo>1?'s':''}`:''}`:''}</span></span>
+      <span class="pill st-${o.status}">${ST[o.status]}</span>
+    </button>
+    ${open?`<div class="order-b"><div class="who">Demandée par <b>${esc(o.by||'—')}</b> le <b>${esc(new Date(o.at).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</b> à <b>${esc(new Date(o.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>${o.editedAt?` · <b class="edited">corrigée à ${esc(new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>`:''}${o.readyAt?` · prête à ${esc(new Date(o.readyAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}`:''}</div>
+      ${o.note?`<div class="note">${esc(o.note)}</div>`:''}${pickList(o)}
+      <div style="margin-top:6px">${o.lines.map((l,i)=>[l,i]).sort((x,y)=>lineRank(x[0])-lineRank(y[0])).map(([l,i])=>lineRow(o,l,i)).join('')}</div>${foot?`<div class="order-foot">${foot}</div>`:''}</div>`:''}
+  </div>`;}
+function vOrders(){
+  const intro=`<div class="info">Prototype : les deux rôles sont sur le même appareil. Passez de <b>Magasin</b> à <b>Entrepôt</b> en haut pour voir la notification arriver. Dans la vraie version, elle arrivera sur le téléphone de chacun.</div>`;
+  const todo=S.orders.filter(o=>o.status==='demandee'||o.status==='prep').sort((a,b)=>a.at-b.at);
+  const done=S.orders.filter(o=>o.status==='prete'||o.status==='recue').sort((a,b)=>b.at-a.at);
+  return `<div><h2>Commandes du magasin</h2><p class="sub">Les plus anciennes en premier. Touchez une commande pour la préparer.</p></div>${intro}
+    <h3>À traiter (${todo.length})</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">${todo.map(orderCard).join('')||'<div class="empty">Rien à préparer.</div>'}</div>
+    <h3>Terminées</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">${done.map(orderCard).join('')||'<div class="empty">Aucune commande terminée.</div>'}</div>`;}
+
+function tagList(kind,arr){return `<div class="tags">${arr.map((x,i)=>`<span class="tag">${esc(x)}<button type="button" data-act="rmtag" data-k="${kind}" data-i="${i}" aria-label="Retirer ${esc(x)}">×</button></span>`).join('')}</div>
+  <div class="inline"><div class="field"><label for="add-${kind}">Ajouter</label><input type="text" id="add-${kind}"></div><button type="button" class="btn" data-act="addtag" data-k="${kind}">Ajouter</button></div>`;}
+function vSettings(){
+  const arm=k=>st.armed===k;
+  return `<div><h2>Réglages</h2><p class="sub">Listes utilisées dans les fiches articles. Elles changent selon les fabricants et les saisons.</p></div>
+    ${role==='magasin'?'<div class="info">Ces réglages sont réservés à l\'entrepôt (rôle Admin dans la vraie version).</div>':`
+    <div class="card"><h3>Marques</h3>${tagList('brands',S.brands)}</div>
+    <div class="card"><h3>Tailles bottes (US et cm)</h3>${tagList('sizesB',S.sizesB)}</div>
+    <div class="card"><h3>Tailles fixations</h3>${tagList('sizesF',S.sizesF)}</div>
+    <div class="card"><h3>Tailles snowboards</h3>${tagList('sizesS',S.sizesS)}</div>
+    <div class="card"><h3>Emplacements (${LOCS.length})</h3><div class="tags">${LOCS.map(c=>`<span class="tag" style="padding-right:10px;font-family:var(--f-mono);font-size:13px">${c}</span>`).join('')}</div></div>
+    <div class="card"><h3>Données</h3>
+      <p class="sub">Tout est enregistré sur cet appareil seulement, pour ce prototype.</p>
+      <div class="inline">
+        <button type="button" class="btn${arm('reset')?' armed':''}" data-act="reset">${arm('reset')?'Confirmer : recharger la liste importée':'Recharger la liste importée'}</button>
+        <button type="button" class="btn danger${arm('wipe')?' armed':''}" data-act="wipe">${arm('wipe')?'Confirmer : tout effacer':'Partir de zéro (tout effacer)'}</button>
+      </div></div>`}`;}
+
+/* ---------- Magasin : mini-appli téléphone ---------- */
+/* Commander pas à pas : type → marque → modèle → homme/femme → taille → couleur → nombre */
+const SH_STEPS=['type','marque','modele','genre','taille','couleur','qty'];
+const SH_Q={type:'Quoi ?',marque:'Quelle marque ?',modele:'Quel modèle ?',genre:'Homme ou femme ?',taille:'Quelle taille ?',couleur:'Quelle couleur ?',qty:'Combien ?'};
+const shVal=(a,k)=>k==='couleur'?(a.couleur||''):a[k];
+/* quantité déjà demandée (commandes en cours + commande en préparation sur ce téléphone) */
+function reserved(aid){let n=0;
+  S.orders.forEach(o=>{if(o.id===S.editing||!(o.status==='demandee'||o.status==='prep'))return;o.lines.forEach(l=>{if(l.aid===aid&&l.st!=='rupture')n+=l.qty;});});
+  S.cart.forEach(l=>{if(l.aid===aid)n+=l.qty;});return n;}
+const availOf=a=>Math.max(0,qOf(a)-reserved(a.id));
+function shPool(upto){const v=st.sh.v,ks=SH_STEPS.slice(0,SH_STEPS.indexOf(upto));
+  return S.articles.filter(a=>ks.every(k=>v[k]===undefined||shVal(a,k)===v[k]));}
+function shOpts(k){const m=new Map();shPool(k).forEach(a=>{const x=shVal(a,k);const o=m.get(x)||{n:0,stock:0};o.n++;o.stock+=availOf(a);m.set(x,o);});return m;}
+function shStart(preset){st.sh={step:'type',v:{},hist:[],q:1};
+  if(preset){Object.assign(st.sh.v,preset);st.sh.hist=Object.keys(preset);shNext(st.sh.hist[st.sh.hist.length-1]);}}
+function shNext(from){let i=SH_STEPS.indexOf(from)+1;
+  while(i<SH_STEPS.length){const k=SH_STEPS[i];
+    if(k==='qty'){st.sh.step='qty';st.sh.q=1;return;}
+    const o=shOpts(k);
+    if((k==='genre'||k==='couleur')&&o.size===1){st.sh.v[k]=[...o.keys()][0];i++;continue;}
+    st.sh.step=k;return;}}
+function shPick(k,val){st.sh.v[k]=val;st.sh.hist.push(k);shNext(k);}
+function shBack(){const k=st.sh.hist.pop();
+  if(!k){st.sh.step=null;return;}
+  SH_STEPS.slice(SH_STEPS.indexOf(k)).forEach(x=>delete st.sh.v[x]);st.sh.step=k;}
+function shLabel(k,x){if(k==='type')return TYPE[x];if(k==='genre')return GENRE[x];if(k==='taille')return szLbl(st.sh.v.type,x);if(k==='couleur')return x||'Sans couleur précisée';return x;}
+
+function bell(){const u=unread();if(!u.length)return'';const n=u[u.length-1];
+  return `<div class="bell" role="status"><span>🔔 <b>${esc(n.text)}</b>${u.length>1?` <small>(+${u.length-1})</small>`:''}</span><button type="button" class="btn sm primary" data-act="seen">Voir</button></div>`;}
+
+function vShopCmd(){
+  if(!st.sh.step&&!S.cart.length&&!S.editing)shStart();
+  const sh=st.sh;
+  if(!sh.step)return vShopCart();
+  const v=sh.v,crumbs=SH_STEPS.filter(k=>v[k]!==undefined&&k!=='qty').map(k=>`<span>${esc(shLabel(k,v[k]))}</span>`).join('');
+  const head=`<div class="shead">${sh.hist.length||S.cart.length||S.editing?`<button type="button" class="btn back" data-act="shback">← Retour</button>`:''}
+    ${crumbs?`<div class="crumbs">${crumbs}</div>`:''}</div>
+    <h2 class="q">${SH_Q[sh.step]}</h2>`;
+  if(sh.step==='qty')return head+shQty();
+  const o=shOpts(sh.step);
+  let keys=[...o.keys()];
+  if(sh.step==='type')keys=Object.keys(TYPE);
+  const sorter={taille:(x,y)=>sizeRankStr(x)-sizeRankStr(y),genre:(x,y)=>'HFU'.indexOf(x)-'HFU'.indexOf(y)}[sh.step]||((x,y)=>x===''?1:y===''?-1:x.localeCompare(y));
+  if(sh.step!=='type')keys.sort(sorter);
+  const tile=x=>{const c=o.get(x)||{n:0,stock:0};const z=!c.stock;
+    const sub=sh.step==='type'?(c.n?`${c.stock} en stock`:'aucun enregistré'):z?'Rupture de stock':`${c.stock} en stock`;
+    return `<button type="button" class="tile${sh.step==='type'?' big t-'+x:''}${z?' zero':''}" data-act="shpick" data-k="${sh.step}" data-v="${esc(x)}">${esc(shLabel(sh.step,x))}<small>${sub}</small></button>`;};
+  const empty=!keys.length?`<div class="empty">Rien d'enregistré ici pour l'instant.</div>`:'';
+  return head+`<div class="tiles${sh.step==='taille'?' sizes':''}">${keys.map(tile).join('')}</div>${empty}
+    <details class="libre"><summary>Pas dans la liste ? Écrire la demande</summary>
+      <div class="inline"><div class="field"><label for="freeTxt">Ce que vous cherchez</label><input type="text" id="freeTxt" placeholder="Ex. : Burton Ion 10.5 noir" value="${esc([v.marque,v.modele,v.genre&&GENRE[v.genre],v.taille&&shLabel('taille',v.taille)].filter(Boolean).join(' '))}"></div>
+      <div class="field" style="flex:0 0 70px"><label for="freeQty">Nombre</label><input type="number" id="freeQty" min="1" max="50" value="1" style="text-align:center"></div>
+      <button type="button" class="btn" data-act="free">Ajouter</button></div></details>`;}
+
+function shQty(){const sh=st.sh,g=shPool('qty');const tot=g.reduce((s,a)=>s+availOf(a),0),q=sh.q;
+  const a=g[0];const locs=[...new Set(g.map(x=>x.emp))].sort((x,y)=>locRank(x)-locRank(y));
+  const alert=!tot?`<div class="alert bad">⚠ <b>Rupture de stock</b> : il n'en reste aucun à l'entrepôt.</div>`
+    :q>tot?`<div class="alert warn">⚠ Il n'en reste que <b>${tot}</b>. L'entrepôt ne pourra pas tout fournir.</div>`
+    :`<div class="alert ok">✓ Il en reste <b>${tot}</b> à l'entrepôt.</div>`;
+  return `<div class="card pickd"><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div>
+      <div class="d">${esc([TYPE[a.type],GENRE[sh.v.genre],shLabel('taille',sh.v.taille),sh.v.couleur,serOf(a)].filter(Boolean).join(' · '))}</div>
+      <div class="d">📍 ${locs.map(c=>`<b>${esc(c)}</b> ${esc(locLabel(c))}`).join('<br>📍 ')}</div></div>
+    ${alert}
+    <div class="bigstep"><button type="button" data-act="shq" data-d="-1" aria-label="Moins">−</button><output aria-live="polite">${q}</output><button type="button" data-act="shq" data-d="1" aria-label="Plus">+</button></div>
+    <button type="button" class="btn primary block" data-act="shadd">${tot?'Ajouter à la commande':'Demander quand même'}</button>`;}
+
+function cartLine(l,i){const a=l.aid&&art(l.aid);
+  let warn='';
+  if(a){const left=Math.max(0,qOf(a)-(reserved(a.id)-l.qty));
+    warn=!left?`<div class="alert bad sm">Rupture de stock</div>`:l.qty>left?`<div class="alert warn sm">Il n'en reste que ${left}</div>`:`<div class="d ok">✓ ${left} en stock</div>`;}
+  return `<div class="cline"><div class="main"><div class="t">${a?`<span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}`:`« ${esc(l.txt)} »`}</div>
+      <div class="d">${a?esc([TYPE[a.type],GENRE[a.genre],szLbl(a.type,a.taille),a.couleur,serOf(a)].filter(Boolean).join(' · ')):'Demande écrite'}</div>${warn}</div>
+    <div class="stepper"><div class="in"><button type="button" data-act="qstep" data-i="${i}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" min="1" max="50" value="${l.qty}" data-qty="${i}" inputmode="numeric" aria-label="Nombre"><button type="button" data-act="qstep" data-i="${i}" data-d="1" aria-label="Plus">+</button></div></div>
+    <button type="button" class="del" data-act="crm" data-i="${i}" aria-label="Retirer">✕</button></div>`;}
+
+function vShopCart(){const ed=S.editing&&S.orders.find(o=>o.id===S.editing);
+  const n=S.cart.reduce((s,l)=>s+l.qty,0);
+  return `${ed?`<div class="alert warn" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Vous corrigez la commande <b>#${ed.id}</b></span><button type="button" class="btn sm" data-act="ecancel">Annuler</button></div>`:''}
+    <h2 class="q">${ed?'Correction de la commande':'Ma commande'}</h2>
+    <div class="cart">${S.cart.map(cartLine).join('')||'<div class="empty">Aucun article.</div>'}</div>
+    <button type="button" class="btn block add" data-act="shnew">+ Ajouter un article</button>
+    <div class="field"><label for="cartNote">Notes pour l'entrepôt <small class="opt">facultatif</small></label><textarea id="cartNote" placeholder="Ex. : client en caisse, urgent">${esc(S.cartNote)}</textarea></div>
+    <div class="field"><label for="myName">Votre nom</label><input type="text" id="myName" value="${esc(S.myName||'')}" placeholder="Ex. : Julie" autocomplete="given-name" autocapitalize="words"></div>
+    <button type="button" class="btn primary block" data-act="send"${S.cart.length?'':' disabled'}>${ed?'Envoyer la correction':'Envoyer à l\'entrepôt'}${n?` · ${n} pièce${n>1?'s':''}`:''}</button>`;}
+
+function vShopFind(){
+  const q=st.sq||'',ft=st.sqType||'';
+  const list=sortArts(S.articles.filter(a=>(!ft||a.type===ft)&&textMatch(a,q)));
+  const groups=new Map();list.forEach(a=>{const k=[a.type,a.marque,a.modele,a.genre].join('|');if(!groups.has(k))groups.set(k,[]);groups.get(k).push(a);});
+  const show=q.trim()||ft;
+  const cards=[...groups.values()].slice(0,40).map(g=>{const a=g[0];
+    const vars=new Map();g.forEach(x=>{const k=x.couleur||'';if(!vars.has(k))vars.set(k,[]);vars.get(k).push(x);});
+    const locs=[...new Set(g.map(x=>x.emp))].sort((x,y)=>locRank(x)-locRank(y));
+    const sz=x=>{const n=availOf(x);return `<span class="sz${n?'':' zero'}" style="cursor:default">${esc(szLbl(x.type,x.taille).replace(' cm',''))}<span class="qx">×${n}</span></span>`;};
+    return `<div class="fcard"><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div><div class="d">${TYPE[a.type]} · ${GENRE[a.genre]}${serOf(a)?' · '+esc(serOf(a)):''}</div>
+      ${[...vars.entries()].map(([c,xs])=>`<div class="var">${vars.size>1||c?`<span class="vl">${esc(c||'Sans couleur')}</span>`:''}<div class="szs">${xs.map(sz).join('')}</div></div>`).join('')}
+      <div class="where">${locs.map(c=>`<div>📍 <b>${esc(c)}</b> ${esc(locLabel(c))}${locs.length>1?`<br><small>${esc(g.filter(x=>x.emp===c).map(x=>szLbl(x.type,x.taille)+(vars.size>1&&x.couleur?' '+x.couleur:'')).join(', '))}</small>`:''}</div>`).join('')}</div>
+      <button type="button" class="btn primary" data-act="shorder" data-id="${a.id}">Commander ce modèle</button></div>`;}).join('');
+  return `<h2 class="q">Chercher un produit</h2>
+    <input class="search" type="search" id="sq" placeholder="Marque, modèle ou taille…" value="${esc(q)}" autocomplete="off">
+    <div class="tiles three">${[['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" class="tile t-${v}" data-act="sqtype" data-v="${v}" aria-pressed="${ft===v}">${l}</button>`).join('')}</div>
+    ${show?`<div class="count">${groups.size} modèle${groups.size>1?'s':''}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
+      :'<p class="sub">Tapez un nom ou touchez un type pour voir le stock et où il est rangé.</p>'}`;}
+
+function shopOrder(o){
+  const live=o.status==='demandee'||o.status==='prep';
+  const lines=o.lines.map(l=>{const a=l.aid&&art(l.aid);
+    const name=a?`${a.marque} ${a.modele} · ${GENRE[a.genre]} · ${szLbl(a.type,a.taille)}${a.couleur?' · '+a.couleur:''}`:`« ${l.txt} »`;
+    return `<div class="oline"><b class="qbig">×${l.qty}</b><span>${esc(name)}</span>${l.st?`<span class="pill ln-${l.st}">${l.st==='ok'?'OK':'Rupture'}</span>`:''}</div>`;}).join('');
+  return `<div class="order o-${o.status}"><div class="order-h" style="cursor:default"><span class="num">#${o.id}</span>
+      <span class="main"><span class="count">${fmtDT(o.at)}${o.editedAt?` · corrigée à ${new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</span></span>
+      <span class="pill st-${o.status}">${ST[o.status]}</span></div>
+    <div class="order-b">${lines}${o.note?`<div class="note">${esc(o.note)}</div>`:''}
+      <div class="order-foot">${live?`<button type="button" class="btn" data-act="oedit" data-o="${o.id}">✎ Corriger</button>`:''}
+      ${o.status==='prete'?`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`:''}</div></div></div>`;}
+function vShopMine(){const mine=S.orders.slice().sort((a,b)=>b.at-a.at);
+  const open=mine.filter(o=>o.status!=='recue'),old=mine.filter(o=>o.status==='recue').slice(0,10);
+  return `<h2 class="q">Mes commandes</h2>
+    <div class="info">Prototype : passez sur <b>Entrepôt</b> en haut pour préparer la commande, puis revenez ici pour voir la notification.</div>
+    ${open.map(shopOrder).join('')||'<div class="empty">Aucune commande en cours.</div>'}
+    ${old.length?`<h3>Reçues</h3>${old.map(shopOrder).join('')}`:''}`;}
+
+function shopSend(){
+  if(!S.cart.length)return;const by=(S.myName||'').trim();if(!by){$('#myName').focus();toast('Indiquez votre nom');return;}
+  if(S.editing){const o=S.orders.find(x=>x.id===S.editing);
+    if(!o||!(o.status==='demandee'||o.status==='prep')){toast('Trop tard : la commande est déjà prête.');shEditEnd();render();return;}
+    o.lines=S.cart.map(l=>{const old=o.lines.find(x=>x.aid===l.aid&&x.txt===l.txt&&x.qty===l.qty);return {...l,st:old?old.st:null};});
+    o.note=S.cartNote.trim();o.editedAt=Date.now();o.by=by;
+    notify('entrepot',`Commande #${o.id} corrigée par ${by}`);
+    shEditEnd();save();st.tab='mine';render();toast(`Correction de la commande <b>#${o.id}</b> envoyée. L'entrepôt est prévenu.`);return;}
+  const o={id:(S.seq=Math.max(S.seq||1000,...S.orders.map(x=>+x.id||0))+1),at:Date.now(),by,status:'demandee',note:S.cartNote.trim(),lines:S.cart.map(l=>({...l,st:null}))};
+  S.orders.push(o);notify('entrepot',`Nouvelle commande #${o.id} de ${by} (${o.lines.length} ligne${o.lines.length>1?'s':''})`);
+  S.cart=[];S.cartNote='';st.sh={step:null,v:{},hist:[],q:1};save();st.tab='mine';render();toast(`Commande <b>#${o.id}</b> envoyée. L'entrepôt est prévenu.`);}
+function shEditEnd(){const b=S.cartSaved||{cart:[],note:''};S.cart=b.cart;S.cartNote=b.note;S.cartSaved=null;S.editing=null;st.sh={step:null,v:{},hist:[],q:1};}
+function shopClick(act,t){
+  switch(act){
+    case'shpick':shPick(t.dataset.k,t.dataset.v);break;
+    case'shback':shBack();break;
+    case'shnew':shStart();break;
+    case'shq':st.sh.q=Math.max(1,Math.min(50,st.sh.q+(+t.dataset.d)));render();return true;
+    case'shadd':{const g=shPool('qty').slice().sort((x,y)=>availOf(y)-availOf(x));let rest=st.sh.q;
+      const put=(a,n)=>{const ex=S.cart.find(l=>l.aid===a.id);if(ex)ex.qty+=n;else S.cart.push({aid:a.id,qty:n});};
+      g.forEach(a=>{const n=Math.min(availOf(a),rest);if(n>0){put(a,n);rest-=n;}});
+      if(rest>0)put(g[0],rest);
+      const q=st.sh.q;st.sh={step:null,v:{},hist:[],q:1};save();render();window.scrollTo(0,0);toast(`Ajouté : <b>${q}</b> · ${esc(artName(g[0]))}`);return true;}
+    case'shorder':{const a=art(t.dataset.id);st.tab='cmd';shStart({type:a.type,marque:a.marque,modele:a.modele,genre:a.genre});break;}
+    case'sqtype':st.sqType=st.sqType===t.dataset.v?'':t.dataset.v;break;
+    case'seen':unread().forEach(n=>n.read=true);save();st.tab='mine';break;
+    case'oedit':{const o=S.orders.find(x=>x.id===+t.dataset.o);if(!o)return true;
+      if(!S.editing)S.cartSaved={cart:S.cart,note:S.cartNote};
+      S.editing=o.id;S.cart=o.lines.map(l=>l.aid?{aid:l.aid,qty:l.qty}:{txt:l.txt,qty:l.qty});S.cartNote=o.note||'';st.sh={step:null,v:{},hist:[],q:1};st.tab='cmd';save();break;}
+    case'ecancel':shEditEnd();save();break;
+    default:return false;}
+  render();window.scrollTo(0,0);return true;}
+
+/* ---------- Fenêtres ---------- */
+function sheet(html){$('#sheetRoot').innerHTML=`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;tint($('#sheetRoot'));}
+function closeSheet(){$('#sheetRoot').innerHTML='';st.armed=null;}
+function openLoc(code){
+  const list=sortArts(S.articles.filter(a=>a.emp===code));
+  /* Un modèle = une ligne, avec ses tailles en boutons */
+  /* Un modèle = un bloc ; à l'intérieur, une ligne par couleur (et serrage) avec ses tailles */
+  const groups=new Map();list.forEach(a=>{const k=[a.type,a.marque,a.modele,a.genre].join('|');if(!groups.has(k))groups.set(k,[]);groups.get(k).push(a);});
+  const ent=role==='entrepot';
+  const szBtn=x=>`<button type="button" class="sz${qOf(x)?'':' zero'}" data-act="${ent?'edit':'cart'}" data-id="${x.id}" aria-pressed="${filtering()&&matches(x)}" title="${ent?'Modifier':'Commander'} ${esc(x.taille)} · quantité ${qOf(x)}">${esc(x.taille.replace(' cm',''))}${/cm/.test(x.taille)?'<small>cm</small>':''}<span class="qx">×${qOf(x)}</span></button>`;
+  const rows=[...groups.values()].map(g=>{const a=g[0];const years=[...new Set(g.map(x=>x.annee).filter(Boolean))].join(', ');
+    const vars=new Map();g.forEach(x=>{const k=[x.couleur||'',serOf(x)].join(' · ').replace(/^ · | · $/g,'');if(!vars.has(k))vars.set(k,[]);vars.get(k).push(x);});
+    const one=vars.size===1;const k1=[...vars.keys()][0];
+    return `<div class="row" style="align-items:flex-start"><div class="main" style="display:flex;flex-direction:column;gap:6px">
+      <div><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div><div class="d">${TYPE[a.type]} · ${GENRE[a.genre]}${one&&k1?' · '+esc(k1):''}${years?' · '+esc(years):''}</div></div>
+      ${one?`<div class="szs">${g.map(szBtn).join('')}</div>`
+        :[...vars.entries()].map(([k,xs])=>`<div class="var"><span class="vl">${esc(k||'Sans couleur')}</span><div class="szs">${xs.map(szBtn).join('')}</div></div>`).join('')}</div>
+      ${ent?`<div class="acts" style="flex-direction:column;align-items:stretch"><button type="button" class="btn sm" data-act="model" data-id="${a.id}">Modifier tout</button><button type="button" class="btn sm" data-act="more" data-id="${a.id}">+ Tailles</button></div>`:''}</div>`;}).join('');
+  sheet(`<div class="sheet-h"><div><div class="code" style="display:inline-block;font-size:20px;cursor:default">${code}</div><p class="sub" style="margin-top:6px">${esc(locLabel(code))}</p></div><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
+    ${list.length?`<p class="sub">${list.length} article${list.length>1?'s':''} · touchez une taille pour ${ent?'la modifier':'la commander'}.</p>`:''}
+    <div class="list">${rows||'<div class="empty">Emplacement vide.</div>'}</div>
+    ${ent?`<button type="button" class="btn primary" data-act="new" data-code="${code}">+ Ranger un nouveau modèle ici</button>`:''}`);}
+function locOptions(cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
+  const old=cur&&!LOCS.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)} (n'existe plus, à changer)</option>`:'';
+  return old+Object.entries(groups).map(([z,cs])=>`<optgroup label="${ZONES[z]}">${cs.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('')}</optgroup>`).join('');}
+function sizeOptions(type,cur){const arr=sizesOf(type);const list=cur&&!arr.includes(cur)?[cur,...arr]:arr;return list.map(s=>`<option${s===cur?' selected':''}>${esc(s)}</option>`).join('');}
+/* Reprend l'écriture existante si on tape « ride » alors que « Ride » existe déjà */
+function sameAs(v,list){if(!v)return'';const n=norm(v);return list.find(x=>norm(x)===n)||v;}
+function modelOptions(marque){const m=[...new Set(S.articles.filter(x=>!marque||x.marque===marque).map(x=>x.modele))].sort((x,y)=>x.localeCompare(y));return m.map(x=>`<option value="${esc(x)}"></option>`).join('');}
+function openArt(id,code,tplId){
+  const tpl=!id&&tplId&&art(tplId);const multi=!id;
+  const a=id?art(id):tpl?{...tpl,taille:'',note:''}:{type:'botte',marque:'',modele:'',genre:'H',taille:'',annee:new Date().getFullYear(),emp:code||'D1.1',note:''};
+  sheet(`<form id="artForm" class="sheet-in" style="display:flex;flex-direction:column;gap:12px" data-id="${id||''}">
+    <div class="sheet-h"><h2>${id?'Modifier l\'article':tpl?'Ajouter des tailles':'Nouvel article'}</h2><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
+    <div class="seg" id="f-type">${['botte','fix','board'].map(t=>`<button type="button" data-ft="${t}" aria-pressed="${a.type===t}">${TYPE[t]}</button>`).join('')}</div>
+    <div class="grid2">
+      <div class="field"><label for="f-marque">Marque</label><input type="text" id="f-marque" list="dl-marques" value="${esc(a.marque)}" placeholder="Tapez ou choisissez" autocomplete="off" autocapitalize="words">
+        <datalist id="dl-marques">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
+      <div class="field"><label for="f-modele">Modèle</label><input type="text" id="f-modele" list="dl-modeles" value="${esc(a.modele)}" placeholder="Ex. : Sage, Rambler…" autocomplete="off" autocapitalize="words">
+        <datalist id="dl-modeles">${modelOptions(a.marque)}</datalist></div>
+      <div class="field"><label for="f-genre">Homme / Femme</label><select id="f-genre">${Object.entries(GENRE).map(([k,l])=>`<option value="${k}"${k===a.genre?' selected':''}>${l}</option>`).join('')}</select></div>
+      ${multi?'':`<div class="field"><label for="f-taille" id="f-taille-lbl">Taille${a.type==='botte'?' (US ou cm)':''}</label><select id="f-taille">${sizeOptions(a.type,a.taille)}</select></div>`}
+      ${multi?'':`<div class="field"><label for="f-qty">Quantité</label><div class="stepper" style="align-items:flex-start"><div class="in"><button type="button" data-fq="__one" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" id="f-qty" min="0" max="999" value="${qOf(a)}" inputmode="numeric"><button type="button" data-fq="__one" data-d="1" aria-label="Plus">+</button></div></div></div>`}
+      <div class="field"><label for="f-annee">Année</label><input type="number" id="f-annee" value="${esc(a.annee)}" min="2000" max="2100"></div>
+      <div class="field"><label for="f-emp">Emplacement</label><select id="f-emp">${locOptions(a.emp)}</select></div>
+      <div class="field"><label for="f-couleur">Couleur <small class="opt">facultatif</small></label><input type="text" id="f-couleur" list="dl-couleurs" value="${esc(a.couleur||'')}" placeholder="Ex. : black, blanc/rose…" autocomplete="off">
+        <datalist id="dl-couleurs">${colorOpts()}</datalist></div>
+      <div class="field" id="f-serrage-w"${a.type==='botte'?'':' hidden'}><label for="f-serrage">Serrage <small class="opt">facultatif</small></label><select id="f-serrage"><option value="">Non précisé</option>${Object.entries(SERRAGE).map(([k,l])=>`<option value="${k}"${k===a.serrage?' selected':''}>${l}</option>`).join('')}</select></div>
+    </div>
+    ${multi?`<div class="field"><label>Tailles · touchez toutes celles à ranger, puis indiquez la quantité</label><div id="f-sizes"></div></div>`:''}
+    <div class="field"><label for="f-note">Note (état, détail…) <small class="opt">facultatif</small></label><input type="text" id="f-note" value="${esc(a.note)}"></div>
+    <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
+      <button type="submit" class="btn primary" id="f-save">Enregistrer</button>
+      ${id?`<button type="button" class="btn" data-act="model" data-id="${id}">Modifier toutes les tailles</button><button type="button" class="btn" data-act="more" data-id="${id}">+ Autres tailles de ce modèle</button><button type="button" class="btn danger" data-act="del" data-id="${id}">Supprimer</button>`:''}
+    </div></form>`);
+  const f=$('#artForm');f.dataset.type=a.type;enterNav(f);
+  /* lignes à ranger : une taille peut revenir plusieurs fois avec des couleurs différentes */
+  let rows=[],nk=0;const sizeList=()=>sizesOf(f.dataset.type);
+  const genColor=()=>$('#f-couleur').value.trim();
+  const readRows=()=>{if(!multi)return;rows.forEach(r=>{const s=f.querySelector(`[data-fs="${r.k}"]`),c=f.querySelector(`[data-fc="${r.k}"]`),q=f.querySelector(`[data-fqi="${r.k}"]`);
+    if(s)r.s=s.value;if(c)r.c=c.value.trim();if(q)r.q=Math.max(1,Math.min(999,parseInt(q.value)||1));});};
+  const haveHere=()=>{const m=norm($('#f-marque').value.trim()),mo=norm($('#f-modele').value.trim()),emp=$('#f-emp').value,co=norm(fixColor(genColor())),ge=$('#f-genre').value;
+    return new Set(S.articles.filter(x=>x.type===f.dataset.type&&norm(x.marque)===m&&norm(x.modele)===mo&&x.emp===emp&&x.genre===ge&&norm(x.couleur)===co).map(x=>x.taille));};
+  function renderSizes(){if(!multi)return;readRows();const have=haveHere(),used=new Set(rows.map(r=>r.s));
+    const chip=s=>{const h=have.has(s);return `<button type="button" class="sz${h?' have':''}" data-fz="${esc(s)}" aria-pressed="${used.has(s)}"${h?' title="Déjà rangée ici : la quantité sera ajoutée"':''}>${esc(s.replace(' cm',''))}${h?'<small>✓</small>':''}</button>`;};
+    const row=(lbl,arr)=>`<div class="szs">${lbl?`<span class="szl">${lbl}</span>`:''}${arr.map(chip).join('')}</div>`;
+    const html=f.dataset.type==='botte'?row('US',S.sizesB.filter(s=>!/cm/.test(s)))+'<div style="height:6px"></div>'+row('cm',S.sizesB.filter(s=>/cm/.test(s))):f.dataset.type==='board'?row('cm',S.sizesS):row('',S.sizesF);
+    rows.sort((x,y)=>sizeRankStr(x.s)-sizeRankStr(y.s));
+    const n=rows.length,tot=rows.reduce((x,r)=>x+r.q,0),ph=esc(genColor()||'Couleur');
+    const qrows=rows.map(r=>`<div class="qrow m3"><select data-fs="${r.k}" aria-label="Taille" style="padding:6px 2px;font:700 13px var(--f-mono)">${sizeList().map(s=>`<option${s===r.s?' selected':''}>${esc(s)}</option>`).join('')}</select>
+      <input type="text" data-fc="${r.k}" list="dl-couleurs" value="${esc(r.c)}" placeholder="${ph}" autocomplete="off" aria-label="Couleur">
+      <div class="stepper"><div class="in"><button type="button" data-fq="${r.k}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-fqi="${r.k}" min="1" max="999" value="${r.q}" inputmode="numeric" aria-label="Quantité"><button type="button" data-fq="${r.k}" data-d="1" aria-label="Plus">+</button></div></div>
+      <button type="button" class="del" data-fdel="${r.k}" title="Retirer cette ligne" aria-label="Retirer cette ligne">✕</button></div>`).join('');
+    $('#f-sizes').innerHTML=html+(n?`<div class="qrows"><div class="qhead m3"><span>Taille</span><span>Couleur</span><span>Quantité</span><span></span></div>${qrows}
+      <div><button type="button" class="btn sm" data-fadd>+ Même taille, autre couleur</button></div></div>`:'')
+      +`<div class="count" style="margin-top:8px">${n?`<b>${n} ligne${n>1?'s':''} · ${tot} pièce${tot>1?'s':''}</b>`:'Aucune taille choisie'}${have.size?' · ✓ = déjà rangée ici, la quantité sera ajoutée':''}</div>`;
+    $('#f-save').textContent=n>1?`Enregistrer les ${n} lignes (${tot} pièces)`:'Enregistrer';}
+  renderSizes();
+  f.addEventListener('click',e=>{
+    const z=e.target.closest('[data-fz]');if(z){readRows();const s=z.dataset.fz;if(rows.some(r=>r.s===s))rows=rows.filter(r=>r.s!==s);else rows.push({k:'r'+(++nk),s,c:'',q:1});renderSizes();return;}
+    const ad=e.target.closest('[data-fadd]');if(ad){readRows();const last=rows[rows.length-1];const k='r'+(++nk);rows.push({k,s:last?last.s:sizeList()[0],c:'',q:1});renderSizes();const c=f.querySelector(`[data-fc="${k}"]`);if(c)c.focus();return;}
+    const dl=e.target.closest('[data-fdel]');if(dl){readRows();rows=rows.filter(r=>r.k!==dl.dataset.fdel);renderSizes();return;}
+    const qb=e.target.closest('[data-fq]');if(qb){const s=qb.dataset.fq,d=+qb.dataset.d;
+      if(s==='__one'){const i=$('#f-qty');i.value=Math.max(0,Math.min(999,(parseInt(i.value)||0)+d));}
+      else{readRows();const r=rows.find(x=>x.k===s);if(r)r.q=Math.max(1,Math.min(999,r.q+d));renderSizes();}return;}
+    const b=e.target.closest('[data-ft]');if(!b)return;f.dataset.type=b.dataset.ft;
+    f.querySelectorAll('[data-ft]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    $('#f-serrage-w').hidden=b.dataset.ft!=='botte';
+    if(multi){rows=[];renderSizes();}else{$('#f-taille').innerHTML=sizeOptions(b.dataset.ft,'');$('#f-taille-lbl').textContent='Taille'+(b.dataset.ft==='botte'?' (US ou cm)':'');}});
+  $('#f-marque').addEventListener('input',e=>{$('#dl-modeles').innerHTML=modelOptions(sameAs(e.target.value.trim(),S.brands));renderSizes();});
+  $('#f-modele').addEventListener('input',renderSizes);
+  f.addEventListener('change',e=>{const d=e.target.dataset||{};if(d.fqi!==undefined||d.fs!==undefined)renderSizes();});
+  $('#f-emp').addEventListener('change',renderSizes);
+  $('#f-couleur').addEventListener('input',renderSizes);
+  $('#f-genre').addEventListener('change',renderSizes);
+  f.addEventListener('submit',e=>{e.preventDefault();
+    const marque=sameAs($('#f-marque').value.trim(),S.brands);if(!marque){$('#f-marque').focus();toast('Indiquez la marque');return;}
+    const modele=sameAs($('#f-modele').value.trim(),[...new Set(S.articles.filter(x=>x.marque===marque).map(x=>x.modele))]);if(!modele){$('#f-modele').focus();toast('Indiquez le modèle');return;}
+    readRows();
+    if(multi&&!rows.length){toast('Choisissez au moins une taille');return;}
+    if(!S.brands.includes(marque)){S.brands.push(marque);S.brands.sort((x,y)=>x.localeCompare(y));}
+    const known=[...new Set(S.articles.map(x=>x.couleur).filter(Boolean))];
+    const base={type:f.dataset.type,marque,modele,genre:$('#f-genre').value,annee:parseInt($('#f-annee').value)||'',emp:$('#f-emp').value,note:$('#f-note').value.trim(),
+      couleur:sameAs(fixColor(genColor()),known),
+      serrage:f.dataset.type==='botte'?$('#f-serrage').value:''};
+    let added=0;
+    if(id){Object.assign(art(id),base,{taille:$('#f-taille').value,qty:Math.max(0,Math.min(999,parseInt($('#f-qty').value)||0))});}
+    else{const stamp=Date.now().toString(36);rows.forEach((r,i)=>{const couleur=r.c?sameAs(fixColor(r.c),known):base.couleur;
+      const ex=S.articles.find(x=>x.type===base.type&&x.marque===marque&&x.modele===modele&&x.genre===base.genre&&x.emp===base.emp&&norm(x.couleur)===norm(couleur)&&x.taille===r.s);
+      if(ex){ex.qty=qOf(ex)+r.q;added++;}else S.articles.push({id:'a'+stamp+i,...base,couleur,taille:r.s,qty:r.q});});}
+    save();closeSheet();render();
+    const n=rows.length,tot=rows.reduce((x,r)=>x+r.q,0);
+    toast(id?`Modifié : <b>${esc(base.emp)}</b> · ${esc(marque+' '+modele)}`:`${n} ligne${n>1?'s':''} (${tot} pièce${tot>1?'s':''}) rangée${n>1?'s':''} en <b>${esc(base.emp)}</b> · ${esc(marque+' '+modele)}${added?` · ${added} ajoutée${added>1?'s':''} au stock existant`:''}`);});
+}
+
+/* « noir » est toujours enregistré « Black » */
+function fixColor(c){return /^noire?$/i.test(String(c||'').trim())?'Black':c;}
+/* Entrée dans un formulaire : passe à la case du dessous au lieu d'enregistrer */
+function enterNav(f){
+  f.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'||e.isComposing)return;const t=e.target;
+    if(!(t instanceof HTMLInputElement)||['button','submit','checkbox','radio'].includes(t.type))return;
+    e.preventDefault();
+    if(t.id==='m-call'){$('#m-apply').click();return;}
+    const col=['mc','mqi','fqi'].find(k=>t.dataset[k]!==undefined);
+    let next=null;
+    if(col){const all=[...f.querySelectorAll(`[data-${col}]`)].filter(x=>!x.closest('.gone'));next=all[all.indexOf(t)+1];}
+    else{const all=[...f.querySelectorAll('input:not([type=hidden]),select')].filter(x=>!x.disabled&&x.offsetParent!==null);next=all[all.indexOf(t)+1];}
+    const go=n=>{n.focus();if(n.select)try{n.select();}catch(_){}};
+    if(!next){t.blur();return;}
+    if(col){/* enregistrer d'abord la valeur (la liste peut se redessiner), puis retrouver la case suivante */
+      const key=next.dataset[col];t.dispatchEvent(new Event('change',{bubbles:true}));
+      const n=[...f.querySelectorAll(`[data-${col}]`)].find(x=>x.dataset[col]===key);if(n)go(n);return;}
+    go(next);});}
+function colorOpts(){return [...new Set(['Black','Blanc','Gris','Bleu','Rouge','Vert','Rose','Violet','Beige','Kaki',...S.articles.map(x=>x.couleur).filter(Boolean)])].sort((x,y)=>x.localeCompare(y)).map(c=>`<option value="${esc(c)}"></option>`).join('');}
+/* Modifier d'un coup toutes les tailles d'un modèle rangé au même emplacement (toutes couleurs confondues) */
+function openModel(id){
+  const a0=art(id);if(!a0)return;
+  const list=S.articles.filter(x=>x.type===a0.type&&x.marque===a0.marque&&x.modele===a0.modele&&x.genre===a0.genre&&x.emp===a0.emp).sort((x,y)=>sizeRank(x)-sizeRank(y));
+  const uniq=f=>[...new Set(list.map(f))];
+  const yrs=uniq(x=>x.annee||''),sers=uniq(x=>x.serrage||''),bot=a0.type==='botte';
+  const mixed='<span class="mixed">différent selon la taille, laissé tel quel</span>';
+  sheet(`<form id="modForm" style="display:flex;flex-direction:column;gap:12px">
+    <div class="sheet-h"><div><h2>Modifier toutes les tailles</h2><p class="sub" style="margin-top:4px"><span class="mk">${esc(a0.marque)}</span> ${esc(a0.modele)} · ${list.length} taille${list.length>1?'s':''} en <b>${esc(a0.emp)}</b></p></div><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
+    <div class="grid2">
+      <div class="field"><label for="m-marque">Marque</label><input type="text" id="m-marque" list="dl-marques" value="${esc(a0.marque)}" autocomplete="off" autocapitalize="words"><datalist id="dl-marques">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
+      <div class="field"><label for="m-modele">Modèle</label><input type="text" id="m-modele" value="${esc(a0.modele)}" autocomplete="off" autocapitalize="words"></div>
+      <div class="field"><label for="m-genre">Homme / Femme</label><select id="m-genre">${Object.entries(GENRE).map(([k,l])=>`<option value="${k}"${k===a0.genre?' selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="m-annee">Année</label><input type="number" id="m-annee" value="${yrs.length===1?esc(yrs[0]):''}" placeholder="${yrs.length>1?'plusieurs':''}" min="2000" max="2100">${yrs.length>1?mixed:''}</div>
+      <div class="field"><label for="m-emp">Emplacement</label><select id="m-emp">${locOptions(a0.emp)}</select></div>
+      ${bot?`<div class="field"><label for="m-serrage">Serrage <small class="opt">facultatif</small></label><select id="m-serrage">${sers.length>1?'<option value="__keep" selected>Laisser tel quel</option>':''}<option value="">Non précisé</option>${Object.entries(SERRAGE).map(([k,l])=>`<option value="${k}"${sers.length===1&&k===sers[0]?' selected':''}>${l}</option>`).join('')}</select></div>`:''}
+    </div>
+    <div class="card" style="gap:8px">
+      <h3>Couleur et quantité par taille</h3>
+      <div class="inline"><div class="field"><label for="m-call">Même couleur pour toutes</label><input type="text" id="m-call" list="dl-couleurs" placeholder="Ex. : black" autocomplete="off"></div><button type="button" class="btn" id="m-apply">Appliquer à toutes</button></div>
+      <p class="sub">Ou tapez une couleur différente sur chaque taille.</p>
+      <div class="qrows" style="margin-top:0">
+        <div class="qhead m3"><span>Taille</span><span>Couleur</span><span>Quantité</span><span></span></div>
+        ${list.map(x=>`<div class="qrow m3"><span class="qsz">${esc(x.taille.replace(' cm',''))}${/cm/.test(x.taille)?'<small> cm</small>':''}</span>
+          <input type="text" data-mc="${x.id}" list="dl-couleurs" value="${esc(x.couleur||'')}" placeholder="—" autocomplete="off" aria-label="Couleur ${esc(x.taille)}">
+          <div class="stepper"><div class="in"><button type="button" data-mq="${x.id}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-mqi="${x.id}" min="0" max="999" value="${qOf(x)}" inputmode="numeric" aria-label="Quantité ${esc(x.taille)}"><button type="button" data-mq="${x.id}" data-d="1" aria-label="Plus">+</button></div></div>
+          <button type="button" class="del" data-mdel="${x.id}" title="Retirer cette taille" aria-label="Retirer la taille ${esc(x.taille)}" aria-pressed="false">✕</button></div>`).join('')}
+        <div id="m-new"></div>
+      </div>
+      <div><button type="button" class="btn sm" id="m-add">+ Ajouter une taille / couleur</button></div>
+      <p class="sub" id="m-delinfo">✕ = retirer complètement une taille (elle n'apparaîtra plus nulle part).</p>
+      <datalist id="dl-couleurs">${colorOpts()}</datalist>
+    </div>
+    <div><button type="submit" class="btn primary">Enregistrer les ${list.length} taille${list.length>1?'s':''}</button></div>
+  </form>`);
+  const f=$('#modForm');const gone=new Set();enterNav(f);
+  let nNew=0;const newIds=()=>[...f.querySelectorAll('[data-newrow]')].map(r=>r.dataset.newrow);
+  const subBtn=()=>{const keep=list.length-gone.size,add=newIds().length;
+    f.querySelector('[type=submit]').textContent=`Enregistrer${keep?` · ${keep} taille${keep>1?'s':''}`:''}${add?` · ${add} ajoutée${add>1?'s':''}`:''}${gone.size?` · ${gone.size} retirée${gone.size>1?'s':''}`:''}`;};
+  const sizeList=sizesOf(a0.type);
+  $('#m-add').addEventListener('click',()=>{
+    const k='new'+(++nNew);const prev=[...f.querySelectorAll('.qrows .qrow')].pop();
+    const def=prev?(prev.querySelector('[data-ns]')?.value||list.find(x=>prev.querySelector(`[data-mc="${x.id}"]`))?.taille||sizeList[0]):sizeList[0];
+    $('#m-new').insertAdjacentHTML('beforeend',`<div class="qrow m3" data-newrow="${k}"><select data-ns="${k}" aria-label="Taille" style="padding:6px 2px;font:700 13px var(--f-mono)">${sizeList.map(s=>`<option${s===def?' selected':''}>${esc(s)}</option>`).join('')}</select>
+      <input type="text" data-mc="${k}" list="dl-couleurs" placeholder="Couleur" autocomplete="off" aria-label="Couleur nouvelle taille">
+      <div class="stepper"><div class="in"><button type="button" data-mq="${k}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-mqi="${k}" min="0" max="999" value="1" inputmode="numeric" aria-label="Quantité nouvelle taille"><button type="button" data-mq="${k}" data-d="1" aria-label="Plus">+</button></div></div>
+      <button type="button" class="del" data-mnew="${k}" title="Annuler cette ligne" aria-label="Annuler cette ligne">✕</button></div>`);
+    f.querySelector(`[data-mc="${k}"]`).focus();subBtn();});
+  subBtn();
+  f.addEventListener('click',e=>{
+    const nx=e.target.closest('[data-mnew]');if(nx){nx.closest('.qrow').remove();subBtn();return;}
+    const dl=e.target.closest('[data-mdel]');if(dl){const k=dl.dataset.mdel;if(gone.has(k))gone.delete(k);else gone.add(k);
+      dl.closest('.qrow').classList.toggle('gone',gone.has(k));dl.setAttribute('aria-pressed',gone.has(k));dl.textContent=gone.has(k)?'↺':'✕';dl.title=gone.has(k)?'Garder cette taille':'Retirer cette taille';subBtn();return;}
+    if(e.target.id==='m-apply'){const v=$('#m-call').value.trim();f.querySelectorAll('[data-mc]').forEach(i=>i.value=v);toast(v?`Couleur <b>${esc(v)}</b> mise sur toutes les tailles`:'Couleur effacée sur toutes les tailles');return;}
+    const b=e.target.closest('[data-mq]');if(b){const i=f.querySelector(`[data-mqi="${b.dataset.mq}"]`);i.value=Math.max(0,Math.min(999,(parseInt(i.value)||0)+(+b.dataset.d)));}});
+  f.addEventListener('submit',e=>{e.preventDefault();
+    const marque=sameAs($('#m-marque').value.trim(),S.brands);if(!marque){$('#m-marque').focus();toast('Indiquez la marque');return;}
+    const modele=$('#m-modele').value.trim();if(!modele){$('#m-modele').focus();toast('Indiquez le modèle');return;}
+    if(!S.brands.includes(marque)){S.brands.push(marque);S.brands.sort((x,y)=>x.localeCompare(y));}
+    const known=[...new Set(S.articles.map(x=>x.couleur).filter(Boolean))];
+    const an=$('#m-annee').value.trim(),ser=bot?$('#m-serrage').value:'__keep',emp=$('#m-emp').value;
+    list.forEach(x=>{
+      Object.assign(x,{marque,modele,genre:$('#m-genre').value,emp,
+        couleur:sameAs(fixColor(f.querySelector(`[data-mc="${x.id}"]`).value.trim()),known),
+        qty:Math.max(0,Math.min(999,parseInt(f.querySelector(`[data-mqi="${x.id}"]`).value)||0))});
+      if(an||yrs.length===1)x.annee=parseInt(an)||'';
+      if(ser!=='__keep')x.serrage=ser;});
+    if(gone.size){S.articles=S.articles.filter(x=>!gone.has(x.id));S.cart=S.cart.filter(l=>!gone.has(l.aid));}
+    /* nouvelles lignes : même modèle, autre taille ou autre couleur */
+    let added=0;const stamp=Date.now().toString(36);
+    newIds().forEach((k,i)=>{
+      const taille=f.querySelector(`[data-ns="${k}"]`).value;
+      const couleur=sameAs(fixColor(f.querySelector(`[data-mc="${k}"]`).value.trim()),known);
+      const qty=Math.max(0,Math.min(999,parseInt(f.querySelector(`[data-mqi="${k}"]`).value)||0));
+      const same=S.articles.find(x=>x.type===a0.type&&x.marque===marque&&x.modele===modele&&x.genre===$('#m-genre').value&&x.emp===emp&&x.taille===taille&&norm(x.couleur)===norm(couleur));
+      if(same){same.qty=Math.min(999,qOf(same)+qty);}
+      else S.articles.push({id:'a'+stamp+'n'+i,type:a0.type,marque,modele,genre:$('#m-genre').value,taille,annee:an?parseInt(an)||'':a0.annee,emp,note:'',couleur,serrage:ser!=='__keep'?ser:(a0.serrage||''),qty});
+      added++;});
+    save();closeSheet();render();
+    const kept=list.length-gone.size;
+    toast(`${kept} taille${kept>1?'s':''} modifiée${kept>1?'s':''}${added?` · <b>${added} ajoutée${added>1?'s':''}</b>`:''}${gone.size?` · <b>${gone.size} retirée${gone.size>1?'s':''}</b>`:''} · <b>${esc(emp)}</b> · ${esc(marque+' '+modele)}`);});
+}
+
+/* ---------- Actions ---------- */
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('scrim')){closeSheet();return;}
+  const t=e.target.closest('[data-act],[data-tab],[data-role],[data-ftype],[data-fgenre],[data-fsize]');if(!t)return;
+  if(t.dataset.fgenre!==undefined){st.fGenre=t.dataset.fgenre;st.focus=null;render();return;}
+  if(t.dataset.fsize!==undefined){const v=t.dataset.fsize,i=st.fTailles.indexOf(v);if(i<0)st.fTailles.push(v);else st.fTailles.splice(i,1);st.focus=null;render();return;}
+  if(t.dataset.tab){st.tab=t.dataset.tab;if(st.tab!=='plan'){st.focus=null;st.focusOrder=null;}
+    if(st.tab==='orders'||st.tab==='mine'){const u=unread();u.forEach(n=>n.read=true);if(u.length)save();}
+    st.open=null;render();window.scrollTo(0,0);return;}
+  if(t.dataset.role){if(role===t.dataset.role)return;role=t.dataset.role;st.tab=role==='magasin'?'cmd':'search';st.focus=null;st.focusOrder=null;try{localStorage.setItem(KEY+'-role',role);}catch(e){}
+    const u=unread();render();if(u.length)toast(`Notification · <b>${esc(u[u.length-1].text)}</b>`,true);else toast(`Vous êtes côté <b>${role==='entrepot'?'Entrepôt':'Magasin'}</b>`);return;}
+  if(t.dataset.ftype!==undefined){st.fType=t.dataset.ftype;st.fTailles=[];st.focus=null;render();return;}
+  const act=t.dataset.act,id=t.dataset.id,oid=+t.dataset.o;
+  if(role==='magasin'&&shopClick(act,t))return;
+  const order=()=>S.orders.find(o=>o.id===oid);
+  switch(act){
+    case'close':closeSheet();break;
+    case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
+    case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
+    case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
+    case'unfocus':st.focus=null;st.focusOrder=null;render();break;
+    case'oplan':st.focus=null;st.focusOrder=oid;st.tab='plan';render();window.scrollTo(0,0);break;
+    case'loc':openLoc(t.dataset.code);break;
+    case'new':openArt(null,t.dataset.code);break;
+    case'edit':openArt(id);break;
+    case'more':openArt(null,null,id);break;
+    case'model':openModel(id);break;
+    case'del':if(st.armed!=='del'+id){st.armed='del'+id;t.classList.add('armed');t.textContent='Confirmer la suppression';return;}
+      S.articles=S.articles.filter(a=>a.id!==id);save();closeSheet();render();toast('Article supprimé');break;
+    case'cart':{const ex=S.cart.find(l=>l.aid===id);if(ex)ex.qty++;else S.cart.push({aid:id,qty:1});save();closeSheet();render();
+      toast(`Ajouté à la demande · <b>quantité à régler dans Commandes</b>`);break;}
+    case'crm':S.cart.splice(+t.dataset.i,1);save();render();break;
+    case'free':{const v=$('#freeTxt').value.trim();if(!v){$('#freeTxt').focus();return;}S.cart.push({txt:v,qty:Math.max(1,parseInt($('#freeQty').value)||1)});st.sh={step:null,v:{},hist:[],q:1};save();render();window.scrollTo(0,0);break;}
+    case'qstep':{const l=S.cart[+t.dataset.i];l.qty=Math.min(50,Math.max(1,l.qty+(+t.dataset.d)));save();render();break;}
+    case'send':shopSend();break;
+    case'open':st.open=st.open===oid?null:oid;render();break;
+    case'lst':{const o=order(),l=o.lines[+t.dataset.i];l.st=l.st===t.dataset.v?null:t.dataset.v;save();render();break;}
+    case'ost':{const o=order();o.status=t.dataset.v;
+      if(o.status==='prete'){const ok=o.lines.filter(l=>l.st==='ok').length,ko=o.lines.length-ok;
+        /* retire du stock les lignes servies (une seule fois par commande) */
+        let out=0,libre=0;
+        o.readyAt=o.readyAt||Date.now();
+        if(!o.deducted){o.lines.filter(l=>l.st==='ok').forEach(l=>{const a=l.aid&&art(l.aid);if(a){const before=qOf(a);a.qty=Math.max(0,before-l.qty);out+=before-a.qty;}else libre++;});o.deducted=true;}
+        notify('magasin',`Commande #${o.id} prête : ${ok} OK${ko?`, ${ko} en rupture`:''}`);
+        toast(`Commande <b>#${o.id}</b> prête. Le magasin est prévenu.<br>Stock mis à jour : <b>−${out} pièce${out>1?'s':''}</b>${libre?` · ${libre} demande${libre>1?'s':''} libre${libre>1?'s':''} à retirer à la main`:''}`);}
+      if(o.status==='recue')toast(`Commande <b>#${o.id}</b> reçue`);
+      save();render();break;}
+    case'rmtag':S[t.dataset.k].splice(+t.dataset.i,1);save();render();break;
+    case'addtag':{const k=t.dataset.k,inp=$('#add-'+k),v=inp.value.trim();if(!v){inp.focus();return;}if(!S[k].includes(v)){S[k].push(v);if(k==='brands')S[k].sort((x,y)=>x.localeCompare(y));if(k==='sizesB'||k==='sizesS')S[k].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));}save();render();break;}
+    case'reset':if(st.armed!=='reset'){st.armed='reset';render();return;}S=seed();st.armed=null;save();render();toast('Liste importée rechargée');break;
+    case'wipe':if(st.armed!=='wipe'){st.armed='wipe';render();return;}{const keep={brands:S.brands,sizesB:S.sizesB,sizesF:S.sizesF,sizesS:S.sizesS};S={...seed(),...keep,demo:false,articles:[],orders:[],notifs:[],seq:1000};}st.armed=null;save();render();toast('Tout est effacé. Ajoutez votre premier article.');break;
+  }
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){st.q=t.value;st.focus=null;const pos=t.selectionStart;render();const q=$('#q');if(q){q.focus();try{q.setSelectionRange(pos,pos);}catch(_){}}}
+  else if(t.id==='sq'){st.sq=t.value;const pos=t.selectionStart;render();const q=$('#sq');if(q){q.focus();try{q.setSelectionRange(pos,pos);}catch(_){}}}
+  else if(t.id==='cartNote'){S.cartNote=t.value;save();}
+  else if(t.id==='myName'){S.myName=t.value;save();}
+  else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fCouleur:'fCouleur',fSerrage:'fSerrage'};
+  if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id==='freeTxt'){e.preventDefault();document.querySelector('[data-act="free"]').click();}
+  if(e.key==='Enter'&&e.target.id&&e.target.id.startsWith('add-')){e.preventDefault();e.target.nextElementSibling;document.querySelector(`[data-act="addtag"][data-k="${e.target.id.slice(4)}"]`).click();}});
+/* ---------- Synchro en ligne (Firebase) : le stock, les commandes et les avis passent d'un téléphone à l'autre ---------- */
+const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"entrepotsnow.firebaseapp.com",projectId:"entrepotsnow",
+  storageBucket:"entrepotsnow.firebasestorage.app",messagingSenderId:"754342580173",appId:"1:754342580173:web:20ee46db9b4aab080c7e84"};
+const FBU='https://www.gstatic.com/firebasejs/10.12.2/';
+const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo'];
+/* ?ns=test : bac à sable pour les essais, sans toucher aux vraies données */
+const NS=(()=>{try{return (new URLSearchParams(location.search).get('ns')||'').replace(/[^a-z0-9]/gi,'');}catch(e){return'';}})();
+const C=n=>NS?NS+'_'+n:n;
+const cloud={on:false,fs:null,db:null,pending:false,sent:{stock:null,orders:null,notifs:null}};
+const stockJson=()=>JSON.stringify(Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]])));
+function setSync(state,txt){const e=$('#sync');if(!e)return;e.dataset.s=state;e.textContent=txt;}
+/* ne pas redessiner sous les doigts de quelqu'un qui tape */
+function softRender(){const ae=document.activeElement;
+  if(ae&&$('#view').contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)){cloud.pending=true;return;}render();}
+document.addEventListener('focusout',()=>{if(!cloud.pending)return;setTimeout(()=>{const ae=document.activeElement;
+  if(!(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))){cloud.pending=false;render();}},60);});
+function cloudPush(){
+  if(!cloud.on)return;const {fs,db}=cloud;
+  if(cloud.sent.stock!==null&&role==='entrepot'){const j=stockJson();
+    if(j!==cloud.sent.stock){cloud.sent.stock=j;fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,at:Date.now()}).catch(cloudErr);}}
+  [['orders',S.orders],['notifs',S.notifs]].forEach(([col,arr])=>{const sent=cloud.sent[col];if(!sent)return;
+    const seen=new Set();
+    arr.forEach(x=>{const id=String(x.id).replace('.','_'),j=JSON.stringify(x);seen.add(id);
+      if(sent.get(id)!==j){sent.set(id,j);fs.setDoc(fs.doc(db,C(col),id),{json:j,at:Date.now()}).catch(cloudErr);}});
+    [...sent.keys()].forEach(id=>{if(!seen.has(id)){sent.delete(id);fs.deleteDoc(fs.doc(db,C(col),id)).catch(cloudErr);}});});}
+function cloudErr(e){console.warn('Synchro',e);setSync('off','Hors ligne');}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+async function cloudStart(){
+  setSync('wait','Connexion…');
+  try{
+    const [app,auth,fs]=await Promise.all([import(FBU+'firebase-app.js'),import(FBU+'firebase-auth.js'),import(FBU+'firebase-firestore.js')]);
+    const a=app.initializeApp(FB_CONFIG);
+    await auth.signInAnonymously(auth.getAuth(a));
+    const db=fs.getFirestore(a);Object.assign(cloud,{fs,db,on:true});
+    const unreadIds=()=>new Set(unread().map(n=>String(n.id)));
+    /* Stock : écrit par l'entrepôt. La première fois, l'entrepôt envoie ce qu'il a déjà sur l'appareil. */
+    fs.onSnapshot(fs.doc(db,C('cfg'),'stock'),snap=>{
+      if(!snap.exists()){cloud.empty=true;softRender();return;}
+      cloud.empty=false;
+      const j=snap.data().json;if(j===cloud.sent.stock)return;
+      cloud.sent.stock=j;Object.assign(S,JSON.parse(j));saveLocal();softRender();setSync('on','En ligne');
+    },cloudErr);
+    [['orders','orders'],['notifs','notifs']].forEach(([col,key])=>{
+      fs.onSnapshot(fs.collection(db,C(col)),qs=>{
+        const m=new Map();qs.forEach(d=>m.set(d.id,d.data().json));
+        const first=!cloud.sent[col];
+        if(first&&!m.size&&cloud.empty&&S[key].length)return; /* base vide : on attend le bouton « Envoyer » */
+        const before=unreadIds();
+        cloud.sent[col]=m;
+        S[key]=[...m.values()].map(x=>JSON.parse(x));
+        if(key==='orders')S.orders.sort((x,y)=>x.at-y.at);
+        saveLocal();softRender();setSync('on','En ligne');
+        if(key==='notifs'&&!first){const fresh=unread().filter(n=>!before.has(String(n.id)));
+          if(fresh.length){toast(`🔔 <b>${esc(fresh[fresh.length-1].text)}</b>`,true);try{navigator.vibrate&&navigator.vibrate([200,100,200]);}catch(e){}}}
+      },cloudErr);});
+  }catch(e){console.warn('Synchro indisponible',e);cloud.on=false;setSync('off','Hors ligne');}
+}
+window.addEventListener('offline',()=>setSync('off','Hors ligne'));
+window.addEventListener('online',()=>{if(cloud.on)setSync('on','En ligne');});
+render();
+cloudStart();
+</script>
+
+</body>
+</html>
