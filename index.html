@@ -316,6 +316,19 @@ details.libre .inline{margin-top:10px}
 .sync::before{content:"";position:absolute;left:8px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:#e7b25a}
 .sync[data-s="on"]::before{background:#4cd07d}.sync[data-s="off"]::before{background:#f08a80}
 .sync:empty{display:none}
+/* Préparation à plusieurs */
+.lrow{flex-wrap:wrap}
+.lctl-w{flex-basis:100%;min-width:0}
+.lctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
+.chk{border:1.5px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:7px 10px;font-weight:600;font-size:14px;cursor:pointer;color:var(--ink)}
+.chk.on{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.chk.ok.on{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.chk.ko{color:var(--bad);border-color:var(--bad)}
+.chk:disabled{opacity:.5;cursor:not-allowed}
+.prepq{flex-direction:row;align-items:center;gap:6px}
+.lrow.ls-cours{background:color-mix(in srgb,var(--warn-bg) 55%,transparent)}
+.lrow.ls-ok{background:color-mix(in srgb,var(--ok-bg) 45%,transparent)}
+.lrow.ls-rupture{background:color-mix(in srgb,var(--bad-bg) 45%,transparent)}
 </style>
 <style>body{margin:0}[hidden]{display:none!important}</style>
 </head>
@@ -568,9 +581,39 @@ function lineRow(o,l,i){
   const title=a?esc(artName(a)):l.aid?'Article supprimé du catalogue':`« ${esc(l.txt)} »`;
   const live=a&&(o.status==='demandee'||o.status==='prep'); /* avant préparation : montrer le stock disponible */
   const desc=a?esc(artDesc(a))+`<br><span class="opt">📍 ${esc(locLabel(a.emp))}</span>`+(live?` · <b class="qn${qOf(a)?'':' zero'}">Stock ${qOf(a)}</b>${qOf(a)<l.qty?' <span class="pill ln-rupture">stock insuffisant</span>':''}`:''):l.txt?'Demande en texte libre':'';
-  let right=l.st?`<span class="pill ln-${l.st}">${l.st==='ok'?'OK':'Rupture'}</span>`:'';
-  if(role==='entrepot'&&o.status==='prep')right=`<div class="seg tog"><button type="button" class="ok" data-act="lst" data-o="${o.id}" data-i="${i}" data-v="ok" aria-pressed="${l.st==='ok'}">OK</button><button type="button" class="ko" data-act="lst" data-o="${o.id}" data-i="${i}" data-v="rupture" aria-pressed="${l.st==='rupture'}">Rupture</button></div>`;
-  return `<div class="row">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div></div>`;}
+  const done=doneOf(l),mine=l.by&&l.by===me(),open=role==='entrepot'&&(o.status==='demandee'||o.status==='prep');
+  let ctl='';
+  if(open){
+    const other=l.st==='cours'&&!mine;
+    const step=(l.st==='cours'&&mine)?`<div class="stepper prepq"><span class="lbl">Préparé</span><div class="in"><button type="button" data-act="ldone" data-o="${o.id}" data-i="${i}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" min="0" max="999" value="${done}" data-done="${o.id}:${i}" inputmode="numeric" aria-label="Quantité préparée"><button type="button" data-act="ldone" data-o="${o.id}" data-i="${i}" data-d="1" aria-label="Plus">+</button></div><span class="lbl">/ ${l.qty}</span></div>`:'';
+    ctl=`<div class="lctl">
+      <button type="button" class="chk${l.st==='cours'?' on':''}" data-act="lclaim" data-o="${o.id}" data-i="${i}"${other||l.st==='ok'||l.st==='rupture'?' disabled':''}>${l.st==='cours'?'☑':'☐'} En cours${l.st==='cours'&&l.by?` · ${esc(l.by)}`:''}</button>
+      <button type="button" class="chk ok${l.st==='ok'||l.st==='rupture'?' on':''}" data-act="lok" data-o="${o.id}" data-i="${i}"${other||!l.st?' disabled':''}>${l.st==='ok'||l.st==='rupture'?'☑':'☐'} Validée${l.st==='ok'||l.st==='rupture'?` · ${done}/${l.qty}${l.by?' · '+esc(l.by):''}`:''}</button>
+      ${l.st==='cours'&&mine?`<button type="button" class="chk ko" data-act="lko" data-o="${o.id}" data-i="${i}">Rupture</button>`:''}
+      ${other?`<button type="button" class="btn ghost sm${st.armed==='unl'+o.id+':'+i?' armed':''}" data-act="lunlock" data-o="${o.id}" data-i="${i}">${st.armed==='unl'+o.id+':'+i?'Confirmer : libérer':'Libérer'}</button>`:''}
+      ${step}</div>
+      ${l.st==='ok'&&done<l.qty?`<div class="pill ln-rupture" style="margin-top:4px;display:inline-block">Manque ${l.qty-done}</div>`:''}`;}
+  const right=!open&&l.st?`<span class="pill ln-${l.st==='rupture'||done<l.qty?'rupture':'ok'}">${done}/${l.qty}</span>`:'';
+  return `<div class="row lrow ls-${l.st||'none'}">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div>${ctl?`<div class="lctl-w">${ctl}</div>`:''}</div>`;}
+const me=()=>(S.myName||'').trim();
+const doneOf=l=>l.done!=null?l.done:(l.st==='rupture'?0:l.qty);
+function needName(){const n=$('#myName');if(n){n.focus();n.scrollIntoView({block:'center'});}toast('Indiquez d\'abord votre nom (préparateur)');}
+/* Modifie une seule ligne : en ligne, la ligne est mise à jour dans la commande telle qu'elle est en ce moment,
+   pour ne pas effacer ce qu'un autre préparateur vient de faire sur une autre ligne. */
+function lineSet(o,i,patch,orderPatch){
+  Object.assign(o.lines[i],patch);if(orderPatch)Object.assign(o,orderPatch);
+  saveLocal();
+  if(cloud.on&&cloud.sent.orders){const id=String(o.id);cloud.sent.orders.set(id,JSON.stringify(o));
+    const ref=cloud.fs.doc(cloud.db,C('orders'),id);
+    cloud.fs.runTransaction(cloud.db,async tx=>{const d=await tx.get(ref);if(!d.exists())return;const r=JSON.parse(d.data().json);const L=r.lines[i];if(!L)return;
+      if(patch.st==='cours'&&L.st&&L.by&&L.by!==patch.by)throw new Error('pris:'+L.by);
+      Object.assign(L,patch);if(orderPatch&&!(orderPatch.status==='prep'&&r.status!=='demandee'))Object.assign(r,orderPatch);
+      tx.set(ref,{json:JSON.stringify(r),at:Date.now()});})
+    .catch(e=>{const m=/^pris:(.*)/.exec(e&&e.message||'');if(!m){cloudErr(e);return;}
+      toast(`Déjà pris par <b>${esc(m[1])}</b>`);
+      /* on reprend la version en ligne de la commande */
+      cloud.fs.getDoc(ref).then(d=>{if(!d.exists())return;const j=d.data().json,k=S.orders.findIndex(x=>String(x.id)===id);if(k>=0)S.orders[k]=JSON.parse(j);cloud.sent.orders.set(id,j);saveLocal();render();});});}
+  render();}
 const lineRank=l=>{const a=l.aid&&art(l.aid);return a?locRank(a.emp):9999;};
 /* Où aller chercher : un emplacement par ligne, dans l'ordre des racks */
 function pickList(o){
@@ -582,16 +625,16 @@ function pickList(o){
     <div><button type="button" class="btn sm" data-act="oplan" data-o="${o.id}">Voir sur le plan</button></div></div>`;}
 function orderCard(o){
   const open=st.open===o.id;const fresh=role==='entrepot'&&o.status==='demandee';
-  const nOk=o.lines.filter(l=>l.st==='ok').length,nKo=o.lines.filter(l=>l.st==='rupture').length;
+  const nOk=o.lines.filter(l=>l.st==='ok').length,nKo=o.lines.filter(l=>l.st==='rupture').length,nCours=o.lines.filter(l=>l.st==='cours').length;
+  const asked=o.lines.reduce((x,l)=>x+l.qty,0),prepd=o.lines.reduce((x,l)=>x+(l.st==='ok'||l.st==='rupture'?doneOf(l):0),0);
   let foot='';
-  if(role==='entrepot'&&o.status==='demandee')foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prep">Commencer la préparation</button>`;
-  if(role==='entrepot'&&o.status==='prep'){const all=o.lines.every(l=>l.st);
-    foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prete"${all?'':' disabled'}>Prête, prévenir le magasin</button>${all?'':'<span class="count">Indiquez OK ou Rupture pour chaque ligne.</span>'}`;}
+  if(role==='entrepot'&&(o.status==='demandee'||o.status==='prep')){const left=o.lines.filter(l=>!(l.st==='ok'||l.st==='rupture')).length;
+    foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prete"${left?' disabled':''}>Prête, prévenir le magasin</button>${left?`<span class="count">Encore ${left} ligne${left>1?'s':''} à valider.</span>`:''}`;}
   if(role==='magasin'&&o.status==='prete')foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`;
   return `<div class="order o-${o.status}${fresh?' new':''}">
     <button type="button" class="order-h" data-act="open" data-o="${o.id}" aria-expanded="${open}">
       <span class="num">#${o.id}</span>
-      <span class="main"><span class="t">${o.by?esc(o.by)+' · ':''}${(n=>`${n} pièce${n>1?'s':''}`)(o.lines.reduce((s,l)=>s+l.qty,0))}</span> <span class="count">· ${o.lines.length} ligne${o.lines.length>1?'s':''}</span> <span class="count">· ${fmtDT(o.at)} (${ago(o.at)})${o.status==='prete'||o.status==='recue'?` · ${nOk} OK${nKo?`, ${nKo} rupture${nKo>1?'s':''}`:''}`:''}</span></span>
+      <span class="main"><span class="t">${o.by?esc(o.by)+' · ':''}${(n=>`${n} pièce${n>1?'s':''}`)(o.lines.reduce((s,l)=>s+l.qty,0))}</span> <span class="count">· ${o.lines.length} ligne${o.lines.length>1?'s':''}</span> <span class="count">· ${fmtDT(o.at)} (${ago(o.at)})${o.status==='prete'||o.status==='recue'?` · ${prepd}/${asked} préparées`:''}${o.status==='prep'||o.status==='demandee'?(nCours?` · <b class="edited">${nCours} en cours</b>`:'')+(nOk+nKo?` · ${nOk+nKo}/${o.lines.length} validées`:''):''}</span></span>
       <span class="pill st-${o.status}">${ST[o.status]}</span>
     </button>
     ${open?`<div class="order-b"><div class="who">Demandée par <b>${esc(o.by||'—')}</b> le <b>${esc(new Date(o.at).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</b> à <b>${esc(new Date(o.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>${o.editedAt?` · <b class="edited">corrigée à ${esc(new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>`:''}${o.readyAt?` · prête à ${esc(new Date(o.readyAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}`:''}</div>
@@ -599,10 +642,11 @@ function orderCard(o){
       <div style="margin-top:6px">${o.lines.map((l,i)=>[l,i]).sort((x,y)=>lineRank(x[0])-lineRank(y[0])).map(([l,i])=>lineRow(o,l,i)).join('')}</div>${foot?`<div class="order-foot">${foot}</div>`:''}</div>`:''}
   </div>`;}
 function vOrders(){
-  const intro=`<div class="info">Prototype : les deux rôles sont sur le même appareil. Passez de <b>Magasin</b> à <b>Entrepôt</b> en haut pour voir la notification arriver. Dans la vraie version, elle arrivera sur le téléphone de chacun.</div>`;
+  const intro=`<div class="info">Plusieurs préparateurs ? Cochez <b>En cours</b> sur l'article que vous prenez : les autres le voient tout de suite. Puis indiquez la quantité préparée et cochez <b>Validée</b>.</div>`;
   const todo=S.orders.filter(o=>o.status==='demandee'||o.status==='prep').sort((a,b)=>a.at-b.at);
   const done=S.orders.filter(o=>o.status==='prete'||o.status==='recue').sort((a,b)=>b.at-a.at);
   return `<div><h2>Commandes du magasin</h2><p class="sub">Les plus anciennes en premier. Touchez une commande pour la préparer.</p></div>${intro}
+    <div class="field" style="max-width:320px"><label for="myName">Votre nom (préparateur)</label><input type="text" id="myName" value="${esc(S.myName||'')}" placeholder="Ex. : Marc" autocomplete="given-name" autocapitalize="words"></div>
     <h3>À traiter (${todo.length})</h3>
     <div style="display:flex;flex-direction:column;gap:8px">${todo.map(orderCard).join('')||'<div class="empty">Rien à préparer.</div>'}</div>
     <h3>Terminées</h3>
@@ -743,7 +787,8 @@ function shopOrder(o){
   const live=o.status==='demandee'||o.status==='prep';
   const lines=o.lines.map(l=>{const a=l.aid&&art(l.aid);
     const name=a?`${a.marque} ${a.modele} · ${GENRE[a.genre]} · ${szLbl(a.type,a.taille)}${a.couleur?' · '+a.couleur:''}`:`« ${l.txt} »`;
-    return `<div class="oline"><b class="qbig">×${l.qty}</b><span>${esc(name)}</span>${l.st?`<span class="pill ln-${l.st}">${l.st==='ok'?'OK':'Rupture'}</span>`:''}</div>`;}).join('');
+    const fin=l.st==='ok'||l.st==='rupture',d=doneOf(l);
+    return `<div class="oline"><b class="qbig">×${l.qty}</b><span>${esc(name)}${fin?`<br><small>${l.qty} demandée${l.qty>1?'s':''} · <b>${d} préparée${d>1?'s':''}</b></small>`:l.st==='cours'?'<br><small>En cours de préparation</small>':''}</span>${fin?`<span class="pill ln-${d<l.qty?'rupture':'ok'}">${d}/${l.qty}</span>`:''}</div>`;}).join('');
   return `<div class="order o-${o.status}"><div class="order-h" style="cursor:default"><span class="num">#${o.id}</span>
       <span class="main"><span class="count">${fmtDT(o.at)}${o.editedAt?` · corrigée à ${new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</span></span>
       <span class="pill st-${o.status}">${ST[o.status]}</span></div>
@@ -1048,14 +1093,25 @@ document.addEventListener('click',e=>{
     case'qstep':{const l=S.cart[+t.dataset.i];l.qty=Math.min(50,Math.max(1,l.qty+(+t.dataset.d)));save();render();break;}
     case'send':shopSend();break;
     case'open':st.open=st.open===oid?null:oid;render();break;
-    case'lst':{const o=order(),l=o.lines[+t.dataset.i];l.st=l.st===t.dataset.v?null:t.dataset.v;save();render();break;}
+    case'lclaim':{const o=order(),i=+t.dataset.i,l=o.lines[i];if(!me()){needName();return;}
+      if(l.st==='cours'&&l.by===me())lineSet(o,i,{st:null,by:null});
+      else if(!l.st)lineSet(o,i,{st:'cours',by:me(),done:doneOf(l),at:Date.now()},o.status==='demandee'?{status:'prep'}:null);
+      break;}
+    case'lok':{const o=order(),i=+t.dataset.i,l=o.lines[i];if(!me()){needName();return;}
+      if(l.st==='ok'||l.st==='rupture')lineSet(o,i,{st:'cours',by:me()});
+      else if(l.st==='cours'){const inp=document.querySelector(`[data-done="${o.id}:${i}"]`);const d=Math.max(0,Math.min(999,parseInt(inp?inp.value:doneOf(l))||0));
+        lineSet(o,i,{st:d?'ok':'rupture',done:d,by:me(),at:Date.now()});}
+      break;}
+    case'lko':{const o=order(),i=+t.dataset.i;lineSet(o,i,{st:'rupture',done:0,by:me(),at:Date.now()});break;}
+    case'ldone':{const o=order(),i=+t.dataset.i,l=o.lines[i];lineSet(o,i,{done:Math.max(0,Math.min(999,doneOf(l)+(+t.dataset.d)))});break;}
+    case'lunlock':{const k='unl'+oid+':'+t.dataset.i;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;lineSet(order(),+t.dataset.i,{st:null,by:null});break;}
     case'ost':{const o=order();o.status=t.dataset.v;
-      if(o.status==='prete'){const ok=o.lines.filter(l=>l.st==='ok').length,ko=o.lines.length-ok;
+      if(o.status==='prete'){const asked=o.lines.reduce((x,l)=>x+l.qty,0),prepd=o.lines.reduce((x,l)=>x+(l.st==='ok'?doneOf(l):0),0);
         /* retire du stock les lignes servies (une seule fois par commande) */
         let out=0,libre=0;
         o.readyAt=o.readyAt||Date.now();
-        if(!o.deducted){o.lines.filter(l=>l.st==='ok').forEach(l=>{const a=l.aid&&art(l.aid);if(a){const before=qOf(a);a.qty=Math.max(0,before-l.qty);out+=before-a.qty;}else libre++;});o.deducted=true;}
-        notify('magasin',`Commande #${o.id} prête : ${ok} OK${ko?`, ${ko} en rupture`:''}`);
+        if(!o.deducted){o.lines.filter(l=>l.st==='ok').forEach(l=>{const a=l.aid&&art(l.aid);if(a){const before=qOf(a);a.qty=Math.max(0,before-doneOf(l));out+=before-a.qty;}else libre++;});o.deducted=true;}
+        notify('magasin',`Commande #${o.id} prête : ${prepd} préparée${prepd>1?'s':''} sur ${asked} demandée${asked>1?'s':''}${prepd<asked?' (il en manque '+(asked-prepd)+')':''}`);
         toast(`Commande <b>#${o.id}</b> prête. Le magasin est prévenu.<br>Stock mis à jour : <b>−${out} pièce${out>1?'s':''}</b>${libre?` · ${libre} demande${libre>1?'s':''} libre${libre>1?'s':''} à retirer à la main`:''}`);}
       if(o.status==='recue')toast(`Commande <b>#${o.id}</b> reçue`);
       save();render();break;}
@@ -1071,6 +1127,7 @@ document.addEventListener('input',e=>{
   else if(t.id==='sq'){st.sq=t.value;const pos=t.selectionStart;render();const q=$('#sq');if(q){q.focus();try{q.setSelectionRange(pos,pos);}catch(_){}}}
   else if(t.id==='cartNote'){S.cartNote=t.value;save();}
   else if(t.id==='myName'){S.myName=t.value;save();}
+  else if(t.dataset&&t.dataset.done){const [oid,i]=t.dataset.done.split(':');const o=S.orders.find(x=>String(x.id)===oid);if(o){o.lines[+i].done=Math.max(0,Math.min(999,parseInt(t.value)||0));saveLocal();}}
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
 document.addEventListener('change',e=>{const t=e.target;
