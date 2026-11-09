@@ -189,6 +189,11 @@ textarea{resize:vertical;min-height:60px}
 .stepper button:first-child{border-radius:6px 0 0 6px}.stepper button:last-child{border-radius:0 6px 6px 0}
 .qbig{font:700 16px var(--f-mono);min-width:44px;text-align:center;border:2px solid var(--ink);border-radius:6px;padding:4px 6px;white-space:nowrap}
 [hidden]{display:none !important}
+.names{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px}
+.btn.nm{min-height:46px;padding:0 16px;font-size:16px;font-weight:600}
+.btn.nm.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.lbl-s{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#myName.nm-other{max-width:220px}#myName.nm-other.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -596,8 +601,13 @@ function lineRow(o,l,i){
   const right=!open&&l.st?`<span class="pill ln-${l.st==='rupture'||done<l.qty?'rupture':'ok'}">${done}/${l.qty}</span>`:'';
   return `<div class="row lrow ls-${l.st||'none'}">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div>${ctl?`<div class="lctl-w">${ctl}</div>`:''}</div>`;}
 const me=()=>(S.myName||'').trim();
+/* Noms proposés en boutons (modifiables ici) */
+const NOMS={magasin:['Yann','Gustave'],entrepot:['Pierre-Yves','Armel','Majel','Anas','Yad','Aurelio']};
+function nameField(lbl,list,ph){const cur=me(),other=cur&&!list.includes(cur);
+  return `<div class="field"><span class="lbl-s">${lbl}</span><div class="names">${list.map(n=>`<button type="button" class="btn nm${cur===n?' on':''}" data-act="setname" data-n="${esc(n)}" aria-pressed="${cur===n}">${esc(n)}</button>`).join('')}</div>
+    <input type="text" id="myName" class="nm-other${other?' on':''}" value="${other?esc(cur):''}" placeholder="${ph}" autocomplete="off" autocapitalize="words" aria-label="Autre nom"></div>`;}
 const doneOf=l=>l.done!=null?l.done:(l.st==='rupture'?0:l.qty);
-function needName(){const n=$('#myName');if(n){n.focus();n.scrollIntoView({block:'center'});}toast('Indiquez d\'abord votre nom (préparateur)');}
+function needName(){const n=$('#myName');if(n){n.focus();n.scrollIntoView({block:'center'});}toast('Indiquez d\'abord votre nom (qui prépare ?)');}
 /* Modifie une seule ligne : en ligne, la ligne est mise à jour dans la commande telle qu'elle est en ce moment,
    pour ne pas effacer ce qu'un autre préparateur vient de faire sur une autre ligne. */
 function lineSet(o,i,patch,orderPatch){
@@ -631,6 +641,7 @@ function orderCard(o){
   if(role==='entrepot'&&(o.status==='demandee'||o.status==='prep')){const left=o.lines.filter(l=>!(l.st==='ok'||l.st==='rupture')).length;
     foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prete"${left?' disabled':''}>Prête, prévenir le magasin</button>${left?`<span class="count">Encore ${left} ligne${left>1?'s':''} à valider.</span>`:''}`;}
   if(role==='magasin'&&o.status==='prete')foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`;
+  if(role==='entrepot'){const arm=st.armed==='odel'+o.id;foot+=`<button type="button" class="btn danger${arm?' armed':''}" data-act="odel" data-o="${o.id}" style="margin-left:auto">${arm?'Confirmer : supprimer #'+o.id:'Supprimer la commande'}</button>`;}
   return `<div class="order o-${o.status}${fresh?' new':''}">
     <button type="button" class="order-h" data-act="open" data-o="${o.id}" aria-expanded="${open}">
       <span class="num">#${o.id}</span>
@@ -646,7 +657,7 @@ function vOrders(){
   const todo=S.orders.filter(o=>o.status==='demandee'||o.status==='prep').sort((a,b)=>a.at-b.at);
   const done=S.orders.filter(o=>o.status==='prete'||o.status==='recue').sort((a,b)=>b.at-a.at);
   return `<div><h2>Commandes du magasin</h2><p class="sub">Les plus anciennes en premier. Touchez une commande pour la préparer.</p></div>${intro}
-    <div class="field" style="max-width:320px"><label for="myName">Votre nom (préparateur)</label><input type="text" id="myName" value="${esc(S.myName||'')}" placeholder="Ex. : Marc" autocomplete="given-name" autocapitalize="words"></div>
+    <div style="max-width:640px">${nameField('Qui prépare ? (touchez votre nom)',NOMS.entrepot,'Autre nom…')}</div>
     <h3>À traiter (${todo.length})</h3>
     <div style="display:flex;flex-direction:column;gap:8px">${todo.map(orderCard).join('')||'<div class="empty">Rien à préparer.</div>'}</div>
     <h3>Terminées</h3>
@@ -761,7 +772,7 @@ function vShopCart(){const ed=S.editing&&S.orders.find(o=>o.id===S.editing);
     <div class="cart">${S.cart.map(cartLine).join('')||'<div class="empty">Aucun article.</div>'}</div>
     <button type="button" class="btn block add" data-act="shnew">+ Ajouter un article</button>
     <div class="field"><label for="cartNote">Notes pour l'entrepôt <small class="opt">facultatif</small></label><textarea id="cartNote" placeholder="Ex. : client en caisse, urgent">${esc(S.cartNote)}</textarea></div>
-    <div class="field"><label for="myName">Votre nom</label><input type="text" id="myName" value="${esc(S.myName||'')}" placeholder="Ex. : Julie" autocomplete="given-name" autocapitalize="words"></div>
+    ${nameField('Qui commande ? (touchez votre nom)',NOMS.magasin,'Autre nom…')}
     <button type="button" class="btn primary block" data-act="send"${S.cart.length?'':' disabled'}>${ed?'Envoyer la correction':'Envoyer à l\'entrepôt'}${n?` · ${n} pièce${n>1?'s':''}`:''}</button>`;}
 
 function vShopFind(){
@@ -803,7 +814,7 @@ function vShopMine(){const mine=S.orders.slice().sort((a,b)=>b.at-a.at);
     ${old.length?`<h3>Reçues</h3>${old.map(shopOrder).join('')}`:''}`;}
 
 function shopSend(){
-  if(!S.cart.length)return;const by=(S.myName||'').trim();if(!by){$('#myName').focus();toast('Indiquez votre nom');return;}
+  if(!S.cart.length)return;const by=(S.myName||'').trim();if(!by){$('#myName').focus();toast('Touchez votre nom');return;}
   if(S.editing){const o=S.orders.find(x=>x.id===S.editing);
     if(!o||!(o.status==='demandee'||o.status==='prep')){toast('Trop tard : la commande est déjà prête.');shEditEnd();render();return;}
     o.lines=S.cart.map(l=>{const old=o.lines.find(x=>x.aid===l.aid&&x.txt===l.txt&&x.qty===l.qty);return {...l,st:old?old.st:null};});
@@ -1066,6 +1077,7 @@ document.addEventListener('click',e=>{
     const u=unread();render();if(u.length)toast(`Notification · <b>${esc(u[u.length-1].text)}</b>`,true);else toast(`Vous êtes côté <b>${role==='entrepot'?'Entrepôt':'Magasin'}</b>`);return;}
   if(t.dataset.ftype!==undefined){st.fType=t.dataset.ftype;st.fTailles=[];st.focus=null;render();return;}
   const act=t.dataset.act,id=t.dataset.id,oid=+t.dataset.o;
+  if(act==='setname'){S.myName=t.dataset.n;save();render();return;}
   if(role==='magasin'&&shopClick(act,t))return;
   const order=()=>S.orders.find(o=>o.id===oid);
   switch(act){
@@ -1105,6 +1117,9 @@ document.addEventListener('click',e=>{
     case'lko':{const o=order(),i=+t.dataset.i;lineSet(o,i,{st:'rupture',done:0,by:me(),at:Date.now()});break;}
     case'ldone':{const o=order(),i=+t.dataset.i,l=o.lines[i];lineSet(o,i,{done:Math.max(0,Math.min(999,doneOf(l)+(+t.dataset.d)))});break;}
     case'lunlock':{const k='unl'+oid+':'+t.dataset.i;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;lineSet(order(),+t.dataset.i,{st:null,by:null});break;}
+    case'odel':{const k='odel'+oid;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;
+      S.orders=S.orders.filter(o=>String(o.id)!==String(oid));S.notifs=S.notifs.filter(n=>!String(n.text||'').includes('#'+oid+' '));
+      if(st.open==oid)st.open=null;save();render();toast(`Commande #${esc(String(oid))} supprimée`);break;}
     case'ost':{const o=order();o.status=t.dataset.v;
       if(o.status==='prete'){const asked=o.lines.reduce((x,l)=>x+l.qty,0),prepd=o.lines.reduce((x,l)=>x+(l.st==='ok'?doneOf(l):0),0);
         /* retire du stock les lignes servies (une seule fois par commande) */
