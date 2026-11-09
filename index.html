@@ -213,6 +213,9 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .testbtn{white-space:nowrap;flex:none}.testbtn.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .testban{background:#7c3aed;color:#fff;font-weight:700;border-radius:8px;padding:8px 12px;font-size:13px}
 .tsz{margin-top:6px;padding:6px 8px;border-left:3px solid #7c3aed;background:color-mix(in srgb,#7c3aed 10%,transparent);font-size:13px;display:flex;flex-direction:column;gap:3px}
+.chk{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:5px}
+.chk.t{border-left:3px solid #7c3aed}.chk-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.chk-sz{font-size:13px;color:#a78bfa;font-weight:600}
+.chk select{width:100%}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -890,18 +893,33 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
       /* un morceau = un emplacement + ses tailles ; on l'ajoute au stock simulé pour le modèle suivant */
       const put=(emp,sz)=>{const k=Object.values(sz).reduce((x,y)=>x+y,0);step.chunks.push({emp,n:k,sizes:sz});
         if(emp)Object.entries(sz).forEach(([z,q])=>S.articles.push({id:'sim'+Math.random(),_new:1,type:g.type,marque:g.marque,modele:g.modele,genre:g.genre,taille:z,couleur:g.couleur,emp,qty:q}));};
-      const all={...g.sizes};
-      if(g.emp){put(g.emp,all);step.why='emplacement choisi';out.push(step);return;}
+      if(g.emp){g.over={};Object.keys(g.sizes).forEach(z=>g.over[z]=g.emp);delete g.emp;}
+      const over=g.over||{},forced={},all={};
+      Object.keys(g.sizes).forEach(z=>{if(!(g.sizes[z]>0))return;if(over[z])(forced[over[z]]=forced[over[z]]||{})[z]=g.sizes[z];else all[z]=g.sizes[z];});
+      Object.entries(forced).forEach(([e,sz])=>{put(e,sz);step.chunks[step.chunks.length-1].forced=true;});
+      const nRest=Object.values(all).reduce((x,y)=>x+y,0);
+      if(!nRest){step.why='emplacement choisi par vous';out.push(step);return;}
       if(g.type==='board'){const h=S.articles.find(a=>a.type==='board'&&norm(a.marque)===norm(g.marque)&&norm(a.modele)===norm(g.modele));put(h?h.emp:null,all);step.why=h?'avec le même modèle':'snowboards : choisissez l\'emplacement';out.push(step);return;}
-      const r=placeSuggest(g.type,g.marque,g.modele,g.genre,n);step.alts=r.res.map(x=>x.emp);
+      const r=placeSuggest(g.type,g.marque,g.modele,g.genre,nRest);step.alts=r.res.map(x=>x.emp);
       if(r.res.length){const c=r.res[0];if(c.moves.length){applyMoves(c.moves);step.moves=c.moves;}put(c.emp,all);step.why=c.why;}
-      else{splitLot(g.type,g.marque,g.modele,g.genre,g.sizes).forEach(c=>put(c.emp,c.sizes));
+      else{splitLot(g.type,g.marque,g.modele,g.genre,all).forEach(c=>put(c.emp,c.sizes));
         step.why=`trop gros pour un seul endroit : réparti par tailles en ${step.chunks.filter(c=>c.emp).length} emplacements`;}
       out.push(step);});
   }finally{S.articles=real;}
   return out;}
 /* répartit les tailles d'un modèle dans ses morceaux (emplacements) */
 function chunkLines(step){const res=[];step.chunks.forEach(c=>Object.entries(c.sizes||{}).forEach(([z,q])=>{if(q>0)res.push({emp:c.emp,taille:z,qty:q});}));return res;}
+/* liste des emplacements possibles pour un morceau : d'abord ceux qui ont la place, puis les autres, puis hors racks */
+function chunkOpts(t,c){const X=capCtx(occMap()),big=t==='botte'&&c.n>=bigLot();
+  const ok=LOCS.filter(e=>locTier(t,e,big)>0&&e!==c.emp).map(e=>[e,X.free(e,t)]);
+  const fits=ok.filter(x=>x[1]>=c.n).sort((a,b)=>tierOrder(t,a[0],big)-tierOrder(t,b[0],big)||a[1]-b[1]);
+  const small=ok.filter(x=>x[1]>0&&x[1]<c.n).sort((a,b)=>b[1]-a[1]);
+  const hors=LOCS.filter(e=>!capGroup(e)&&e!==c.emp);
+  const o=(e,lbl)=>`<option value="${e}">${lbl}</option>`;
+  return (c.forced?`<option value="" >↩ Revenir au conseil de l'appli</option><option value="${c.emp}" selected>${c.emp} · choisi par vous</option>`:`<option value="" selected>${c.emp?`Garder ${c.emp} (conseil de l'appli)`:'Choisir un emplacement…'}</option>`)
+    +(fits.length?`<optgroup label="Assez de place pour ${c.n} boîtes">${fits.map(([e,f])=>o(e,`${e} · place pour ≈ ${f}${locTier(t,e,big)===2?' · dernier recours':''}`)).join('')}</optgroup>`:'')
+    +(small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(([e,f])=>o(e,`${e} · place pour ≈ ${f} seulement`)).join('')}</optgroup>`:'')
+    +`<optgroup label="Hors racks : fond, gauche, étagère, blocs">${hors.map(e=>o(e,`${e} · ${locLabel(e)}`)).join('')}</optgroup>`;}
 /* tailles d'un morceau, en clair (affichées seulement en mode test) */
 const chunkSizes=(t,c)=>Object.keys(c.sizes||{}).sort((x,y)=>sizeRankStr(x)-sizeRankStr(y)).map(z=>`${szLbl(t,z)} ×${c.sizes[z]}`).join(', ');
 function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k=>st.armed===k;
@@ -920,10 +938,13 @@ function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k
     ${plan.length?`<h3 class="sec">2. Plan de rangement</h3>
       ${moves.length?`<div class="card warnc"><b>D'abord, faire de la place :</b>${moves.map((m,i)=>`<div class="mvl">${i+1}. Déplacer <b>${esc(m.label)}</b> (${m.n} ${plural(m.n,'boîte','boîtes')}) de <b class="mono">${esc(m.from)}</b> vers <b class="mono">${esc(m.to)}</b></div>`).join('')}</div>`:''}
       ${plan.map(p=>`<div class="card plrow"><div class="agrp-h"><div><div class="t"><span class="mk">${esc(p.g.marque)}</span> ${esc(p.g.modele)} <small class="opt">${esc(GENRE[p.g.genre]||'')}${p.g.couleur?' · '+esc(p.g.couleur):''}</small></div>
-          <div class="d">${p.chunks.map(c=>c.emp?`<b class="mono pe">→ ${esc(c.emp)}</b>${p.chunks.length>1?` ${c.n}`:''}`:`<b class="bad">${c.n} sans place</b>`).join(' ')} <small>· ${esc(p.why)}</small></div>
-          ${A.test?`<div class="tsz">${p.chunks.map(c=>`<div><b class="mono">${c.emp?esc(c.emp):'sans place'}</b> · ${c.n} : ${esc(chunkSizes(p.g.type,c))}</div>`).join('')}</div>`:''}</div><b class="qn">${p.n}</b></div>
-        <div class="field" style="margin-top:6px"><label for="ae-${p.g.id}" class="opt">Changer l'emplacement</label><select id="ae-${p.g.id}" data-arremp="${p.g.id}"><option value="">Conseil de l'appli</option>${LOCS.map(c=>`<option${p.g.emp===c?' selected':''}>${c}</option>`).join('')}</select></div></div>`).join('')}
-      ${unplaced?`<div class="info">${unplaced} boîte${unplaced>1?'s':''} sans place dans les racks gérés : choisissez un emplacement (fond, gauche…) avec « Changer l'emplacement », ou augmentez les capacités dans Réglages.</div>`:''}
+          <div class="d"><small>${esc(p.why)}</small></div></div><b class="qn">${p.n}</b></div>
+        ${p.chunks.map((c,ci)=>`<div class="chk${A.test?' t':''}">
+          <div class="chk-h">${c.emp?`<b class="mono pe">→ ${esc(c.emp)}</b>`:`<b class="bad">Sans place</b>`} <span>${c.n} ${plural(c.n,'boîte','boîtes')}</span>${c.forced?' <small class="opt">· choisi par vous</small>':''}</div>
+          ${A.test?`<div class="chk-sz">${esc(chunkSizes(p.g.type,c))}</div>`:''}
+          <label class="opt" for="ce-${p.g.id}-${ci}">${p.chunks.length>1?'Changer l\'emplacement de ce groupe de tailles':'Changer l\'emplacement'}</label>
+          <select id="ce-${p.g.id}-${ci}" data-arrchunk="${p.g.id}" data-sizes="${esc(Object.keys(c.sizes||{}).join('|'))}">${chunkOpts(p.g.type,c)}</select></div>`).join('')}</div>`).join('')}
+      ${unplaced?`<div class="info">${unplaced} boîte${unplaced>1?'s':''} sans place dans les racks gérés : choisissez un emplacement avec « Changer l'emplacement » (la liste propose aussi le fond, la gauche, l'étagère et les blocs), ou augmentez les capacités dans Réglages.</div>`:''}
       <div class="inline" style="margin-top:10px"><button type="button" class="btn primary${arm('arrok')?' armed':''}" data-act="arrok"${unplaced?' disabled':''}>${A.test?`🧪 Essayer le rangement (${tot} boîtes)`:arm('arrok')?`Confirmer : ranger ${tot} boîtes`:`Valider : ranger les ${tot} boîtes`}</button>
         <button type="button" class="btn danger${arm('arrclr')?' armed':''}" data-act="arrclr">${arm('arrclr')?'Confirmer : tout effacer':'Effacer l\'arrivage'}</button></div>`:''}
     ${log.length?`<h3 class="sec">Derniers arrivages rangés</h3>${log.map(l=>`<div class="d">${esc(fmtDT(l.at))} · ${l.from==='magasin'?'Retour magasin':'Fournisseur'}${l.note?' · '+esc(l.note):''} · <b>${l.n} boîtes</b>, ${l.models} modèle${l.models>1?'s':''}${l.by?' · '+esc(l.by):''}</div>`).join('')}`:''}`;}
@@ -1476,7 +1497,8 @@ document.addEventListener('input',e=>{
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
 document.addEventListener('change',e=>{const t=e.target;
-  if(t.dataset&&t.dataset.arremp!==undefined){const g=arr().groups.find(x=>x.id===t.dataset.arremp);if(g){g.emp=t.value||null;saveLocal();render();}return;}
+  if(t.dataset&&t.dataset.arrchunk!==undefined){const g=arr().groups.find(x=>x.id===t.dataset.arrchunk);if(g){g.over=g.over||{};
+    t.dataset.sizes.split('|').filter(Boolean).forEach(z=>{if(t.value)g.over[z]=t.value;else delete g.over[z];});saveLocal();render();}return;}
   if(t.id==='importFile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const sk=d&&d.stock;
       if(!sk||!Array.isArray(sk.articles))throw new Error('format');
       STOCK_KEYS.forEach(k=>{if(sk[k]!==undefined)S[k]=sk[k];});
