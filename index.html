@@ -572,11 +572,12 @@ function vSearch(){
     <div class="list">${list.length?list.map(a=>artRow(a)).join(''):`<div class="empty">Aucun article ne correspond.${role==='entrepot'?' Ajoutez-le avec « Nouvel article ».':''}</div>`}</div>`;}
 
 function chip(code,l,H,count){
-  const n=count[code]||0;const cls=['chip',n?'has':'',H.has(code)?'hit':''].join(' ');
-  return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${n} article${n>1?'s':''}" aria-label="${code}, ${n} articles">${l}</button>`;}
+  const c=count[code],n=c?c.l:0,m=c?c.m.size:0,p=c?c.p:0;const cls=['chip',n?'has':'',H.has(code)?'hit':''].join(' ');
+  const txt=n?`${m} modèle${m>1?'s':''} · ${n} taille${n>1?'s':''} · ${p} pièce${p>1?'s':''}`:'vide';
+  return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
 function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
 function vPlan(){
-  const H=hits(),count={};S.articles.forEach(a=>count[a.emp]=(count[a.emp]||0)+1);
+  const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
   const focusArt=st.focus&&art(st.focus);
   const nb=filtering()?S.articles.filter(matches).length:0;
   let g='',m='',d='';
