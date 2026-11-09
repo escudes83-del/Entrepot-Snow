@@ -194,6 +194,14 @@ textarea{resize:vertical;min-height:60px}
 .btn.nm.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .lbl-s{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 #myName.nm-other{max-width:220px}#myName.nm-other.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.where{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.where h4{margin:0;font-size:14px}.where .sub{margin:0}
+.wopt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;width:100%;padding:10px;border:1px solid var(--line-strong);border-radius:10px;background:none;color:inherit;font:inherit;cursor:pointer}
+.wopt .we{font-weight:700;font-size:16px;min-width:56px}.wopt small{color:var(--muted)}.wopt .mv{display:block;color:var(--accent);margin-top:4px}
+.wopt .pick{font-weight:700;font-size:13px;color:var(--muted)}
+.wopt.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.wopt.on .pick{color:var(--accent)}
+.mono{font-family:var(--f-mono)}
+.capt{width:100%;border-collapse:collapse}.capt td,.capt th{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}.capt input{width:74px}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -542,7 +550,7 @@ function vSearch(){
   const list=sortArts(S.articles.filter(matches));
   return `<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
       <div><h2>Où est rangé…</h2><p class="sub">Tapez une marque, un modèle ou une taille. Touchez le code pour le voir sur le plan.</p></div>
-      ${role==='entrepot'?`<button type="button" class="btn primary" data-act="new">+ Nouvel article</button>`:''}
+      ${role==='entrepot'?`<button type="button" class="btn primary" data-act="new">+ Nouvel article / arrivage</button>`:''}
     </div>
     ${filterBar()}
     <div class="count">${list.length} article${list.length>1?'s':''} · ${(t=>`${t} pièce${t>1?'s':''}`)(list.reduce((s,a)=>s+qOf(a),0))}${filtering()&&list.length?` · emplacement${new Set(list.map(a=>a.emp)).size>1?'s':''} : <b>${[...new Set(list.map(a=>a.emp))].sort().join(', ')}</b>`:''}${S.demo?' <span class="demo">données d\'exemple</span>':''}</div>
@@ -672,6 +680,11 @@ function vSettings(){
     <div class="card"><h3>Inventaire (Excel)</h3>
       <p class="sub">Un fichier Excel du stock du jour, classé par type, marque, modèle et taille. Il contient un résumé, une feuille par type (tailles en colonnes) et le détail avec les emplacements.</p>
       <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>
+    <div class="card"><h3>Capacité des racks</h3>
+      <p class="sub">Nombre de boîtes qu'un emplacement peut contenir quand il est plein. Calculé d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
+      <table class="capt"><tr><th></th><th>Bottes</th><th>Fixations</th></tr>${Object.entries(CAP_GROUPS).map(([g,l])=>`<tr><td>${l}</td><td><input type="number" min="1" max="999" data-cap="${g}:botte" value="${caps()[g].botte}" inputmode="numeric"></td><td><input type="number" min="1" max="999" data-cap="${g}:fix" value="${caps()[g].fix}" inputmode="numeric"></td></tr>`).join('')}</table>
+      <div class="inline" style="margin-top:8px"><button type="button" class="btn" data-act="capcalc">Recalculer d'après le stock</button></div>
+      ${(()=>{const X=capCtx(occMap());const fr=LOCS.filter(capGroup).map(e=>[e,X.fill(e)]).sort((a,b)=>a[1]-b[1]).slice(0,8);return `<p class="sub" style="margin-top:10px">Les moins remplis : ${fr.map(([e,f])=>`<b class="mono">${e}</b> ${Math.max(0,Math.round(f*100))} %`).join(' · ')}</p>`;})()}</div>
     <div class="card"><h3>Transférer le stock</h3>
       <p class="sub">Pour passer le stock d'un appareil à un autre : téléchargez une copie ici, puis chargez-la dans l'appli en ligne. ${S.articles.length} articles sur cet appareil.</p>
       <div class="inline"><button type="button" class="btn" data-act="export">⬇ Télécharger une copie du stock</button>
@@ -761,6 +774,68 @@ function inventaireXlsx(){
   a.href=url;a.download=`inventaire-entrepot-${now.toISOString().slice(0,10)}.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
   toast(`Inventaire Excel téléchargé : <b>${sum(arts,Q)} pièces</b>. Il est dans le dossier Téléchargements.`);
   return blob;}
+
+
+/* ---------- Capacités et conseil de rangement ----------
+   Droite : niveaux 1-2 = même capacité, niveau 3 à part. Milieu (MG et MD) : pareil, en plus petit.
+   Fond, Gauche (fins de série), Étagère et Blocs ne sont pas gérés (rangement libre).
+   Capacité par défaut = l'emplacement le plus rempli du groupe (considéré comme plein). */
+const CAP_GROUPS={D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3'};
+function capGroup(emp){const m=/^([A-Z]+)\d+\.(\d)$/.exec(emp||'');if(!m)return null;
+  if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';return null;}
+function occMap(){const o={};S.articles.forEach(a=>{const x=o[a.emp]=o[a.emp]||{botte:0,fix:0,board:0};x[a.type]=(x[a.type]||0)+qOf(a);});return o;}
+function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,fix:0});
+  Object.entries(occMap()).forEach(([emp,o])=>{const g=capGroup(emp);if(!g)return;
+    if(o.botte&&!o.fix)c[g].botte=Math.max(c[g].botte,o.botte);if(o.fix&&!o.botte)c[g].fix=Math.max(c[g].fix,o.fix);});
+  const rs=Object.values(c).filter(x=>x.botte&&x.fix).map(x=>x.botte/x.fix),r=rs.length?rs.reduce((a,b)=>a+b)/rs.length:1.1;
+  Object.values(c).forEach(x=>{if(!x.botte&&x.fix)x.botte=Math.round(x.fix*r);if(!x.fix&&x.botte)x.fix=Math.round(x.botte/r);if(!x.botte)x.botte=20;if(!x.fix)x.fix=18;});
+  return c;}
+const caps=()=>{if(!S.caps||!S.caps.D12)S.caps=capsCalc();return S.caps;};
+function capCtx(occ){const C=caps();
+  const cap=(emp,t)=>{const g=capGroup(emp);return g?(t==='botte'?C[g].botte:C[g].fix):0;};
+  const fill=emp=>{const g=capGroup(emp);if(!g)return 1;const o=occ[emp]||{botte:0,fix:0,board:0};return (o.botte||0)/C[g].botte+((o.fix||0)+(o.board||0))/C[g].fix;};
+  const free=(emp,t)=>Math.max(0,Math.floor((1-fill(emp))*cap(emp,t)+1e-6));
+  const add=(emp,t,n)=>{const x=occ[emp]=occ[emp]||{botte:0,fix:0,board:0};x[t]=(x[t]||0)+n;};
+  return {cap,fill,free,add};}
+const plural=(n,a,b)=>n>1?b:a;
+/* Conseils pour ranger n boîtes d'un modèle : [{emp, why, free, moves:[{ids,from,to,label,n}]}] */
+function placeSuggest(t,marque,modele,genre,n){
+  const occ=occMap(),X=capCtx(occ),managed=LOCS.filter(capGroup);
+  const key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
+  const here=new Map();S.articles.filter(a=>key(a)===K).forEach(a=>here.set(a.emp,(here.get(a.emp)||0)+qOf(a)));
+  const sameLocs=[...here.entries()].sort((a,b)=>b[1]-a[1]);const res=[];
+  /* 1. avec le même modèle, s'il y a la place */
+  const fit=sameLocs.find(([e])=>capGroup(e)&&X.free(e,t)>=n);
+  if(fit)res.push({emp:fit[0],why:`avec ${fit[1]} ${modele} déjà là · place pour ≈ ${X.free(fit[0],t)}`,moves:[]});
+  /* 2. sinon : libérer de la place à côté du même modèle en déplaçant de petits restes */
+  const main=sameLocs.find(([e])=>capGroup(e));
+  if(!fit&&main){const L=main[0],occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2);
+    const groups=new Map();S.articles.filter(a=>a.emp===L&&key(a)!==K&&qOf(a)>0).forEach(a=>{const k=key(a);const g=groups.get(k)||{ids:[],n:0,t:a.type,a,k};g.ids.push(a.id);g.n+=qOf(a);groups.set(k,g);});
+    const moves=[];
+    for(const g of [...groups.values()].filter(g=>g.n<=Math.max(6,n)).sort((x,y)=>x.n-y.n)){if(Y.free(L,t)>=n||moves.length>=3)break; /* seulement de petits restes */
+      const homes=new Set(S.articles.filter(a=>key(a)===g.k&&a.emp!==L).map(a=>a.emp));
+      const dests=managed.filter(e=>e!==L&&Y.free(e,g.t)>=g.n).sort((x,y)=>(homes.has(y)-homes.has(x))||Y.free(x,g.t)-Y.free(y,g.t));
+      if(!dests.length)continue;const D=dests[0];
+      Y.add(L,g.t,-g.n);Y.add(D,g.t,g.n);
+      moves.push({ids:g.ids,from:L,to:D,n:g.n,label:`${g.a.marque} ${g.a.modele} ${GENRE[g.a.genre]||''}`.trim()});}
+    if(moves.length&&Y.free(L,t)>=n)res.push({emp:L,why:`avec ${main[1]} ${modele} déjà là, après ${moves.length} ${plural(moves.length,'déplacement','déplacements')}`,moves});}
+  /* 3. un emplacement avec de la place : d'abord près de la même marque, puis le plus juste */
+  const brandAt=new Set(S.articles.filter(a=>a.type===t&&norm(a.marque)===norm(marque)).map(a=>a.emp));
+  managed.filter(e=>!res.some(r=>r.emp===e)&&X.free(e,t)>=n)
+    .sort((a,b)=>(brandAt.has(b)-brandAt.has(a))||X.free(a,t)-X.free(b,t)).slice(0,res.length?2:3)
+    .forEach(e=>res.push({emp:e,why:(X.fill(e)<0.02?'emplacement vide':brandAt.has(e)?`avec d'autres ${marque}`:'place libre')+` · place pour ≈ ${X.free(e,t)}`,moves:[]}));
+  /* 4. rien d'assez grand : les plus grandes places libres, pour partager */
+  let split=null;if(!res.length){split=managed.map(e=>[e,X.free(e,t)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,4);}
+  return {res,split,here:sameLocs};}
+function applyMoves(moves){let k=0;moves.forEach(m=>m.ids.forEach(id=>{const a=art(id);if(!a||a.emp!==m.from)return;
+  const ex=S.articles.find(x=>x!==a&&x.emp===m.to&&x.type===a.type&&x.marque===a.marque&&x.modele===a.modele&&x.genre===a.genre&&x.taille===a.taille&&norm(x.couleur)===norm(a.couleur));
+  if(ex){ex.qty=qOf(ex)+qOf(a);S.articles=S.articles.filter(y=>y!==a);}else a.emp=m.to;k++;}));return k;}
+function movesSheet(moves,emp,title){
+  sheet(`<div class="sheet-in" style="display:flex;flex-direction:column;gap:12px">
+    <div class="sheet-h"><h2>${title}</h2><button type="button" class="btn ghost" data-act="close">OK</button></div>
+    <p class="sub">Avant de ranger le nouveau stock en <b>${esc(emp)}</b>, déplacez :</p>
+    ${moves.map((m,i)=>`<div class="card" style="padding:10px 12px"><b>${i+1}.</b> ${esc(m.label)} · <b>${m.n} ${plural(m.n,'boîte','boîtes')}</b><br>de <b class="mono">${esc(m.from)}</b> vers <b class="mono">${esc(m.to)}</b> <small class="opt">${esc(locLabel(m.to))}</small></div>`).join('')}
+    <p class="sub">C'est déjà noté dans le stock : les articles sont enregistrés à leur nouvel emplacement.</p></div>`);}
 
 /* ---------- Magasin : mini-appli téléphone ---------- */
 /* Commander pas à pas : type → marque → modèle → homme/femme → taille → couleur → nombre */
@@ -972,7 +1047,8 @@ function openArt(id,code,tplId){
         <datalist id="dl-couleurs">${colorOpts()}</datalist></div>
       <div class="field" id="f-serrage-w"${a.type==='botte'?'':' hidden'}><label for="f-serrage">Serrage <small class="opt">facultatif</small></label><select id="f-serrage"><option value="">Non précisé</option>${Object.entries(SERRAGE).map(([k,l])=>`<option value="${k}"${k===a.serrage?' selected':''}>${l}</option>`).join('')}</select></div>
     </div>
-    ${multi?`<div class="field"><label>Tailles · touchez toutes celles à ranger, puis indiquez la quantité</label><div id="f-sizes"></div></div>`:''}
+    ${multi?`<div class="field"><label>Tailles · touchez toutes celles à ranger, puis indiquez la quantité</label><div id="f-sizes"></div></div>
+    <div class="where" id="f-where"></div>`:''}
     <div class="field"><label for="f-note">Note (état, détail…) <small class="opt">facultatif</small></label><input type="text" id="f-note" value="${esc(a.note)}"></div>
     <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
       <button type="submit" class="btn primary" id="f-save">Enregistrer</button>
@@ -999,9 +1075,24 @@ function openArt(id,code,tplId){
     $('#f-sizes').innerHTML=html+(n?`<div class="qrows"><div class="qhead m3"><span>Taille</span><span>Couleur</span><span>Quantité</span><span></span></div>${qrows}
       <div><button type="button" class="btn sm" data-fadd>+ Même taille, autre couleur</button></div></div>`:'')
       +`<div class="count" style="margin-top:8px">${n?`<b>${n} ligne${n>1?'s':''} · ${tot} pièce${tot>1?'s':''}</b>`:'Aucune taille choisie'}${have.size?' · ✓ = déjà rangée ici, la quantité sera ajoutée':''}</div>`;
-    $('#f-save').textContent=n>1?`Enregistrer les ${n} lignes (${tot} pièces)`:'Enregistrer';}
+    $('#f-save').textContent=n>1?`Enregistrer les ${n} lignes (${tot} pièces)`:'Enregistrer';renderWhere(tot);}
+  /* Où ranger ? conseils selon la place libre des racks */
+  let whereSel=null;
+  function renderWhere(tot){const w=$('#f-where');if(!w)return;
+    const marque=sameAs($('#f-marque').value.trim(),S.brands),modele=$('#f-modele').value.trim(),t=f.dataset.type,ge=$('#f-genre').value;
+    if(!marque||!modele||!tot){w.innerHTML=`<h4>Où ranger ?</h4><p class="sub">Indiquez la marque, le modèle et les tailles : l'appli propose un emplacement selon la place libre.</p>`;whereSel=null;return;}
+    if(t==='board'){w.innerHTML=`<h4>Où ranger ?</h4><p class="sub">Les snowboards se rangent debout : choisissez l'emplacement ci-dessus.</p>`;whereSel=null;return;}
+    const {res,split,here}=placeSuggest(t,marque,modele,ge,tot),cur=$('#f-emp').value;
+    if(whereSel)whereSel=res.find(r=>r.emp===whereSel.emp&&!!r.moves.length===!!whereSel.moves.length)||null;
+    w.innerHTML=`<h4>Où ranger ces ${tot} ${plural(tot,'boîte','boîtes')} ?</h4>
+      ${here.length?`<p class="sub">Déjà en stock : ${here.map(([e,k])=>`<b class="mono">${esc(e)}</b> (${k})`).join(', ')}</p>`:`<p class="sub">Nouveau modèle dans l'entrepôt.</p>`}
+      ${res.map((r,i)=>{const on=whereSel?whereSel===r:(cur===r.emp&&!r.moves.length);
+        return `<button type="button" class="wopt${on?' on':''}" data-fwhere="${i}"><span class="mono we">${esc(r.emp)}</span><span><b>${esc(locLabel(r.emp))}</b><br><small>${esc(r.why)}</small>${r.moves.length?`<small class="mv">${r.moves.map(m=>`↪ déplacer ${esc(m.label)} (${m.n}) de ${esc(m.from)} vers ${esc(m.to)}`).join('<br>')}</small>`:''}</span><span class="pick">${on?'✓ Choisi':'Choisir'}</span></button>`;}).join('')}
+      ${split?`<p class="sub"><b>Pas assez de place en un seul endroit.</b> Plus grandes places libres : ${split.map(([e,k])=>`<b class="mono">${esc(e)}</b> ≈ ${k}`).join(', ')||'aucune'}. Rangez en plusieurs fois, ou dans le fond / à gauche.</p>`:''}`;
+    w._res=res;}
   renderSizes();
   f.addEventListener('click',e=>{
+    const wo=e.target.closest('[data-fwhere]');if(wo){const r=$('#f-where')._res[+wo.dataset.fwhere];whereSel=r;$('#f-emp').value=r.emp;renderSizes();return;}
     const z=e.target.closest('[data-fz]');if(z){readRows();const s=z.dataset.fz;if(rows.some(r=>r.s===s))rows=rows.filter(r=>r.s!==s);else rows.push({k:'r'+(++nk),s,c:'',q:1});renderSizes();return;}
     const ad=e.target.closest('[data-fadd]');if(ad){readRows();const last=rows[rows.length-1];const k='r'+(++nk);rows.push({k,s:last?last.s:sizeList()[0],c:'',q:1});renderSizes();const c=f.querySelector(`[data-fc="${k}"]`);if(c)c.focus();return;}
     const dl=e.target.closest('[data-fdel]');if(dl){readRows();rows=rows.filter(r=>r.k!==dl.dataset.fdel);renderSizes();return;}
@@ -1015,7 +1106,7 @@ function openArt(id,code,tplId){
   $('#f-marque').addEventListener('input',e=>{$('#dl-modeles').innerHTML=modelOptions(sameAs(e.target.value.trim(),S.brands));renderSizes();});
   $('#f-modele').addEventListener('input',renderSizes);
   f.addEventListener('change',e=>{const d=e.target.dataset||{};if(d.fqi!==undefined||d.fs!==undefined)renderSizes();});
-  $('#f-emp').addEventListener('change',renderSizes);
+  $('#f-emp').addEventListener('change',()=>{whereSel=null;renderSizes();});
   $('#f-couleur').addEventListener('input',renderSizes);
   $('#f-genre').addEventListener('change',renderSizes);
   f.addEventListener('submit',e=>{e.preventDefault();
@@ -1028,13 +1119,15 @@ function openArt(id,code,tplId){
     const base={type:f.dataset.type,marque,modele,genre:$('#f-genre').value,annee:parseInt($('#f-annee').value)||'',emp:$('#f-emp').value,note:$('#f-note').value.trim(),
       couleur:sameAs(fixColor(genColor()),known),
       serrage:f.dataset.type==='botte'?$('#f-serrage').value:''};
-    let added=0;
+    let added=0;const mv=!id&&whereSel&&whereSel.emp===base.emp&&whereSel.moves.length?whereSel.moves:null;
+    if(mv)applyMoves(mv);
     if(id){Object.assign(art(id),base,{taille:$('#f-taille').value,qty:Math.max(0,Math.min(999,parseInt($('#f-qty').value)||0))});}
     else{const stamp=Date.now().toString(36);rows.forEach((r,i)=>{const couleur=r.c?sameAs(fixColor(r.c),known):base.couleur;
       const ex=S.articles.find(x=>x.type===base.type&&x.marque===marque&&x.modele===modele&&x.genre===base.genre&&x.emp===base.emp&&norm(x.couleur)===norm(couleur)&&x.taille===r.s);
       if(ex){ex.qty=qOf(ex)+r.q;added++;}else S.articles.push({id:'a'+stamp+i,...base,couleur,taille:r.s,qty:r.q});});}
     save();closeSheet();render();
     const n=rows.length,tot=rows.reduce((x,r)=>x+r.q,0);
+    if(mv)movesSheet(mv,base.emp,`Rangé en ${esc(base.emp)} · à déplacer`);
     toast(id?`Modifié : <b>${esc(base.emp)}</b> · ${esc(marque+' '+modele)}`:`${n} ligne${n>1?'s':''} (${tot} pièce${tot>1?'s':''}) rangée${n>1?'s':''} en <b>${esc(base.emp)}</b> · ${esc(marque+' '+modele)}${added?` · ${added} ajoutée${added>1?'s':''} au stock existant`:''}`);});
 }
 
@@ -1160,6 +1253,7 @@ document.addEventListener('click',e=>{
   switch(act){
     case'close':closeSheet();break;
     case'inventaire':inventaireXlsx();break;
+    case'capcalc':S.caps=capsCalc();save();render();toast('Capacités recalculées d\'après le stock');break;
     case'export':{const data={app:'entrepot-snow',at:Date.now(),stock:Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]]))};
       const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const a=document.createElement('a');
       a.href=url;a.download=`stock-entrepot-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
@@ -1220,6 +1314,7 @@ document.addEventListener('input',e=>{
   else if(t.id==='sq'){st.sq=t.value;const pos=t.selectionStart;render();const q=$('#sq');if(q){q.focus();try{q.setSelectionRange(pos,pos);}catch(_){}}}
   else if(t.id==='cartNote'){S.cartNote=t.value;save();}
   else if(t.id==='myName'){S.myName=t.value;save();}
+  else if(t.dataset&&t.dataset.cap){const[g,ty]=t.dataset.cap.split(':');const v=parseInt(t.value);if(v>0){caps()[g][ty]=Math.min(999,v);save();}}
   else if(t.dataset&&t.dataset.done){const [oid,i]=t.dataset.done.split(':');const o=S.orders.find(x=>String(x.id)===oid);if(o){o.lines[+i].done=Math.max(0,Math.min(999,parseInt(t.value)||0));saveLocal();}}
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
@@ -1238,7 +1333,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.ke
 const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"entrepotsnow.firebaseapp.com",projectId:"entrepotsnow",
   storageBucket:"entrepotsnow.firebasestorage.app",messagingSenderId:"754342580173",appId:"1:754342580173:web:20ee46db9b4aab080c7e84"};
 const FBU='https://www.gstatic.com/firebasejs/10.12.2/';
-const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo'];
+const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps'];
 /* ?ns=test : bac à sable pour les essais, sans toucher aux vraies données */
 const NS=(()=>{try{return (new URLSearchParams(location.search).get('ns')||'').replace(/[^a-z0-9]/gi,'');}catch(e){return'';}})();
 const C=n=>NS?NS+'_'+n:n;
