@@ -212,6 +212,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .arr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .testbtn{white-space:nowrap;flex:none}.testbtn.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .testban{background:#7c3aed;color:#fff;font-weight:700;border-radius:8px;padding:8px 12px;font-size:13px}
+.tsz{margin-top:6px;padding:6px 8px;border-left:3px solid #7c3aed;background:color-mix(in srgb,#7c3aed 10%,transparent);font-size:13px;display:flex;flex-direction:column;gap:3px}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -693,7 +694,9 @@ function vSettings(){
       <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>
     <div class="card"><h3>Capacité des racks</h3>
       <p class="sub">Nombre de boîtes qu'un emplacement peut contenir quand il est plein. Calculé d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
-      <table class="capt"><tr><th></th><th>Bottes</th><th>Fixations</th></tr>${Object.entries(CAP_GROUPS).map(([g,l])=>`<tr><td>${l}</td><td><input type="number" min="1" max="999" data-cap="${g}:botte" value="${caps()[g].botte}" inputmode="numeric"></td><td><input type="number" min="1" max="999" data-cap="${g}:fix" value="${caps()[g].fix}" inputmode="numeric"></td></tr>`).join('')}</table>
+      <div class="info" style="margin:8px 0">Règles de rangement : <b>bottes au milieu</b> (plus facile d'accès) ; <b>droite niveaux 1-2</b> pour les gros lots de bottes ; <b>jamais de bottes au niveau 3 de droite</b> ; <b>fixations à droite</b>. Un modèle trop gros est réparti par groupes de tailles.</div>
+      <div class="field" style="max-width:320px"><label for="bigLot">Gros lot de bottes à partir de</label><div class="inline"><input type="number" id="bigLot" min="5" max="500" value="${bigLot()}" inputmode="numeric" style="width:90px" data-cap="big"> <span>boîtes d'un même modèle</span></div></div>
+      <table class="capt"><tr><th></th><th>Bottes</th><th>Fixations</th></tr>${Object.entries(CAP_GROUPS).map(([g,l])=>`<tr><td>${l}</td><td><input type="number" min="1" max="999" data-cap="${g}:botte" value="${caps()[g].botte}" inputmode="numeric"${g==='D3'?' disabled title="Jamais de bottes au niveau 3 de droite"':''}>${g==='D3'?' <small class="opt">jamais</small>':''}</td><td><input type="number" min="1" max="999" data-cap="${g}:fix" value="${caps()[g].fix}" inputmode="numeric"></td></tr>`).join('')}</table>
       <div class="inline" style="margin-top:8px"><button type="button" class="btn" data-act="capcalc">Recalculer d'après le stock</button></div>
       ${(()=>{const X=capCtx(occMap());const fr=LOCS.filter(capGroup).map(e=>[e,X.fill(e)]).sort((a,b)=>a[1]-b[1]).slice(0,8);return `<p class="sub" style="margin-top:10px">Les moins remplis : ${fr.map(([e,f])=>`<b class="mono">${e}</b> ${Math.max(0,Math.round(f*100))} %`).join(' · ')}</p>`;})()}</div>
     <div class="card"><h3>Transférer le stock</h3>
@@ -809,35 +812,59 @@ function capCtx(occ){const C=caps();
   const add=(emp,t,n)=>{const x=occ[emp]=occ[emp]||{botte:0,fix:0,board:0};x[t]=(x[t]||0)+n;};
   return {cap,fill,free,add};}
 const plural=(n,a,b)=>n>1?b:a;
-/* Conseils pour ranger n boîtes d'un modèle : [{emp, why, free, moves:[{ids,from,to,label,n}]}] */
+/* Règles de rangement (choix de l'entrepôt) :
+   - bottes : de préférence au milieu (MG / MD), plus facile d'accès ;
+     droite niveaux 1-2 seulement pour un gros lot (seuil dans Réglages) ou en dernier recours ;
+     droite niveau 3 : jamais de bottes.
+   - fixations : à droite (tous niveaux) ; milieu en dernier recours.
+   locTier : 0 = interdit, 1 = conseillé, 2 = dernier recours */
+const bigLot=()=>(caps().big||40);
+function locTier(t,emp,big){const g=capGroup(emp);if(!g)return 0;
+  if(t==='botte'){if(g==='D3')return 0;if(g==='M12'||g==='M3')return 1;return big?1:2;}
+  if(g==='D12'||g==='D3')return 1;return 2;}
+const tierOrder=(t,e,big)=>{const k=locTier(t,e,big);/* à rang égal : milieu avant droite pour les bottes */return k*2+(t==='botte'&&capGroup(e)[0]==='D'?1:0);};
+/* Conseils pour ranger n boîtes d'un modèle au même endroit : [{emp, why, moves:[{ids,from,to,label,n}]}] */
 function placeSuggest(t,marque,modele,genre,n){
-  const occ=occMap(),X=capCtx(occ),managed=LOCS.filter(capGroup);
+  const big=t==='botte'&&n>=bigLot();
+  const occ=occMap(),X=capCtx(occ),ok=(ty,e,b)=>locTier(ty,e,b)>0,managed=LOCS.filter(e=>ok(t,e,big));
   const key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
   const here=new Map();S.articles.filter(a=>key(a)===K).forEach(a=>here.set(a.emp,(here.get(a.emp)||0)+qOf(a)));
   const sameLocs=[...here.entries()].sort((a,b)=>b[1]-a[1]);const res=[];
-  /* 1. avec le même modèle, s'il y a la place */
-  const fit=sameLocs.find(([e])=>capGroup(e)&&X.free(e,t)>=n);
+  /* 1. avec le même modèle, s'il y a la place (et si l'emplacement est permis) */
+  const fit=sameLocs.find(([e])=>ok(t,e,big)&&X.free(e,t)>=n);
   if(fit)res.push({emp:fit[0],why:`avec ${fit[1]} ${modele} déjà là · place pour ≈ ${X.free(fit[0],t)}`,moves:[]});
   /* 2. sinon : libérer de la place à côté du même modèle en déplaçant de petits restes */
-  const main=sameLocs.find(([e])=>capGroup(e));
+  const main=sameLocs.find(([e])=>ok(t,e,big));
   if(!fit&&main){const L=main[0],occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2);
     const groups=new Map();S.articles.filter(a=>a.emp===L&&key(a)!==K&&qOf(a)>0&&!a._new).forEach(a=>{const k=key(a);const g=groups.get(k)||{ids:[],n:0,t:a.type,a,k};g.ids.push(a.id);g.n+=qOf(a);groups.set(k,g);});
     const moves=[];
     for(const g of [...groups.values()].filter(g=>g.n<=Math.max(6,n)).sort((x,y)=>x.n-y.n)){if(Y.free(L,t)>=n||moves.length>=3)break; /* seulement de petits restes */
       const homes=new Set(S.articles.filter(a=>key(a)===g.k&&a.emp!==L).map(a=>a.emp));
-      const dests=managed.filter(e=>e!==L&&Y.free(e,g.t)>=g.n).sort((x,y)=>(homes.has(y)-homes.has(x))||Y.free(x,g.t)-Y.free(y,g.t));
+      const dests=LOCS.filter(e=>e!==L&&ok(g.t,e,false)&&Y.free(e,g.t)>=g.n).sort((x,y)=>(homes.has(y)-homes.has(x))||tierOrder(g.t,x,false)-tierOrder(g.t,y,false)||Y.free(x,g.t)-Y.free(y,g.t));
       if(!dests.length)continue;const D=dests[0];
       Y.add(L,g.t,-g.n);Y.add(D,g.t,g.n);
       moves.push({ids:g.ids,from:L,to:D,n:g.n,label:`${g.a.marque} ${g.a.modele} ${GENRE[g.a.genre]||''}`.trim()});}
     if(moves.length&&Y.free(L,t)>=n)res.push({emp:L,why:`avec ${main[1]} ${modele} déjà là, après ${moves.length} ${plural(moves.length,'déplacement','déplacements')}`,moves});}
-  /* 3. un emplacement avec de la place : d'abord près de la même marque, puis le plus juste */
+  /* 3. un emplacement conseillé avec de la place : même marque d'abord, puis le plus juste */
   const brandAt=new Set(S.articles.filter(a=>a.type===t&&norm(a.marque)===norm(marque)).map(a=>a.emp));
   managed.filter(e=>!res.some(r=>r.emp===e)&&X.free(e,t)>=n)
-    .sort((a,b)=>(brandAt.has(b)-brandAt.has(a))||X.free(a,t)-X.free(b,t)).slice(0,res.length?2:3)
-    .forEach(e=>res.push({emp:e,why:(X.fill(e)<0.02?'emplacement vide':brandAt.has(e)?`avec d'autres ${marque}`:'place libre')+` · place pour ≈ ${X.free(e,t)}`,moves:[]}));
-  /* 4. rien d'assez grand : les plus grandes places libres, pour partager */
-  let split=null;if(!res.length){split=managed.map(e=>[e,X.free(e,t)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,4);}
-  return {res,split,here:sameLocs};}
+    .sort((a,b)=>tierOrder(t,a,big)-tierOrder(t,b,big)||(brandAt.has(b)-brandAt.has(a))||X.free(a,t)-X.free(b,t)).slice(0,res.length?2:3)
+    .forEach(e=>res.push({emp:e,why:(X.fill(e)<0.02?'emplacement vide':brandAt.has(e)?`avec d'autres ${marque}`:'place libre')+` · place pour ≈ ${X.free(e,t)}`+(locTier(t,e,big)===2?' · dernier recours':''),moves:[]}));
+  return {res,split:null,here:sameLocs};}
+/* Trop gros pour un seul endroit : on répartit par groupes de tailles entières (une taille n'est coupée que si elle ne tient nulle part) */
+function splitLot(t,marque,modele,genre,sizes){
+  const n=Object.values(sizes).reduce((x,y)=>x+y,0),big=t==='botte'&&n>=bigLot();
+  const occ=occMap(),X=capCtx(occ),K=[t,norm(marque),norm(modele),genre].join('|');
+  const same=new Set(S.articles.filter(a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|')===K).map(a=>a.emp));
+  const zs=Object.keys(sizes).filter(z=>sizes[z]>0).sort((x,y)=>(t==='fix'?(S.sizesF.indexOf(x)+1||99)-(S.sizesF.indexOf(y)+1||99):sizeRankStr(x)-sizeRankStr(y))).map(z=>({z,q:sizes[z]}));
+  const locs=LOCS.filter(e=>locTier(t,e,big)>0&&X.free(e,t)>0).map(e=>({e,room:X.free(e,t)}))
+    .sort((a,b)=>(same.has(b.e)-same.has(a.e))||tierOrder(t,a.e,big)-tierOrder(t,b.e,big)||b.room-a.room);
+  const chunks=new Map(),take=(L,z,q)=>{const c=chunks.get(L.e)||{emp:L.e,n:0,sizes:{}};c.sizes[z]=(c.sizes[z]||0)+q;c.n+=q;L.room-=q;chunks.set(L.e,c);};
+  let i=0;
+  for(const L of locs){if(i>=zs.length)break;while(i<zs.length&&zs[i].q<=L.room){take(L,zs[i].z,zs[i].q);i++;}}
+  const rest=[];for(;i<zs.length;i++){let q=zs[i].q;for(const L of [...locs].sort((a,b)=>b.room-a.room)){if(q<=0)break;const k=Math.min(q,L.room);if(k>0){take(L,zs[i].z,k);q-=k;}}if(q>0)rest.push({z:zs[i].z,q});}
+  const out=[...chunks.values()];if(rest.length){const c={emp:null,n:0,sizes:{}};rest.forEach(r=>{c.sizes[r.z]=r.q;c.n+=r.q;});out.push(c);}
+  return out;}
 function applyMoves(moves){let k=0;moves.forEach(m=>m.ids.forEach(id=>{const a=art(id);if(!a||a.emp!==m.from)return;
   const ex=S.articles.find(x=>x!==a&&x.emp===m.to&&x.type===a.type&&x.marque===a.marque&&x.modele===a.modele&&x.genre===a.genre&&x.taille===a.taille&&norm(x.couleur)===norm(a.couleur));
   if(ex){ex.qty=qOf(ex)+qOf(a);S.articles=S.articles.filter(y=>y!==a);}else a.emp=m.to;k++;}));return k;}
@@ -860,20 +887,23 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
   try{
     [...A.groups].sort((a,b)=>gTot(b)-gTot(a)).forEach(g=>{const n=gTot(g);if(!n)return;
       const step={g,n,chunks:[],moves:[],why:'',alts:[]};
-      const put=(emp,k)=>{step.chunks.push({emp,n:k});if(emp)sim.push({id:'sim'+Math.random(),_new:1,type:g.type,marque:g.marque,modele:g.modele,genre:g.genre,taille:'',couleur:g.couleur,emp,qty:k});};
-      if(g.emp){put(g.emp,n);step.why='emplacement choisi';out.push(step);return;}
-      if(g.type==='board'){const h=S.articles.find(a=>a.type==='board'&&norm(a.marque)===norm(g.marque)&&norm(a.modele)===norm(g.modele));put(h?h.emp:null,n);step.why=h?'avec le même modèle':'snowboards : choisissez l\'emplacement';out.push(step);return;}
+      /* un morceau = un emplacement + ses tailles ; on l'ajoute au stock simulé pour le modèle suivant */
+      const put=(emp,sz)=>{const k=Object.values(sz).reduce((x,y)=>x+y,0);step.chunks.push({emp,n:k,sizes:sz});
+        if(emp)Object.entries(sz).forEach(([z,q])=>S.articles.push({id:'sim'+Math.random(),_new:1,type:g.type,marque:g.marque,modele:g.modele,genre:g.genre,taille:z,couleur:g.couleur,emp,qty:q}));};
+      const all={...g.sizes};
+      if(g.emp){put(g.emp,all);step.why='emplacement choisi';out.push(step);return;}
+      if(g.type==='board'){const h=S.articles.find(a=>a.type==='board'&&norm(a.marque)===norm(g.marque)&&norm(a.modele)===norm(g.modele));put(h?h.emp:null,all);step.why=h?'avec le même modèle':'snowboards : choisissez l\'emplacement';out.push(step);return;}
       const r=placeSuggest(g.type,g.marque,g.modele,g.genre,n);step.alts=r.res.map(x=>x.emp);
-      if(r.res.length){const c=r.res[0];if(c.moves.length){applyMoves(c.moves);step.moves=c.moves;}put(c.emp,n);step.why=c.why;}
-      else{let left=n;(r.split||[]).forEach(([e,f])=>{if(left<=0)return;const k=Math.min(left,f);put(e,k);left-=k;});
-        if(left>0)put(null,left);step.why='pas assez de place en un seul endroit : réparti';}
+      if(r.res.length){const c=r.res[0];if(c.moves.length){applyMoves(c.moves);step.moves=c.moves;}put(c.emp,all);step.why=c.why;}
+      else{splitLot(g.type,g.marque,g.modele,g.genre,g.sizes).forEach(c=>put(c.emp,c.sizes));
+        step.why=`trop gros pour un seul endroit : réparti par tailles en ${step.chunks.filter(c=>c.emp).length} emplacements`;}
       out.push(step);});
   }finally{S.articles=real;}
   return out;}
 /* répartit les tailles d'un modèle dans ses morceaux (emplacements) */
-function chunkLines(step){const g=step.g,res=[];let ci=0,room=step.chunks.length?step.chunks[0].n:0;
-  gSizes(g).forEach(z=>{let q=g.sizes[z];while(q>0&&ci<step.chunks.length){const k=Math.min(q,room);if(k>0){res.push({emp:step.chunks[ci].emp,taille:z,qty:k});q-=k;room-=k;}if(room<=0){ci++;room=ci<step.chunks.length?step.chunks[ci].n:0;}}});
-  return res;}
+function chunkLines(step){const res=[];step.chunks.forEach(c=>Object.entries(c.sizes||{}).forEach(([z,q])=>{if(q>0)res.push({emp:c.emp,taille:z,qty:q});}));return res;}
+/* tailles d'un morceau, en clair (affichées seulement en mode test) */
+const chunkSizes=(t,c)=>Object.keys(c.sizes||{}).sort((x,y)=>sizeRankStr(x)-sizeRankStr(y)).map(z=>`${szLbl(t,z)} ×${c.sizes[z]}`).join(', ');
 function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k=>st.armed===k;
   const plan=A.groups.length?planArrivage():[],moves=plan.flatMap(p=>p.moves),unplaced=plan.reduce((x,p)=>x+p.chunks.filter(c=>!c.emp).reduce((y,c)=>y+c.n,0),0);
   const log=(S.arrLog||[]).slice(-5).reverse();
@@ -890,7 +920,8 @@ function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k
     ${plan.length?`<h3 class="sec">2. Plan de rangement</h3>
       ${moves.length?`<div class="card warnc"><b>D'abord, faire de la place :</b>${moves.map((m,i)=>`<div class="mvl">${i+1}. Déplacer <b>${esc(m.label)}</b> (${m.n} ${plural(m.n,'boîte','boîtes')}) de <b class="mono">${esc(m.from)}</b> vers <b class="mono">${esc(m.to)}</b></div>`).join('')}</div>`:''}
       ${plan.map(p=>`<div class="card plrow"><div class="agrp-h"><div><div class="t"><span class="mk">${esc(p.g.marque)}</span> ${esc(p.g.modele)} <small class="opt">${esc(GENRE[p.g.genre]||'')}${p.g.couleur?' · '+esc(p.g.couleur):''}</small></div>
-          <div class="d">${p.chunks.map(c=>c.emp?`<b class="mono pe">→ ${esc(c.emp)}</b>${p.chunks.length>1?` ${c.n}`:''}`:`<b class="bad">${c.n} sans place</b>`).join(' ')} <small>· ${esc(p.why)}</small></div></div><b class="qn">${p.n}</b></div>
+          <div class="d">${p.chunks.map(c=>c.emp?`<b class="mono pe">→ ${esc(c.emp)}</b>${p.chunks.length>1?` ${c.n}`:''}`:`<b class="bad">${c.n} sans place</b>`).join(' ')} <small>· ${esc(p.why)}</small></div>
+          ${A.test?`<div class="tsz">${p.chunks.map(c=>`<div><b class="mono">${c.emp?esc(c.emp):'sans place'}</b> · ${c.n} : ${esc(chunkSizes(p.g.type,c))}</div>`).join('')}</div>`:''}</div><b class="qn">${p.n}</b></div>
         <div class="field" style="margin-top:6px"><label for="ae-${p.g.id}" class="opt">Changer l'emplacement</label><select id="ae-${p.g.id}" data-arremp="${p.g.id}"><option value="">Conseil de l'appli</option>${LOCS.map(c=>`<option${p.g.emp===c?' selected':''}>${c}</option>`).join('')}</select></div></div>`).join('')}
       ${unplaced?`<div class="info">${unplaced} boîte${unplaced>1?'s':''} sans place dans les racks gérés : choisissez un emplacement (fond, gauche…) avec « Changer l'emplacement », ou augmentez les capacités dans Réglages.</div>`:''}
       <div class="inline" style="margin-top:10px"><button type="button" class="btn primary${arm('arrok')?' armed':''}" data-act="arrok"${unplaced?' disabled':''}>${A.test?`🧪 Essayer le rangement (${tot} boîtes)`:arm('arrok')?`Confirmer : ranger ${tot} boîtes`:`Valider : ranger les ${tot} boîtes`}</button>
@@ -950,7 +981,7 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
     ${T?`<div class="testban">ESSAI · rien n'a été changé dans le stock</div>`:''}
     <div class="sheet-h"><h2>${T?'Essai de rangement':'Arrivage rangé'} · ${n} boîtes</h2><button type="button" class="btn ghost" data-act="close">OK</button></div>
     ${done.some(p=>p.moves.length)?`<p class="sub"><b>1. D'abord, déplacer :</b></p>${done.flatMap(p=>p.moves).map(m=>`<div class="d">${esc(m.label)} (${m.n}) : <b class="mono">${esc(m.from)}</b> → <b class="mono">${esc(m.to)}</b></div>`).join('')}<p class="sub"><b>2. Puis ranger :</b></p>`:''}
-    ${done.map(p=>`<div class="d"><b>${esc(gName(p.g))}</b> ${esc(GENRE[p.g.genre]||'')} : ${p.chunks.map(c=>`<b class="mono">${esc(c.emp)}</b> (${c.n})`).join(', ')}</div>`).join('')}
+    ${done.map(p=>`<div class="d"><b>${esc(gName(p.g))}</b> ${esc(GENRE[p.g.genre]||'')} : ${p.chunks.map(c=>`<b class="mono">${esc(c.emp)}</b> (${c.n})${T?` <small>${esc(chunkSizes(p.g.type,c))}</small>`:''}`).join(T?'<br>':', ')}</div>`).join('')}
     <p class="sub">${T?`C'était un essai : le stock n'a pas bougé. L'arrivage est gardé, vous pouvez le modifier et réessayer.`:`Le stock est à jour${mv?', déplacements compris':''}.`}</p></div>`);
   render();}
 
@@ -1205,6 +1236,7 @@ function openArt(id,code,tplId){
       ${here.length?`<p class="sub">Déjà en stock : ${here.map(([e,k])=>`<b class="mono">${esc(e)}</b> (${k})`).join(', ')}</p>`:`<p class="sub">Nouveau modèle dans l'entrepôt.</p>`}
       ${res.map((r,i)=>{const on=whereSel?whereSel===r:(cur===r.emp&&!r.moves.length);
         return `<button type="button" class="wopt${on?' on':''}" data-fwhere="${i}"><span class="mono we">${esc(r.emp)}</span><span><b>${esc(locLabel(r.emp))}</b><br><small>${esc(r.why)}</small>${r.moves.length?`<small class="mv">${r.moves.map(m=>`↪ déplacer ${esc(m.label)} (${m.n}) de ${esc(m.from)} vers ${esc(m.to)}`).join('<br>')}</small>`:''}</span><span class="pick">${on?'✓ Choisi':'Choisir'}</span></button>`;}).join('')}
+      ${!res.length?`<p class="sub"><b>Pas de place pour tout au même endroit.</b> Utilisez l'onglet <b>Arrivage</b> : il répartit le modèle par groupes de tailles.</p>`:''}
       ${split?`<p class="sub"><b>Pas assez de place en un seul endroit.</b> Plus grandes places libres : ${split.map(([e,k])=>`<b class="mono">${esc(e)}</b> ≈ ${k}`).join(', ')||'aucune'}. Rangez en plusieurs fois, ou dans le fond / à gauche.</p>`:''}`;
     w._res=res;}
   renderSizes();
@@ -1377,7 +1409,7 @@ document.addEventListener('click',e=>{
     case'arrclr':if(st.armed!=='arrclr'){st.armed='arrclr';render();return;}st.armed=null;arr().groups=[];arr().note='';saveLocal();render();toast('Arrivage effacé');break;
     case'arrok':if(!arr().test&&st.armed!=='arrok'){st.armed='arrok';render();return;}st.armed=null;arrValidate();break;
     case'arrtest':arr().test=!arr().test;st.armed=null;saveLocal();render();toast(arr().test?'<b>Mode test</b> : le stock ne sera pas modifié':'Mode test arrêté : la validation range vraiment');break;
-    case'capcalc':S.caps=capsCalc();save();render();toast('Capacités recalculées d\'après le stock');break;
+    case'capcalc':{const b=caps().big;S.caps=capsCalc();if(b)S.caps.big=b;}save();render();toast('Capacités recalculées d\'après le stock');break;
     case'export':{const data={app:'entrepot-snow',at:Date.now(),stock:Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]]))};
       const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const a=document.createElement('a');
       a.href=url;a.download=`stock-entrepot-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
@@ -1439,7 +1471,7 @@ document.addEventListener('input',e=>{
   else if(t.id==='cartNote'){S.cartNote=t.value;save();}
   else if(t.id==='myName'){S.myName=t.value;save();}
   else if(t.id==='arrNote'){arr().note=t.value;saveLocal();}
-  else if(t.dataset&&t.dataset.cap){const[g,ty]=t.dataset.cap.split(':');const v=parseInt(t.value);if(v>0){caps()[g][ty]=Math.min(999,v);save();}}
+  else if(t.dataset&&t.dataset.cap){const v=parseInt(t.value);if(t.dataset.cap==='big'){if(v>0){caps().big=Math.min(500,v);save();}}else{const[g,ty]=t.dataset.cap.split(':');if(v>0){caps()[g][ty]=Math.min(999,v);save();}}}
   else if(t.dataset&&t.dataset.done){const [oid,i]=t.dataset.done.split(':');const o=S.orders.find(x=>String(x.id)===oid);if(o){o.lines[+i].done=Math.max(0,Math.min(999,parseInt(t.value)||0));saveLocal();}}
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
