@@ -264,7 +264,7 @@ body.shop .tabs-in{max-width:520px;grid-template-columns:repeat(3,1fr)}
 .crumbs span{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600}
 h2.q{font-size:28px}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tiles.three{grid-template-columns:repeat(3,1fr)}
+.tiles.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .tiles.sizes{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
 .tile{min-height:68px;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:14px;background:var(--surface);font:700 18px/1.2 var(--f-body);color:var(--ink);text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;cursor:pointer;box-shadow:0 1px 2px rgba(15,42,68,.06)}
 .tile small{font:500 13px var(--f-body);color:var(--ok)}
@@ -275,6 +275,15 @@ h2.q{font-size:28px}
 .tiles.sizes .tile{font-family:var(--f-mono);font-size:17px;text-align:center;align-items:center}
 .tile.t-botte{border-left-color:var(--zD)}.tile.t-fix{border-left-color:var(--zG)}.tile.t-board{border-left-color:var(--zM)}
 .tiles.three .tile{min-height:52px;font-size:15px;text-align:center;align-items:center;border-left-width:5px}
+.tile{position:relative}
+.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tile .pic{width:58px;height:58px;margin-bottom:4px}.t-botte .pic{color:var(--zD)}.t-fix .pic{color:var(--zG)}.t-board .pic{color:var(--zM)}
+.tile.zero .pic{opacity:.45}
+.tiles.three .tile .pic{width:38px;height:38px;margin-bottom:2px}
+.tiles.three .tile{gap:2px;padding:8px 6px}
+.tile[aria-pressed="true"] .pic{color:var(--accent-ink)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tile .pic{filter:brightness(1.5)}}
+:root[data-theme="dark"] .tile .pic{filter:brightness(1.5)}
 .tile[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tiles.big-1{grid-template-columns:1fr}
 .alert{padding:12px 14px;border-radius:12px;font-size:16px;border:1px solid}
@@ -646,6 +655,11 @@ function shBack(){const k=st.sh.hist.pop();
   SH_STEPS.slice(SH_STEPS.indexOf(k)).forEach(x=>delete st.sh.v[x]);st.sh.step=k;}
 function shLabel(k,x){if(k==='type')return TYPE[x];if(k==='genre')return GENRE[x];if(k==='taille')return szLbl(st.sh.v.type,x);if(k==='couleur')return x||'Sans couleur précisée';return x;}
 
+/* Petits dessins des types de produits (tuiles du magasin) */
+const PIC={
+  botte:`<svg class="pic" viewBox="0 0 64 64" aria-hidden="true"><path d="M16 6H38L40 30C48 32 56 35 58 42V48H12V40L14 34Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M16 13H38" stroke="currentColor" stroke-width="2.5"/><path d="M27 24L41 33M27 24L47 37" stroke="currentColor" stroke-width="1.6" opacity=".75"/><circle cx="27" cy="24" r="6" fill="currentColor"/><circle cx="27" cy="24" r="2.4" fill="#fff"/><rect x="9" y="48" width="51" height="7" rx="3" fill="currentColor"/></svg>`,
+  fix:`<svg class="pic" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 46V15C10 10 14 7 19 8L22 9C24 10 25 12 25 15L27 46Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M25 27C35 20 45 24 49 35" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M45 41C51 37 56 39 58 45" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="38" y="22" width="7" height="5" rx="1.5" fill="#fff" transform="rotate(25 41 24)"/><rect x="7" y="46" width="53" height="7" rx="3" fill="currentColor"/></svg>`,
+  board:`<svg class="pic" viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-38 32 32)"><rect x="2" y="23" width="60" height="18" rx="9" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="2.5"/><path d="M12 32H52" stroke="currentColor" stroke-width="1.6" opacity=".6"/><rect x="16" y="25.5" width="7" height="13" rx="2" fill="currentColor"/><rect x="41" y="25.5" width="7" height="13" rx="2" fill="currentColor"/></g></svg>`};
 function bell(){const u=unread();if(!u.length)return'';const n=u[u.length-1];
   return `<div class="bell" role="status"><span>🔔 <b>${esc(n.text)}</b>${u.length>1?` <small>(+${u.length-1})</small>`:''}</span><button type="button" class="btn sm primary" data-act="seen">Voir</button></div>`;}
 
@@ -665,7 +679,7 @@ function vShopCmd(){
   if(sh.step!=='type')keys.sort(sorter);
   const tile=x=>{const c=o.get(x)||{n:0,stock:0};const z=!c.stock;
     const sub=sh.step==='type'?(c.n?`${c.stock} en stock`:'aucun enregistré'):z?'Rupture de stock':`${c.stock} en stock`;
-    return `<button type="button" class="tile${sh.step==='type'?' big t-'+x:''}${z?' zero':''}" data-act="shpick" data-k="${sh.step}" data-v="${esc(x)}">${esc(shLabel(sh.step,x))}<small>${sub}</small></button>`;};
+    return `<button type="button" class="tile${sh.step==='type'?' big t-'+x:''}${z?' zero':''}" data-act="shpick" data-k="${sh.step}" data-v="${esc(x)}">${sh.step==='type'?PIC[x]||'':''}${esc(shLabel(sh.step,x))}<small>${sub}</small></button>`;};
   const empty=!keys.length?`<div class="empty">Rien d'enregistré ici pour l'instant.</div>`:'';
   return head+`<div class="tiles${sh.step==='taille'?' sizes':''}">${keys.map(tile).join('')}</div>${empty}
     <details class="libre"><summary>Pas dans la liste ? Écrire la demande</summary>
@@ -719,7 +733,7 @@ function vShopFind(){
       <button type="button" class="btn primary" data-act="shorder" data-id="${a.id}">Commander ce modèle</button></div>`;}).join('');
   return `<h2 class="q">Chercher un produit</h2>
     <input class="search" type="search" id="sq" placeholder="Marque, modèle ou taille…" value="${esc(q)}" autocomplete="off">
-    <div class="tiles three">${[['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" class="tile t-${v}" data-act="sqtype" data-v="${v}" aria-pressed="${ft===v}">${l}</button>`).join('')}</div>
+    <div class="tiles three">${[['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" class="tile t-${v}" data-act="sqtype" data-v="${v}" aria-pressed="${ft===v}">${PIC[v]}${l}</button>`).join('')}</div>
     ${show?`<div class="count">${groups.size} modèle${groups.size>1?'s':''}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
       :'<p class="sub">Tapez un nom ou touchez un type pour voir le stock et où il est rangé.</p>'}`;}
 
