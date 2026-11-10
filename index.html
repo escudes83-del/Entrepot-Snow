@@ -156,6 +156,23 @@ textarea{resize:vertical;min-height:60px}
 .plz{display:flex;gap:3px}.plz .pl{flex:0 0 38%}.plz>.zone-lbl:last-child{flex:1}
 .pl{background:repeating-linear-gradient(-55deg,var(--hatch) 0 2px,transparent 2px 7px);border-radius:3px}
 .fond{grid-area:fond}
+/* Lumière de l'allée de droite */
+.plan-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.lightbtn{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;border:1px solid var(--line-strong);background:#0b0f14;color:#cbd5e1;font:inherit;font-size:14px;cursor:pointer}
+.lightbtn .sw{width:40px;height:22px;border-radius:999px;background:#334155;position:relative;transition:background .3s;flex:none}
+.lightbtn .knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#94a3b8;transition:left .3s,background .3s}
+.lightbtn.on{background:#fff7d6;color:#3b2f00;border-color:#facc15;box-shadow:0 0 18px rgba(250,204,21,.55)}
+.lightbtn.on .sw{background:#facc15}.lightbtn.on .knob{left:21px;background:#fff}
+.darknote{margin:10px 0;padding:8px 12px;border-radius:8px;background:#05070a;color:#94a3b8;font-size:13px;border:1px solid #1e293b}
+.plan .dz,.plan .mrow>.chips:last-child{transition:filter .6s ease}
+.plan.dark .dz,.plan.dark .mrow>.chips:last-child{filter:brightness(.24) saturate(.1) blur(.5px)}
+.plan.dark .al{background:#000;border-radius:3px;color:#000}
+.plan.lit .al{background:linear-gradient(90deg,transparent,rgba(255,244,190,.35),transparent);border-radius:3px;position:relative}
+.plan.lit .al::before{content:"";position:absolute;top:4px;bottom:4px;left:50%;width:3px;margin-left:-1.5px;border-radius:2px;background:#fffbe6;box-shadow:0 0 10px 3px rgba(255,240,170,.8)}
+.plan.fx .dz,.plan.fx .mrow>.chips:last-child,.plan.fx .al{animation:neon 1.2s steps(1,end)}
+@keyframes neon{0%{filter:brightness(.15)}8%{filter:brightness(1.1)}14%{filter:brightness(.2)}22%{filter:brightness(1)}28%{filter:brightness(.35)}40%,100%{filter:brightness(1)}}
+@media (prefers-reduced-motion:reduce){.plan.fx .dz,.plan.fx .mrow>.chips:last-child,.plan.fx .al{animation:none}}
+
 .fond .rack{flex-direction:row;justify-content:center;gap:12px;min-height:34px}
 .ent{grid-area:ent;display:flex;align-items:flex-end;justify-content:center;padding-top:6px}
 .ent span{font-family:var(--f-disp);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--accent);display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -525,6 +542,8 @@ const IC={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
   cmd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h2l2.4 11h11L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'};
 const TABS={entrepot:[['search','Rechercher','search'],['plan','Plan','plan'],['arr','Arrivage','arr'],['orders','Commandes','orders'],['settings','Réglages','settings']],
   magasin:[['cmd','Commander','cmd'],['find','Chercher','search'],['mine','Mes commandes','orders']]};
+/* Éclairage de l'allée de droite (démonstration) : éteint par défaut, choix gardé sur l'appareil */
+let LIGHT=null;const lightOn=()=>{if(LIGHT===null){try{LIGHT=localStorage.getItem(KEY+'-light')==='1';}catch(e){LIGHT=false;}}return LIGHT;};
 /* ---------- Rendu ---------- */
 function render(){
   document.body.classList.toggle('shop',role==='magasin');
@@ -605,16 +624,20 @@ function vPlan(){
   for(let r=6;r>=1;r--)m+=`<div class="rack"><span class="rk">M${r}</span><div class="mrow">${chips('MG',r,H,count)}<i class="sep"></i>${chips('MD',r,H,count)}</div></div>`;
   const ext=`<div class="rack"><span class="rk">E1</span>${chips('E',1,H,count)}</div>`
     +`<div class="rack"><span class="rk">BAV</span>${chips('BAV',1,H,count)}</div><div class="rack"><span class="rk">BAR</span>${chips('BAR',1,H,count)}</div>`;
-  return `<div><h2>Plan de l'entrepôt</h2><p class="sub">Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l'entrée.</p></div>
+  const lit=lightOn();
+  return `<div class="plan-top"><div><h2>Plan de l'entrepôt</h2><p class="sub">Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l'entrée.</p></div>
+      <button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
+        <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button></div>
+    ${lit?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
     ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${focusOrd().id}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
     ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${nb} article${nb>1?'s':''} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
-    <div class="plan-wrap"><div class="plan" role="group" aria-label="Plan de l'entrepôt">
+    <div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
       <div class="col long" style="grid-area:g"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${g}</div>
       <div class="plz" style="grid-area:pl"><div class="pl zone-lbl" title="Planches debout">planches debout</div><div class="zone-lbl" title="Allée vers le fond et le côté gauche du milieu">allée</div></div>
       <div class="col" style="grid-area:m"><div style="display:flex;justify-content:space-between" class="mface"><span>côté G</span><span>côté D</span></div>${m}</div>
-      <div class="zone-lbl" style="grid-area:al">allée</div>
-      <div class="col long" style="grid-area:d"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${d}</div>
+      <div class="zone-lbl al dz" style="grid-area:al">allée</div>
+      <div class="col long dz" style="grid-area:d"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${d}</div>
       <div class="ent"><span><svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 17V2M2 8l6-6 6 6"/></svg>Entrée</span></div>
       <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}</div>
     </div></div>
@@ -1581,6 +1604,8 @@ document.addEventListener('click',e=>{
     case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
     case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
     case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
+    case'light':{const on=!lightOn();LIGHT=on;try{localStorage.setItem(KEY+'-light',on?'1':'0');}catch(e){}
+      st.lightFx=on;render();clearTimeout(window._lfx);window._lfx=setTimeout(()=>{st.lightFx=false;const p=document.querySelector('.plan');if(p)p.classList.remove('fx');},1300);break;}
     case'unfocus':st.focus=null;st.focusOrder=null;render();break;
     case'oplan':st.focus=null;st.focusOrder=oid;st.tab='plan';render();window.scrollTo(0,0);break;
     case'loc':openLoc(t.dataset.code);break;
