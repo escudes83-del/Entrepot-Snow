@@ -245,6 +245,9 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimadd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.dimadd #ovNote{flex:1;min-width:160px}
 .boxadd{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-items:end;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .optchk{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:14px;cursor:pointer}.optchk input{width:20px;height:20px}
+.shnext{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.shnext .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;min-height:52px;border-color:var(--accent);font-size:15px}
+.shnext .btn small{font-size:12px;color:var(--muted);font-weight:500}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -1233,7 +1236,10 @@ function shQty(){const sh=st.sh,g=shPool('qty');const tot=g.reduce((s,a)=>s+avai
       <div class="d">📍 ${locs.map(c=>`<b>${esc(c)}</b> ${esc(locLabel(c))}`).join('<br>📍 ')}</div></div>
     ${alert}
     <div class="bigstep"><button type="button" data-act="shq" data-d="-1" aria-label="Moins">−</button><output aria-live="polite">${q}</output><button type="button" data-act="shq" data-d="1" aria-label="Plus">+</button></div>
-    <button type="button" class="btn primary block" data-act="shadd">${tot?'Ajouter à la commande':'Demander quand même'}</button>`;}
+    <button type="button" class="btn primary block" data-act="shadd">${tot?'Ajouter à la commande':'Demander quand même'}</button>
+    <div class="shnext">
+      <button type="button" class="btn block" data-act="shadd" data-next="taille"><span>＋ Ajouter et choisir <b>une autre taille</b></span><small>${esc(a.marque+' '+a.modele)} · ${esc(GENRE[sh.v.genre]||'')}</small></button>
+      <button type="button" class="btn block" data-act="shadd" data-next="modele"><span>＋ Ajouter et choisir <b>un autre modèle ${esc(a.marque)}</b></span></button></div>`;}
 
 function cartLine(l,i){const a=l.aid&&art(l.aid);
   let warn='';
@@ -1249,7 +1255,11 @@ function vShopCart(){const ed=S.editing&&S.orders.find(o=>o.id===S.editing);
   return `${ed?`<div class="alert warn" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Vous corrigez la commande <b>#${ed.id}</b></span><button type="button" class="btn sm" data-act="ecancel">Annuler</button></div>`:''}
     <h2 class="q">${ed?'Correction de la commande':'Ma commande'}</h2>
     <div class="cart">${S.cart.map(cartLine).join('')||'<div class="empty">Aucun article.</div>'}</div>
-    <button type="button" class="btn block add" data-act="shnew">+ Ajouter un article</button>
+    ${(()=>{const last=[...S.cart].reverse().map(l=>l.aid&&art(l.aid)).find(Boolean);if(!last)return'';
+      return `<div class="shnext">
+        <button type="button" class="btn block" data-act="shmore" data-k="taille" data-id="${last.id}"><span>＋ Autre taille · <b>${esc(last.marque+' '+last.modele)}</b></span><small>${esc(TYPE[last.type])} · ${esc(GENRE[last.genre]||'')}</small></button>
+        <button type="button" class="btn block" data-act="shmore" data-k="modele" data-id="${last.id}"><span>＋ Autre modèle <b>${esc(last.marque)}</b></span><small>${esc(TYPE[last.type])}</small></button></div>`;})()}
+    <button type="button" class="btn block add" data-act="shnew">+ Ajouter un autre article</button>
     <div class="field"><label for="cartNote">Notes pour l'entrepôt <small class="opt">facultatif</small></label><textarea id="cartNote" placeholder="Ex. : client en caisse, urgent">${esc(S.cartNote)}</textarea></div>
     ${nameField('Qui commande ? (touchez votre nom)',NOMS.magasin,'Autre nom…')}
     <button type="button" class="btn primary block" data-act="send"${S.cart.length?'':' disabled'}>${ed?'Envoyer la correction':'Envoyer à l\'entrepôt'}${n?` · ${n} pièce${n>1?'s':''}`:''}</button>`;}
@@ -1314,7 +1324,11 @@ function shopClick(act,t){
       const put=(a,n)=>{const ex=S.cart.find(l=>l.aid===a.id);if(ex)ex.qty+=n;else S.cart.push({aid:a.id,qty:n});};
       g.forEach(a=>{const n=Math.min(availOf(a),rest);if(n>0){put(a,n);rest-=n;}});
       if(rest>0)put(g[0],rest);
-      const q=st.sh.q;st.sh={step:null,v:{},hist:[],q:1};save();render();window.scrollTo(0,0);toast(`Ajouté : <b>${q}</b> · ${esc(artName(g[0]))}`);return true;}
+      const q=st.sh.q,pv={...st.sh.v},nx=t.dataset.next;st.sh={step:null,v:{},hist:[],q:1};
+      if(nx==='taille')shStart({type:pv.type,marque:pv.marque,modele:pv.modele,genre:pv.genre});
+      else if(nx==='modele')shStart({type:pv.type,marque:pv.marque});
+      save();render();window.scrollTo(0,0);toast(`Ajouté : <b>${q}</b> · ${esc(artName(g[0]))}${nx==='taille'?' · choisissez la taille suivante':nx==='modele'?' · choisissez le modèle suivant':''}`);return true;}
+    case'shmore':{const a=art(t.dataset.id);if(!a)return true;shStart(t.dataset.k==='taille'?{type:a.type,marque:a.marque,modele:a.modele,genre:a.genre}:{type:a.type,marque:a.marque});break;}
     case'shorder':{const a=art(t.dataset.id);st.tab='cmd';shStart({type:a.type,marque:a.marque,modele:a.modele,genre:a.genre});break;}
     case'sqtype':st.sqType=st.sqType===t.dataset.v?'':t.dataset.v;break;
     case'seen':unread().forEach(n=>n.read=true);save();st.tab='mine';break;
