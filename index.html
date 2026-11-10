@@ -167,8 +167,9 @@ textarea{resize:vertical;min-height:60px}
 .plan .dz,.plan .mrow>.chips:last-child{transition:filter .6s ease}
 .plan.dark .dz,.plan.dark .mrow>.chips:last-child{filter:brightness(.24) saturate(.1) blur(.5px)}
 .plan.dark .al{background:#000;border-radius:3px;color:#000}
-.plan.lit .al{background:linear-gradient(90deg,transparent,rgba(255,244,190,.35),transparent);border-radius:3px;position:relative}
-.plan.lit .al::before{content:"";position:absolute;top:4px;bottom:4px;left:50%;width:3px;margin-left:-1.5px;border-radius:2px;background:#fffbe6;box-shadow:0 0 10px 3px rgba(255,240,170,.8)}
+.plan.lit .al{position:relative}
+.plan.lit .al::before{content:"";position:absolute;top:4px;bottom:4px;left:50%;width:3px;margin-left:-1.5px;border-radius:2px;background:#fffbe6;box-shadow:0 0 10px 3px rgba(255,240,170,.8),0 0 30px 12px rgba(255,244,190,.35);opacity:0;transition:opacity .8s ease;pointer-events:none}
+.plan.lit.glow .al::before{opacity:1}
 .plan.fx .dz,.plan.fx .mrow>.chips:last-child,.plan.fx .al{animation:neon 1.2s steps(1,end)}
 @keyframes neon{0%{filter:brightness(.15)}8%{filter:brightness(1.1)}14%{filter:brightness(.2)}22%{filter:brightness(1)}28%{filter:brightness(.35)}40%,100%{filter:brightness(1)}}
 @media (prefers-reduced-motion:reduce){.plan.fx .dz,.plan.fx .mrow>.chips:last-child,.plan.fx .al{animation:none}}
@@ -631,7 +632,7 @@ function vPlan(){
     ${lit?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
     ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${focusOrd().id}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
     ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${nb} article${nb>1?'s':''} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
-    <div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}" role="group" aria-label="Plan de l'entrepôt">
+    <div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
       <div class="col long" style="grid-area:g"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${g}</div>
       <div class="plz" style="grid-area:pl"><div class="pl zone-lbl" title="Planches debout">planches debout</div><div class="zone-lbl" title="Allée vers le fond et le côté gauche du milieu">allée</div></div>
@@ -1605,7 +1606,10 @@ document.addEventListener('click',e=>{
     case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
     case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
     case'light':{const on=!lightOn();LIGHT=on;try{localStorage.setItem(KEY+'-light',on?'1':'0');}catch(e){}
-      st.lightFx=on;render();clearTimeout(window._lfx);window._lfx=setTimeout(()=>{st.lightFx=false;const p=document.querySelector('.plan');if(p)p.classList.remove('fx');},1300);break;}
+      st.lightFx=on;st.lightGlow=on;render();clearTimeout(window._lfx);clearTimeout(window._lgl);
+      window._lfx=setTimeout(()=>{st.lightFx=false;const p=document.querySelector('.plan');if(p)p.classList.remove('fx');},1300);
+      /* le néon de l'allée s'efface au bout de 2 secondes */
+      window._lgl=setTimeout(()=>{st.lightGlow=false;const p=document.querySelector('.plan');if(p)p.classList.remove('glow');},2000);break;}
     case'unfocus':st.focus=null;st.focusOrder=null;render();break;
     case'oplan':st.focus=null;st.focusOrder=oid;st.tab='plan';render();window.scrollTo(0,0);break;
     case'loc':openLoc(t.dataset.code);break;
