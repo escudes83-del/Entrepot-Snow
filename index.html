@@ -224,6 +224,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimdet{margin-top:10px}.dimdet summary{cursor:pointer;font-weight:600;padding:6px 0}
 .dimadd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.dimadd #ovNote{flex:1;min-width:160px}
 .boxadd{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-items:end;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.optchk{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:14px;cursor:pointer}.optchk input{width:20px;height:20px}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -902,6 +903,34 @@ const gTot=g=>Object.values(g.sizes).reduce((x,n)=>x+n,0);
 const gSizes=g=>Object.keys(g.sizes).filter(z=>g.sizes[z]>0).sort((x,y)=>(g.type==='fix'?(S.sizesF.indexOf(x)+1||99)-(S.sizesF.indexOf(y)+1||99):sizeRankStr(x)-sizeRankStr(y)));
 const gName=g=>`${g.marque} ${g.modele}`;
 const gDesc=g=>`${TYPE[g.type]} · ${GENRE[g.genre]||''}${g.couleur?' · '+g.couleur:''}${g.type==='botte'&&SERRAGE[g.serrage]?' · '+SERRAGE[g.serrage]:''}`;
+
+/* Libérer un emplacement conseillé en déplaçant d'autres modèles (entiers) vers d'autres racks permis.
+   Proposé seulement si c'est utile : pas de place en un seul endroit, ou seulement en dernier recours,
+   ou pour rejoindre le même modèle. On déplace au maximum 4 modèles et moins de boîtes qu'on n'en range. */
+function optimizeFor(t,marque,modele,genre,n){const big=t==='botte'&&n>=bigLot();
+  const occ=occMap(),X=capCtx(occ),key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
+  const same=new Set(S.articles.filter(a=>key(a)===K).map(a=>a.emp)),brand=new Set(S.articles.filter(a=>a.type===t&&norm(a.marque)===norm(marque)).map(a=>a.emp));
+  let best=null;
+  LOCS.filter(L=>locTier(t,L,big)===1&&X.cap(L,t)>=n).forEach(L=>{
+    if(X.free(L,t)>=n)return;
+    const occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2);
+    const groups=new Map();S.articles.filter(a=>a.emp===L&&key(a)!==K&&qOf(a)>0&&!a._new).forEach(a=>{const k=key(a);const g=groups.get(k)||{ids:[],n:0,t:a.type,a,k};g.ids.push(a.id);g.n+=qOf(a);groups.set(k,g);});
+    /* d'abord ce qui n'est pas à sa place selon les règles, puis les plus petits */
+    const order=[...groups.values()].sort((x,y)=>(locTier(y.t,L,false)-locTier(x.t,L,false))||x.n-y.n);
+    const moves=[];let moved=0;
+    for(const g of order){if(Y.free(L,t)>=n||moves.length>=4)break;
+      const homes=new Set(S.articles.filter(a=>key(a)===g.k&&a.emp!==L).map(a=>a.emp));
+      const dests=LOCS.filter(e=>e!==L&&locTier(g.t,e,false)>0&&Y.free(e,g.t)>=g.n)
+        .sort((x,y)=>(homes.has(y)-homes.has(x))||tierOrder(g.t,x,false)-tierOrder(g.t,y,false)||Y.free(x,g.t)-Y.free(y,g.t));
+      if(!dests.length)continue;const D=dests[0];
+      Y.add(L,g.t,-g.n);Y.add(D,g.t,g.n);moved+=g.n;
+      moves.push({ids:g.ids,from:L,to:D,n:g.n,label:`${g.a.marque} ${g.a.modele} ${GENRE[g.a.genre]||''}`.trim()});}
+    if(!moves.length||Y.free(L,t)<n||moved>n)return;
+    /* score : boîtes déplacées, bonus si on rejoint le même modèle ou la même marque */
+    const score=moved+moves.length*2-(same.has(L)?n:0)-(brand.has(L)?3:0)+tierOrder(t,L,big);
+    if(!best||score<best.score)best={emp:L,moves,score,moved,why:`${same.has(L)?'avec le même modèle, ':''}en libérant ${L} : ${moves.length} ${plural(moves.length,'modèle déplacé','modèles déplacés')} (${moved} ${plural(moved,'boîte','boîtes')})`};});
+  return best;}
+
 /* Plan : simulé sur une copie du stock, un modèle après l'autre (les plus gros d'abord) */
 function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.stringify(real));S.articles=sim;const out=[];
   try{
@@ -918,7 +947,11 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
       if(!nRest){step.why='emplacement choisi par vous';out.push(step);return;}
       if(g.type==='board'){const h=S.articles.find(a=>a.type==='board'&&norm(a.marque)===norm(g.marque)&&norm(a.modele)===norm(g.modele));put(h?h.emp:null,all);step.why=h?'avec le même modèle':'snowboards : choisissez l\'emplacement';out.push(step);return;}
       const r=placeSuggest(g.type,g.marque,g.modele,g.genre,nRest);step.alts=r.res.map(x=>x.emp);
-      if(r.res.length){const c=r.res[0];if(c.moves.length){applyMoves(c.moves);step.moves=c.moves;}put(c.emp,all);step.why=c.why;}
+      let c=r.res[0]||null;const bigG=g.type==='botte'&&nRest>=bigLot();
+      /* optimisation : si pas de place d'un seul tenant, ou seulement en dernier recours, ou loin du même modèle */
+      if(A.opt!==false&&(!c||locTier(g.type,c.emp,bigG)===2||(r.here.length&&!r.here.some(([e])=>e===c.emp)))){const o=optimizeFor(g.type,g.marque,g.modele,g.genre,nRest);
+        if(o&&(!c||o.why.startsWith('avec le même')||locTier(g.type,c.emp,bigG)===2)){c=o;step.opt=true;}}
+      if(c){if(c.moves.length){applyMoves(c.moves);step.moves=c.moves;}put(c.emp,all);step.why=c.why;}
       else{splitLot(g.type,g.marque,g.modele,g.genre,all).forEach(c=>put(c.emp,c.sizes));
         step.why=`trop gros pour un seul endroit : réparti par tailles en ${step.chunks.filter(c=>c.emp).length} emplacements`;}
       out.push(step);});
@@ -953,6 +986,7 @@ function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k
       <div class="inline" style="margin-top:8px"><button type="button" class="btn sm" data-act="arredit" data-g="${g.id}">Modifier</button><button type="button" class="btn sm ghost${arm('ad'+g.id)?' armed':''}" data-act="arrdel" data-g="${g.id}">${arm('ad'+g.id)?'Confirmer : retirer':'Retirer'}</button></div></div>`).join('')||'<div class="empty">Rien pour l\'instant. Ajoutez le premier modèle.</div>'}
     <button type="button" class="btn primary block" data-act="arradd">+ Ajouter un modèle</button>
     ${plan.length?`<h3 class="sec">2. Plan de rangement</h3>
+      <label class="optchk"><input type="checkbox" data-act="arropt"${A.opt!==false?' checked':''}> Proposer de déplacer d'autres modèles vers d'autres racks pour faire de la place</label>
       ${moves.length?`<div class="card warnc"><b>D'abord, faire de la place :</b>${moves.map((m,i)=>`<div class="mvl">${i+1}. Déplacer <b>${esc(m.label)}</b> (${m.n} ${plural(m.n,'boîte','boîtes')}) de <b class="mono">${esc(m.from)}</b> vers <b class="mono">${esc(m.to)}</b></div>`).join('')}</div>`:''}
       ${plan.map(p=>`<div class="card plrow"><div class="agrp-h"><div><div class="t"><span class="mk">${esc(p.g.marque)}</span> ${esc(p.g.modele)} <small class="opt">${esc(GENRE[p.g.genre]||'')}${p.g.couleur?' · '+esc(p.g.couleur):''}</small></div>
           <div class="d"><small>${esc(p.why)}</small></div></div><b class="qn">${p.n}</b></div>
@@ -1535,6 +1569,7 @@ document.addEventListener('click',e=>{
     case'arrdel':{const k='ad'+t.dataset.g;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;arr().groups=arr().groups.filter(g=>g.id!==t.dataset.g);saveLocal();render();break;}
     case'arrclr':if(st.armed!=='arrclr'){st.armed='arrclr';render();return;}st.armed=null;arr().groups=[];arr().note='';saveLocal();render();toast('Arrivage effacé');break;
     case'arrok':if(!arr().test&&st.armed!=='arrok'){st.armed='arrok';render();return;}st.armed=null;arrValidate();break;
+    case'arropt':arr().opt=arr().opt===false;saveLocal();render();break;
     case'arrtest':arr().test=!arr().test;st.armed=null;saveLocal();render();toast(arr().test?'<b>Mode test</b> : le stock ne sera pas modifié':'Mode test arrêté : la validation range vraiment');break;
     case'capcalc':{const b=caps().big;S.caps=capsCalc();if(b)S.caps.big=b;}save();render();toast('Capacités recalculées d\'après le stock');break;
     case'export':{const data={app:'entrepot-snow',at:Date.now(),stock:Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]]))};
