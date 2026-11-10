@@ -136,7 +136,7 @@ textarea{resize:vertical;min-height:60px}
 /* Plan */
 .plan-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
 .plan{display:grid;min-width:280px;gap:5px;
-  grid-template-columns:minmax(46px,.8fr) minmax(12px,.35fr) minmax(126px,1.6fr) minmax(12px,.35fr) minmax(66px,1fr);
+  grid-template-columns:minmax(46px,.8fr) minmax(30px,.5fr) minmax(126px,1.6fr) minmax(12px,.35fr) minmax(66px,1fr);
   grid-template-areas:"fond fond fond fond fond" "g pl m al d" "ent ent ent ext ext"}
 .col{display:flex;flex-direction:column;gap:5px}
 .rack{border:1.5px solid var(--line-strong);border-radius:4px;background:var(--surface-2);padding:4px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:46px;box-sizing:border-box}
@@ -151,6 +151,7 @@ textarea{resize:vertical;min-height:60px}
 .chip.hit{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .chip.void{visibility:hidden}
 .zone-lbl{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--f-disp);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.plz{display:flex;gap:3px}.plz .pl{flex:0 0 38%}.plz>.zone-lbl:last-child{flex:1}
 .pl{background:repeating-linear-gradient(-55deg,var(--hatch) 0 2px,transparent 2px 7px);border-radius:3px}
 .fond{grid-area:fond}
 .fond .rack{flex-direction:row;justify-content:center;gap:12px;min-height:34px}
@@ -580,11 +581,14 @@ function vSearch(){
 
 function chip(code,l,H,count){
   const c=count[code],n=c?c.l:0,m=c?c.m.size:0,p=c?c.p:0;const cls=['chip',n?'has':'',H.has(code)?'hit':''].join(' ');
-  const txt=n?`${m} modèle${m>1?'s':''} · ${n} taille${n>1?'s':''} · ${p} pièce${p>1?'s':''}`:'vide';
+  let txt=n?`${m} modèle${m>1?'s':''} · ${n} taille${n>1?'s':''} · ${p} pièce${p>1?'s':''}`:'vide';
+  /* case orange : ce que la recherche trouve ici, puis le total de l'emplacement */
+  const f=count.__hit&&count.__hit[code];if(f)txt=`Recherche : ${f.p} pièce${f.p>1?'s':''} (${f.m.size} modèle${f.m.size>1?'s':''}) · Total ici : ${p} pièce${p>1?'s':''}`;
   return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
 function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
+  if(!st.focus&&!focusOrd()&&filtering()){const h=count.__hit={};S.articles.filter(a=>matches(a)).forEach(a=>{const c=h[a.emp]=h[a.emp]||{m:new Set(),p:0};c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});}
   const focusArt=st.focus&&art(st.focus);
   const nb=filtering()?S.articles.filter(matches).length:0;
   let g='',m='',d='';
@@ -601,7 +605,7 @@ function vPlan(){
     <div class="plan-wrap"><div class="plan" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
       <div class="col" style="grid-area:g">${g}</div>
-      <div class="pl zone-lbl" style="grid-area:pl">planches debout</div>
+      <div class="plz" style="grid-area:pl"><div class="pl zone-lbl" title="Planches debout">planches debout</div><div class="zone-lbl" title="Allée vers le fond et le côté gauche du milieu">allée</div></div>
       <div class="col" style="grid-area:m"><div style="display:flex;justify-content:space-between" class="mface"><span>côté G</span><span>côté D</span></div>${m}</div>
       <div class="zone-lbl" style="grid-area:al">allée</div>
       <div class="col" style="grid-area:d">${d}</div>
