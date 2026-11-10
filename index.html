@@ -1022,7 +1022,7 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
    Pas encore utilisé pour le calcul : on collecte d'abord les mesures. */
 const DIM_GROUPS={D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
   M12:['Milieu · niveaux 1 et 2 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M3:['Milieu · niveau 3 (étagère double face G + D)','Profondeur totale, allée G → allée D']};
-const POSE={plat:'À plat',tranche:'Sur la tranche',mixte:'À plat + sur la tranche devant'};
+const POSE={plat:'À plat',tranche:'Sur la tranche',mixte:'À plat devant + sur la tranche derrière'};
 const dims=()=>{const d=S.dims=S.dims||{};d.locs=d.locs||{};d.over=d.over||{};d.boxes=d.boxes||[];return d;};
 const num=v=>{const n=parseFloat(String(v).replace(',','.'));return n>0?Math.round(n*10)/10:null;};
 const fmtD=(o,keys)=>keys.map(k=>o&&o[k]!=null?String(o[k]).replace('.',','):'?').join(' × ');
