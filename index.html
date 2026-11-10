@@ -583,12 +583,15 @@ function chip(code,l,H,count){
   const c=count[code],n=c?c.l:0,m=c?c.m.size:0,p=c?c.p:0;const cls=['chip',n?'has':'',H.has(code)?'hit':''].join(' ');
   let txt=n?`${m} modèle${m>1?'s':''} · ${n} taille${n>1?'s':''} · ${p} pièce${p>1?'s':''}`:'vide';
   /* case orange : ce que la recherche trouve ici, puis le total de l'emplacement */
-  const f=count.__hit&&count.__hit[code];if(f)txt=`Recherche : ${f.p} pièce${f.p>1?'s':''} (${f.m.size} modèle${f.m.size>1?'s':''}) · Total ici : ${p} pièce${p>1?'s':''}`;
+  const f=count.__hit&&count.__hit[code];
+  if(f){const ms=[...f.m.values()].sort((x,y)=>y.p-x.p),show=ms.slice(0,6);
+    txt=`Recherche : ${f.p} pièce${f.p>1?'s':''} (${ms.length} modèle${ms.length>1?'s':''})&#10;${show.map(x=>`• ${esc(x.lbl)} : ${x.p}`).join('&#10;')}${ms.length>6?`&#10;+ ${ms.length-6} autre${ms.length-6>1?'s':''}`:''}&#10;Total ici : ${p} pièce${p>1?'s':''}`;}
   return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
 function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
-  if(!st.focus&&!focusOrd()&&filtering()){const h=count.__hit={};S.articles.filter(a=>matches(a)).forEach(a=>{const c=h[a.emp]=h[a.emp]||{m:new Set(),p:0};c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});}
+  if(!st.focus&&!focusOrd()&&filtering()){const h=count.__hit={};S.articles.filter(a=>matches(a)).forEach(a=>{const c=h[a.emp]=h[a.emp]||{m:new Map(),p:0};const k=[a.type,a.marque,a.modele,a.genre].join('|');
+    const x=c.m.get(k)||{lbl:`${a.marque} ${a.modele} ${GENRE[a.genre]||''}`.trim(),p:0};x.p+=qOf(a);c.m.set(k,x);c.p+=qOf(a);});}
   const focusArt=st.focus&&art(st.focus);
   const nb=filtering()?S.articles.filter(matches).length:0;
   let g='',m='',d='';
