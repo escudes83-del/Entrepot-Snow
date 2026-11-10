@@ -721,10 +721,11 @@ function vSettings(){
     <div class="card"><h3>Tailles snowboards</h3>${tagList('sizesS',S.sizesS)}</div>
     <div class="card"><h3>Emplacements (${LOCS.length})</h3><div class="tags">${LOCS.map(c=>`<span class="tag" style="padding-right:10px;font-family:var(--f-mono);font-size:13px">${c}</span>`).join('')}</div></div>
     <div class="card"><h3>Données</h3>
-      <p class="sub">Tout est enregistré sur cet appareil seulement, pour ce prototype.</p>
+      <p class="sub">Attention : ces boutons changent le stock <b>en ligne, pour tout le monde</b>. Ils sont protégés par un mot de passe${S.lock&&S.lock.h?'':' (à créer au premier usage)'}.</p>
       <div class="inline">
-        <button type="button" class="btn${arm('reset')?' armed':''}" data-act="reset">${arm('reset')?'Confirmer : recharger la liste importée':'Recharger la liste importée'}</button>
-        <button type="button" class="btn danger${arm('wipe')?' armed':''}" data-act="wipe">${arm('wipe')?'Confirmer : tout effacer':'Partir de zéro (tout effacer)'}</button>
+        <button type="button" class="btn" data-act="reset">🔒 Recharger la liste importée</button>
+        <button type="button" class="btn danger" data-act="wipe">🔒 Partir de zéro (tout effacer)</button>
+        ${S.lock&&S.lock.h?`<button type="button" class="btn ghost" data-act="pwchange">Changer le mot de passe</button>`:''}
       </div></div>`}`;}
 
 
@@ -1063,6 +1064,38 @@ function vDims(){const d=dims();
         <button type="button" class="btn primary" data-act="boxadd">Ajouter cette boîte</button></div>
       <details class="dimdet"><summary>${miss.length?`<b>${miss.length} modèle${miss.length>1?'s':''} en stock</b> sans dimensions de boîte (sur ${models.size})`:`Tous les modèles en stock ont des dimensions ✓`}</summary>
         ${miss.map(m=>`<div class="d">${m.a.type==='fix'?'Fix.':'Bottes'} · <b>${esc(m.a.marque)}</b> ${esc(m.a.modele)} <small class="opt">${[...m.miss].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y)).map(z=>szLbl(m.a.type,z)).join(', ')}</small></div>`).join('')}</details></div>`;}
+
+
+/* ---------- Mot de passe de protection (évite d'effacer le stock par mégarde) ----------
+   Seule une empreinte du mot de passe est gardée (S.lock.h), partagée entre les appareils. */
+function pwHash(pw){let h1=0x811c9dc5,h2=0x1505;const t='entrepot-snow|'+pw;
+  for(let i=0;i<t.length;i++){const c=t.charCodeAt(i);h1=Math.imul(h1^c,16777619)>>>0;h2=(Math.imul(h2,33)+c)>>>0;}
+  return h1.toString(16)+'-'+h2.toString(16);}
+const LOCK_ACT={wipe:['Partir de zéro','Tout le stock (articles, commandes) sera effacé pour tout le monde. Impossible de revenir en arrière.','Effacer tout le stock'],
+  reset:['Recharger la liste importée','Le stock actuel sera remplacé par la liste importée au début, pour tout le monde.','Recharger la liste'],
+  pwchange:['Changer le mot de passe','Entrez le mot de passe actuel.','Continuer']};
+function lockSheet(act){
+  if(!S.lock||!S.lock.h||act==='pwset'){sheet(`<form id="lockNew" class="sheet-in" style="display:flex;flex-direction:column;gap:12px" data-next="${act}">
+      <div class="sheet-h"><h2>Créer un mot de passe</h2><button type="button" class="btn ghost" data-act="close">Annuler</button></div>
+      <p class="sub">Ce mot de passe sera demandé avant d'<b>effacer</b> ou de <b>recharger</b> le stock. Choisissez-le et notez-le bien.</p>
+      <div class="field"><label for="pw1">Nouveau mot de passe</label><input type="password" id="pw1" autocomplete="new-password"></div>
+      <div class="field"><label for="pw2">Le retaper</label><input type="password" id="pw2" autocomplete="new-password"></div>
+      <button type="submit" class="btn primary">Enregistrer le mot de passe</button></form>`);setTimeout(()=>$('#pw1')&&$('#pw1').focus(),50);return;}
+  const [title,txt,btn]=LOCK_ACT[act];
+  sheet(`<form id="lockAsk" class="sheet-in" style="display:flex;flex-direction:column;gap:12px" data-act-to="${act}">
+    <div class="sheet-h"><h2>${title}</h2><button type="button" class="btn ghost" data-act="close">Annuler</button></div>
+    <p class="sub">${txt}</p>
+    <div class="field"><label for="pwAsk">Mot de passe</label><input type="password" id="pwAsk" autocomplete="current-password"></div>
+    <button type="submit" class="btn ${act==='pwchange'?'primary':'danger'}">${btn}</button></form>`);setTimeout(()=>$('#pwAsk')&&$('#pwAsk').focus(),50);}
+function doReset(){S={...seed(),lock:S.lock,caps:S.caps,dims:S.dims};save();render();toast('Liste importée rechargée');}
+function doWipe(){const keep={brands:S.brands,sizesB:S.sizesB,sizesF:S.sizesF,sizesS:S.sizesS,lock:S.lock,caps:S.caps,dims:S.dims};S={...seed(),...keep,demo:false,articles:[],orders:[],notifs:[],seq:1000};save();render();toast('Tout est effacé. Ajoutez votre premier article.');}
+document.addEventListener('submit',e=>{const f=e.target;
+  if(f.id==='lockNew'){e.preventDefault();const a=$('#pw1').value,b=$('#pw2').value;
+    if(a.length<4){toast('Au moins 4 caractères');$('#pw1').focus();return;}if(a!==b){toast('Les deux mots de passe sont différents');$('#pw2').focus();return;}
+    S.lock={h:pwHash(a),at:Date.now()};save();closeSheet();render();toast('<b>Mot de passe enregistré</b>');const nx=f.dataset.next;if(nx&&nx!=='pwchange'&&nx!=='pwset')lockSheet(nx);return;}
+  if(f.id==='lockAsk'){e.preventDefault();const act=f.dataset.actTo;
+    if(pwHash($('#pwAsk').value)!==S.lock.h){toast('<b>Mot de passe incorrect</b>');$('#pwAsk').value='';$('#pwAsk').focus();return;}
+    closeSheet();if(act==='wipe')doWipe();else if(act==='reset')doReset();else if(act==='pwchange')lockSheet('pwset');}});
 
 /* ---------- Magasin : mini-appli téléphone ---------- */
 /* Commander pas à pas : type → marque → modèle → homme/femme → taille → couleur → nombre */
@@ -1547,8 +1580,9 @@ document.addEventListener('click',e=>{
       save();render();break;}
     case'rmtag':S[t.dataset.k].splice(+t.dataset.i,1);save();render();break;
     case'addtag':{const k=t.dataset.k,inp=$('#add-'+k),v=inp.value.trim();if(!v){inp.focus();return;}if(!S[k].includes(v)){S[k].push(v);if(k==='brands')S[k].sort((x,y)=>x.localeCompare(y));if(k==='sizesB'||k==='sizesS')S[k].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));}save();render();break;}
-    case'reset':if(st.armed!=='reset'){st.armed='reset';render();return;}S=seed();st.armed=null;save();render();toast('Liste importée rechargée');break;
-    case'wipe':if(st.armed!=='wipe'){st.armed='wipe';render();return;}{const keep={brands:S.brands,sizesB:S.sizesB,sizesF:S.sizesF,sizesS:S.sizesS};S={...seed(),...keep,demo:false,articles:[],orders:[],notifs:[],seq:1000};}st.armed=null;save();render();toast('Tout est effacé. Ajoutez votre premier article.');break;
+    case'reset':lockSheet('reset');break;
+    case'wipe':lockSheet('wipe');break;
+    case'pwchange':lockSheet('pwchange');break;
   }
 });
 document.addEventListener('input',e=>{
@@ -1581,7 +1615,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.ke
 const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"entrepotsnow.firebaseapp.com",projectId:"entrepotsnow",
   storageBucket:"entrepotsnow.firebasestorage.app",messagingSenderId:"754342580173",appId:"1:754342580173:web:20ee46db9b4aab080c7e84"};
 const FBU='https://www.gstatic.com/firebasejs/10.12.2/';
-const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','dims'];
+const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','dims','lock'];
 /* ?ns=test : bac à sable pour les essais, sans toucher aux vraies données */
 const NS=(()=>{try{return (new URLSearchParams(location.search).get('ns')||'').replace(/[^a-z0-9]/gi,'');}catch(e){return'';}})();
 const C=n=>NS?NS+'_'+n:n;
