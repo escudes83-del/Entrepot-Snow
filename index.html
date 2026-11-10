@@ -216,6 +216,13 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .chk{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:5px}
 .chk.t{border-left:3px solid #7c3aed}.chk-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.chk-sz{font-size:13px;color:#a78bfa;font-weight:600}
 .chk select{width:100%}
+.dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
+.dimp{flex-direction:row;align-items:center;gap:8px}
+.dim-in{width:70px;text-align:center}.dimrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.dimdet{margin-top:10px}.dimdet summary{cursor:pointer;font-weight:600;padding:6px 0}
+.dimadd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.dimadd #ovNote{flex:1;min-width:160px}
+.boxadd{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-items:end;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -696,6 +703,7 @@ function vSettings(){
     <div class="card"><h3>Inventaire (Excel)</h3>
       <p class="sub">Un fichier Excel du stock du jour, classé par type, marque, modèle et taille. Il contient un résumé, une feuille par type (tailles en colonnes) et le détail avec les emplacements.</p>
       <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>
+    ${vDims()}
     <div class="card"><h3>Capacité des racks</h3>
       <p class="sub">Nombre de boîtes qu'un emplacement peut contenir quand il est plein. Calculé d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
       <div class="info" style="margin:8px 0">Règles de rangement : <b>bottes au milieu</b> (plus facile d'accès) ; <b>droite niveaux 1-2</b> pour les gros lots de bottes ; <b>jamais de bottes au niveau 3 de droite</b> ; <b>fixations à droite</b>. Un modèle trop gros est réparti par groupes de tailles.</div>
@@ -1006,6 +1014,55 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
     ${done.map(p=>`<div class="d"><b>${esc(gName(p.g))}</b> ${esc(GENRE[p.g.genre]||'')} : ${p.chunks.map(c=>`<b class="mono">${esc(c.emp)}</b> (${c.n})${T?` <small>${esc(chunkSizes(p.g.type,c))}</small>`:''}`).join(T?'<br>':', ')}</div>`).join('')}
     <p class="sub">${T?`C'était un essai : le stock n'a pas bougé. L'arrivage est gardé, vous pouvez le modifier et réessayer.`:`Le stock est à jour${mv?', déplacements compris':''}.`}</p></div>`);
   render();}
+
+
+/* ---------- Dimensions (cm) : emplacements et boîtes ----------
+   S.dims = {locs:{D12:{L,P,H,pose},...}, over:{emp:{L,P,H}}, boxes:[{id,type,marque,modele,from,to,L,l,H}]}
+   Pas encore utilisé pour le calcul : on collecte d'abord les mesures. */
+const DIM_GROUPS={D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
+  M12:['Milieu · niveaux 1 et 2 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M3:['Milieu · niveau 3 (étagère double face G + D)','Profondeur totale, allée G → allée D']};
+const POSE={plat:'À plat',tranche:'Sur la tranche',mixte:'À plat + sur la tranche devant'};
+const dims=()=>{const d=S.dims=S.dims||{};d.locs=d.locs||{};d.over=d.over||{};d.boxes=d.boxes||[];return d;};
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return n>0?Math.round(n*10)/10:null;};
+const fmtD=(o,keys)=>keys.map(k=>o&&o[k]!=null?String(o[k]).replace('.',','):'?').join(' × ');
+/* le plus précis l'emporte : modèle > marque > toutes marques ; puis la plage de tailles la plus étroite */
+function boxFor(a){const rk=z=>a.type==='fix'?(S.sizesF.indexOf(z)+1||99):sizeRankStr(z);const r=rk(a.taille);
+  const c=dims().boxes.filter(b=>b.type===a.type&&(!b.marque||norm(b.marque)===norm(a.marque))&&(!b.modele||norm(b.modele)===norm(a.modele))&&(!b.from||rk(b.from)<=r)&&(!b.to||r<=rk(b.to)));
+  return c.sort((x,y)=>(!!y.modele-!!x.modele)||(!!y.marque-!!x.marque)||((x.to?rk(x.to):999)-(x.from?rk(x.from):0))-((y.to?rk(y.to):999)-(y.from?rk(y.from):0)))[0]||null;}
+function vDims(){const d=dims();
+  const inp=(attr,v,lbl)=>`<input type="text" inputmode="decimal" ${attr} value="${v!=null?String(v).replace('.',','):''}" placeholder="cm" aria-label="${lbl}" class="dim-in">`;
+  const grp=Object.entries(DIM_GROUPS).map(([g,[lbl,pl]])=>{const o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}</b>
+    <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
+    <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;}).join('');
+  const ov=Object.entries(d.over).sort((a,b)=>locRank(a[0])-locRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
+  const typeOpt=t=>Object.entries({botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
+  const bt=st.boxType||'botte',sz=sizesOf(bt);
+  const boxes=d.boxes.slice().sort((x,y)=>x.type.localeCompare(y.type)||(x.marque||'').localeCompare(y.marque||'')||(x.modele||'').localeCompare(y.modele||''));
+  /* couverture : modèles en stock sans dimensions de boîte */
+  const models=new Map();S.articles.filter(a=>a.type!=='board').forEach(a=>{const k=[a.type,a.marque,a.modele].join('|');const m=models.get(k)||{a,miss:new Set(),n:0};m.n++;if(!boxFor(a))m.miss.add(a.taille);models.set(k,m);});
+  const miss=[...models.values()].filter(m=>m.miss.size).sort((x,y)=>x.a.type.localeCompare(y.a.type)||x.a.marque.localeCompare(y.a.marque)||x.a.modele.localeCompare(y.a.modele));
+  return `<div class="card"><h3>Dimensions des emplacements</h3>
+      <p class="sub">En centimètres, la place utile (sans les montants). Si tous les emplacements d'un groupe sont pareils, une seule ligne suffit. Au milieu, MG et MD du même rack et du même niveau sont <b>la même étagère</b> : indiquez la profondeur totale, d'une allée à l'autre.</p>
+      <div class="dimgs">${grp}</div>
+      <details class="dimdet"${Object.keys(d.over).length?' open':''}><summary>Un emplacement a des mesures différentes ?</summary>
+        ${ov||'<p class="sub">Aucun pour l\'instant.</p>'}
+        <div class="dimadd"><select id="ovEmp" aria-label="Emplacement">${LOCS.filter(capGroup).map(e=>`<option>${e}</option>`).join('')}</select>
+          ${inp('id="ovL"',null,'Longueur')}${inp('id="ovP"',null,'Profondeur')}${inp('id="ovH"',null,'Hauteur')}
+          <input type="text" id="ovNote" placeholder="Note (ex. : poteau au milieu)" aria-label="Note">
+          <button type="button" class="btn sm" data-act="dimoveradd">Ajouter</button></div></details></div>
+    <div class="card"><h3>Dimensions des boîtes</h3>
+      <p class="sub">Longueur × largeur × hauteur de la boîte, en cm. Une ligne peut valoir pour toutes les marques, une marque, ou un seul modèle, et pour une plage de tailles. <b>Le plus précis l'emporte</b> : modèle, puis marque, puis toutes marques.</p>
+      ${boxes.map(b=>`<div class="dimrow"><span><b>${b.type==='fix'?'Fixations':'Bottes'}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
+      <div class="boxadd">
+        <div class="field"><label for="bxType">Type</label><select id="bxType">${typeOpt(bt)}</select></div>
+        <div class="field"><label for="bxMarque">Marque <small class="opt">vide = toutes</small></label><input type="text" id="bxMarque" list="dl-bxm" autocomplete="off"><datalist id="dl-bxm">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
+        <div class="field"><label for="bxModele">Modèle <small class="opt">vide = tous</small></label><input type="text" id="bxModele" list="dl-bxmo" autocomplete="off"><datalist id="dl-bxmo">${modelOptions('')}</datalist></div>
+        <div class="field"><label for="bxFrom">Tailles de</label><select id="bxFrom"><option value="">la plus petite</option>${sz.map(z=>`<option value="${esc(z)}">${esc(szLbl(bt,z))}</option>`).join('')}</select></div>
+        <div class="field"><label for="bxTo">à</label><select id="bxTo"><option value="">la plus grande</option>${sz.map(z=>`<option value="${esc(z)}">${esc(szLbl(bt,z))}</option>`).join('')}</select></div>
+        <div class="field"><label>Longueur × largeur × hauteur (cm)</label><div class="inline">${inp('id="bxL"',null,'Longueur')}${inp('id="bxl"',null,'Largeur')}${inp('id="bxH"',null,'Hauteur')}</div></div>
+        <button type="button" class="btn primary" data-act="boxadd">Ajouter cette boîte</button></div>
+      <details class="dimdet"><summary>${miss.length?`<b>${miss.length} modèle${miss.length>1?'s':''} en stock</b> sans dimensions de boîte (sur ${models.size})`:`Tous les modèles en stock ont des dimensions ✓`}</summary>
+        ${miss.map(m=>`<div class="d">${m.a.type==='fix'?'Fix.':'Bottes'} · <b>${esc(m.a.marque)}</b> ${esc(m.a.modele)} <small class="opt">${[...m.miss].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y)).map(z=>szLbl(m.a.type,z)).join(', ')}</small></div>`).join('')}</details></div>`;}
 
 /* ---------- Magasin : mini-appli téléphone ---------- */
 /* Commander pas à pas : type → marque → modèle → homme/femme → taille → couleur → nombre */
@@ -1424,6 +1481,14 @@ document.addEventListener('click',e=>{
   switch(act){
     case'close':closeSheet();break;
     case'inventaire':inventaireXlsx();break;
+    case'dimoveradd':{const e=$('#ovEmp').value,o={L:num($('#ovL').value),P:num($('#ovP').value),H:num($('#ovH').value),note:$('#ovNote').value.trim()};
+      if(!o.L&&!o.P&&!o.H){toast('Indiquez au moins une mesure');return;}dims().over[e]=o;save();render();toast(`Mesures de <b>${e}</b> enregistrées`);break;}
+    case'dimoverdel':delete dims().over[t.dataset.e];save();render();break;
+    case'boxadd':{const b={id:'b'+Date.now().toString(36),type:$('#bxType').value,marque:sameAs($('#bxMarque').value.trim(),S.brands),modele:$('#bxModele').value.trim(),from:$('#bxFrom').value,to:$('#bxTo').value,L:num($('#bxL').value),l:num($('#bxl').value),H:num($('#bxH').value)};
+      if(!b.L||!b.l||!b.H){toast('Indiquez longueur, largeur et hauteur');return;}
+      if(b.modele){const ms=[...new Set(S.articles.filter(a=>!b.marque||a.marque===b.marque).map(a=>a.modele))];b.modele=sameAs(b.modele,ms);}
+      dims().boxes.push(b);save();render();toast('Boîte ajoutée');break;}
+    case'boxdel':dims().boxes=dims().boxes.filter(b=>b.id!==t.dataset.id);save();render();break;
     case'arradd':arrSheet(null);break;
     case'arredit':arrSheet(t.dataset.g);break;
     case'arrfrom':arr().from=t.dataset.v;saveLocal();render();break;
@@ -1498,6 +1563,8 @@ document.addEventListener('input',e=>{
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
 document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset&&t.dataset.dim){const[g,k]=t.dataset.dim.split(':');const o=dims().locs[g]=dims().locs[g]||{};o[k]=k==='pose'?(t.value||null):num(t.value);save();return;}
+  if(t.id==='bxType'){st.boxType=t.value;render();return;}
   if(t.dataset&&t.dataset.arrchunk!==undefined){const g=arr().groups.find(x=>x.id===t.dataset.arrchunk);if(g){g.over=g.over||{};
     t.dataset.sizes.split('|').filter(Boolean).forEach(z=>{if(t.value)g.over[z]=t.value;else delete g.over[z];});saveLocal();render();}return;}
   if(t.id==='importFile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const sk=d&&d.stock;
@@ -1514,7 +1581,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.ke
 const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"entrepotsnow.firebaseapp.com",projectId:"entrepotsnow",
   storageBucket:"entrepotsnow.firebasestorage.app",messagingSenderId:"754342580173",appId:"1:754342580173:web:20ee46db9b4aab080c7e84"};
 const FBU='https://www.gstatic.com/firebasejs/10.12.2/';
-const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps'];
+const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','dims'];
 /* ?ns=test : bac à sable pour les essais, sans toucher aux vraies données */
 const NS=(()=>{try{return (new URLSearchParams(location.search).get('ns')||'').replace(/[^a-z0-9]/gi,'');}catch(e){return'';}})();
 const C=n=>NS?NS+'_'+n:n;
