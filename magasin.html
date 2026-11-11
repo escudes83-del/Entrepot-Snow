@@ -268,6 +268,9 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .bgrp.b-mine{border-left-color:var(--accent)}.bgrp.b-mine .bstate{background:var(--accent);color:var(--accent-ink)}
 .bgrp.b-busy{border-left-color:#f59e0b;opacity:.85}.bgrp.b-busy .bstate{background:#f59e0b;color:#1f1300}
 .bgrp.b-ok{border-left-color:var(--ok,#22c55e)}.bgrp.b-ok .bstate{background:color-mix(in srgb,#22c55e 25%,transparent)}
+.lpill{display:inline-block;font-weight:700;font-size:13px;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.lpill.mine{background:var(--accent);color:var(--accent-ink)}.lpill.busy{background:#f59e0b;color:#1f1300}
+.lpill.ok{background:#16a34a;color:#fff}.lpill.short{background:#dc2626;color:#fff}.lpill.free{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -677,13 +680,16 @@ function lineRow(o,l,i){
     const other=l.st==='cours'&&!mine;
     const step=(l.st==='cours'&&mine)?`<div class="stepper prepq"><span class="lbl">Préparé</span><div class="in"><button type="button" data-act="ldone" data-o="${o.id}" data-i="${i}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" min="0" max="999" value="${done}" data-done="${o.id}:${i}" inputmode="numeric" aria-label="Quantité préparée"><button type="button" data-act="ldone" data-o="${o.id}" data-i="${i}" data-d="1" aria-label="Plus">+</button></div><span class="lbl">/ ${l.qty}</span></div>`:'';
     ctl=`<div class="lctl">
-      <button type="button" class="chk${l.st==='cours'?' on':''}" data-act="lclaim" data-o="${o.id}" data-i="${i}"${other||l.st==='ok'||l.st==='rupture'?' disabled':''}>${l.st==='cours'?'☑':'☐'} En cours${l.st==='cours'&&l.by?` · ${esc(l.by)}`:''}</button>
-      <button type="button" class="chk ok${l.st==='ok'||l.st==='rupture'?' on':''}" data-act="lok" data-o="${o.id}" data-i="${i}"${other||!l.st?' disabled':''}>${l.st==='ok'||l.st==='rupture'?'☑':'☐'} Validée${l.st==='ok'||l.st==='rupture'?` · ${done}/${l.qty}${l.by?' · '+esc(l.by):''}`:''}</button>
+      <button type="button" class="chk${l.st==='cours'?' on':''}" data-act="lclaim" data-o="${o.id}" data-i="${i}"${other||l.st==='ok'||l.st==='rupture'?' disabled':''}>${l.st==='cours'?'☑':'☐'} En cours</button>
+      <button type="button" class="chk ok${l.st==='ok'||l.st==='rupture'?' on':''}" data-act="lok" data-o="${o.id}" data-i="${i}"${other||!l.st?' disabled':''}>${l.st==='ok'||l.st==='rupture'?'☑':'☐'} Validée</button>
       ${l.st==='cours'&&mine?`<button type="button" class="chk ko" data-act="lko" data-o="${o.id}" data-i="${i}">Rupture</button>`:''}
       ${other?`<button type="button" class="btn ghost sm${st.armed==='unl'+o.id+':'+i?' armed':''}" data-act="lunlock" data-o="${o.id}" data-i="${i}">${st.armed==='unl'+o.id+':'+i?'Confirmer : libérer':'Libérer'}</button>`:''}
       ${step}</div>
       ${l.st==='ok'&&done<l.qty?`<div class="pill ln-rupture" style="margin-top:4px;display:inline-block">Manque ${l.qty-done}</div>`:''}`;}
-  const right=!open&&l.st?`<span class="pill ln-${l.st==='rupture'||done<l.qty?'rupture':'ok'}">${done}/${l.qty}</span>`:'';
+  /* état de la ligne, bien visible à droite : en cours (à qui), validée, rupture */
+  const right=l.st==='cours'?`<span class="lpill ${mine?'mine':'busy'}">En cours${l.by?' · '+esc(l.by):''}</span>`
+    :(l.st==='ok'||l.st==='rupture')?`<span class="lpill ${l.st==='rupture'||done<l.qty?'short':'ok'}">${l.st==='rupture'?'✕ Rupture':'✓ Validée'} · ${done}/${l.qty}${l.by&&open?' · '+esc(l.by):''}</span>`
+    :open?`<span class="lpill free">Libre</span>`:'';
   return `<div class="row lrow ls-${l.st||'none'}">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div>${ctl?`<div class="lctl-w">${ctl}</div>`:''}</div>`;}
 const me=()=>(S.myName||'').trim();
 /* Noms proposés en boutons (modifiables ici) */
