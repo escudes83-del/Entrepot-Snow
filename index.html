@@ -1302,9 +1302,11 @@ function vShopCmd(){
 
 /* Grille : toutes les tailles du modèle, un compteur − n + par taille, bouton fixe en bas */
 function shGridPool(){const sh=st.sh,pool=shPool('taille');
+  /* les articles sans couleur précisée s'affichent avec toutes les couleurs */
   const cols=new Map();pool.forEach(a=>{const c=a.couleur||'';cols.set(c,(cols.get(c)||0)+availOf(a));});
+  if(cols.size>1&&cols.has(''))cols.delete('');
   if(cols.size>1&&(sh.v.couleur===undefined||!cols.has(sh.v.couleur)))sh.v.couleur=[...cols.entries()].sort((x,y)=>y[1]-x[1])[0][0];
-  const list=cols.size>1?pool.filter(a=>(a.couleur||'')===sh.v.couleur):pool;
+  const list=cols.size>1?pool.filter(a=>!a.couleur||(a.couleur||'')===sh.v.couleur):pool;
   const by=new Map();list.forEach(a=>{const r=by.get(a.taille)||{z:a.taille,arts:[],n:0};r.arts.push(a);r.n+=availOf(a);by.set(a.taille,r);});
   const rows=[...by.values()].sort((x,y)=>sizeRankStr(x.z)-sizeRankStr(y.z));
   return {cols,rows,a:pool[0]};}
@@ -1317,7 +1319,7 @@ function shGrid(){const sh=st.sh,{cols,rows,a}=shGridPool();if(!a)return '<div c
     ${cols.size>1?`<div class="gcols">${[...cols.entries()].map(([c,n])=>`<button type="button" class="sz" data-act="gcol" data-v="${esc(c)}" aria-pressed="${sh.v.couleur===c}">${esc(c||'Sans couleur')}<small>${n}</small></button>`).join('')}</div>`:''}
     <div class="grid">${rows.map(r=>{const q=gq[r.z]||0,warn=q>r.n;
       return `<div class="grow${q?' on':''}${!r.n?' zero':''}${warn?' warn':''}">
-        <div class="gz"><b>${esc(szLbl(a.type,r.z))}</b><small>${r.n?`${r.n} en stock`:'Rupture'}${warn?` · il en manque ${q-r.n}`:''}</small></div>
+        <div class="gz"><b>${esc(szLbl(a.type,r.z))}</b><small>${r.n?`${r.n} en stock`:'Rupture'}${warn?` · il en manque ${q-r.n}`:''}${cols.size>1&&r.arts.some(x=>!x.couleur)?' · couleur non précisée':''}</small></div>
         <div class="gstep"><button type="button" data-act="gq" data-z="${esc(r.z)}" data-d="-1" aria-label="Moins"${q?'':' disabled'}>−</button>
           <input type="number" inputmode="numeric" min="0" max="50" value="${q||''}" placeholder="0" data-gqi="${esc(r.z)}" aria-label="Nombre ${esc(szLbl(a.type,r.z))}">
           <button type="button" data-act="gq" data-z="${esc(r.z)}" data-d="1" aria-label="Plus">+</button></div></div>`;}).join('')}</div>
@@ -1398,6 +1400,8 @@ function shopOrder(o){
       <span class="pill st-${o.status}">${ST[o.status]}</span></div>
     <div class="order-b">${lines}${o.note?`<div class="note">${esc(o.note)}</div>`:''}
       <div class="order-foot">${live?`<button type="button" class="btn" data-act="oedit" data-o="${o.id}">✎ Corriger</button>`:''}
+      ${o.status==='demandee'?`<button type="button" class="btn danger${st.armed==='ocan'+o.id?' armed':''}" data-act="ocancel" data-o="${o.id}">${st.armed==='ocan'+o.id?'Confirmer : annuler #'+onum(o):'✕ Annuler la commande'}</button>`
+        :o.status==='prep'?`<small class="opt">En préparation à l'entrepôt : pour annuler, prévenez-les.</small>`:''}
       ${o.status==='prete'?`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`:''}</div></div></div>`;}
 function vShopMine(){const mine=S.orders.slice().sort((a,b)=>b.at-a.at);
   const open=mine.filter(o=>o.status!=='recue'),old=mine.filter(o=>o.status==='recue').slice(0,10);
@@ -1443,6 +1447,12 @@ function shopClick(act,t){
       if(!S.editing)S.cartSaved={cart:S.cart,note:S.cartNote};
       S.editing=o.id;S.cart=o.lines.map(l=>l.aid?{aid:l.aid,qty:l.qty}:{txt:l.txt,qty:l.qty});S.cartNote=o.note||'';st.sh={step:null,v:{},hist:[],q:1};st.tab='cmd';save();break;}
     case'ecancel':shEditEnd();save();break;
+    case'ocancel':{const id=+t.dataset.o,k='ocan'+id;if(st.armed!==k){st.armed=k;render();return true;}st.armed=null;
+      const o=S.orders.find(x=>x.id===id);if(!o)return true;
+      if(o.status!=='demandee'){toast("Trop tard : l'entrepôt a déjà commencé la préparation.");break;}
+      if(S.editing===id)shEditEnd();
+      S.orders=S.orders.filter(x=>x.id!==id);notify('entrepot',`Commande #${onum(o)} annulée par ${me()||'le magasin'}`);
+      save();toast(`Commande <b>#${esc(onum(o))}</b> annulée`);break;}
     default:return false;}
   render();window.scrollTo(0,0);return true;}
 
