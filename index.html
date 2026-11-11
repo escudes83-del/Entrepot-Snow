@@ -258,6 +258,16 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .gstep button:disabled{opacity:.35}
 .gstep input{width:52px;height:44px;text-align:center;font:700 20px var(--f-mono);padding:0}
 .gfoot{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom));z-index:5;background:var(--bg);padding:8px 0 4px;display:flex;flex-direction:column;gap:6px}
+.bgrp{border:1px solid var(--line);border-left:5px solid var(--line-strong);border-radius:10px;margin:10px 0;overflow:hidden;background:var(--surface)}
+.bgrp-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap}
+.bname{font-family:var(--f-disp);font-size:18px;letter-spacing:.02em;text-transform:uppercase}.bgrp-h small{color:var(--muted)}
+.bstate{font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface-2)}
+.bgrp-b{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 10px}.bgrp-b .btn{min-height:44px}
+.bgrp .lrow{border-top:1px solid var(--line);margin:0;border-radius:0}
+.bgrp.b-free{border-left-color:var(--line-strong)}
+.bgrp.b-mine{border-left-color:var(--accent)}.bgrp.b-mine .bstate{background:var(--accent);color:var(--accent-ink)}
+.bgrp.b-busy{border-left-color:#f59e0b;opacity:.85}.bgrp.b-busy .bstate{background:#f59e0b;color:#1f1300}
+.bgrp.b-ok{border-left-color:var(--ok,#22c55e)}.bgrp.b-ok .bstate{background:color-mix(in srgb,#22c55e 25%,transparent)}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -711,6 +721,46 @@ function pickList(o){
   const libres=o.lines.filter(l=>!l.aid).length;
   return `<div class="pick"><h4>À prendre · ${by.size} emplacement${by.size>1?'s':''}</h4>${rows}${libres?`<small class="opt">+ ${libres} demande${libres>1?'s':''} libre${libres>1?'s':''} à chercher</small>`:''}
     <div><button type="button" class="btn sm" data-act="oplan" data-o="${o.id}">Voir sur le plan</button></div></div>`;}
+
+/* Plusieurs lignes d'un coup (une marque) : même principe que lineSet, en une seule transaction.
+   Une ligne déjà prise par quelqu'un d'autre n'est pas reprise. */
+function linesSet(o,list,orderPatch){if(!list.length)return;
+  list.forEach(({i,patch})=>Object.assign(o.lines[i],patch));if(orderPatch)Object.assign(o,orderPatch);saveLocal();
+  if(cloud.on&&cloud.sent.orders){const id=String(o.id);cloud.sent.orders.set(id,JSON.stringify(o));const ref=cloud.fs.doc(cloud.db,C('orders'),id);let taken=[];
+    cloud.fs.runTransaction(cloud.db,async tx=>{taken=[];const d=await tx.get(ref);if(!d.exists())return null;const r=JSON.parse(d.data().json);
+      list.forEach(({i,patch})=>{const L=r.lines[i];if(!L)return;if(patch.st==='cours'&&L.st&&L.by&&L.by!==patch.by){taken.push(L.by);return;}Object.assign(L,patch);});
+      if(orderPatch&&!(orderPatch.status==='prep'&&r.status!=='demandee'))Object.assign(r,orderPatch);
+      tx.set(ref,{json:JSON.stringify(r),at:Date.now()});return r;})
+    .then(r=>{if(taken.length)toast(`Une partie était déjà prise par <b>${esc([...new Set(taken)].join(', '))}</b>`);
+      if(r){const k=S.orders.findIndex(x=>String(x.id)===id);if(k>=0)S.orders[k]=r;cloud.sent.orders.set(id,JSON.stringify(r));saveLocal();render();}})
+    .catch(cloudErr);}
+  render();}
+const LIBRE='Demandes libres';
+const brandOf=l=>{const a=l.aid&&art(l.aid);return a?a.marque:LIBRE;};
+const brandIdx=(o,b)=>o.lines.map((l,i)=>i).filter(i=>brandOf(o.lines[i])===b);
+/* La commande regroupée par marque, dans l'ordre des racks */
+function brandGroups(o){const open=role==='entrepot'&&(o.status==='demandee'||o.status==='prep');
+  const g=new Map();o.lines.forEach((l,i)=>{const k=brandOf(l);if(!g.has(k))g.set(k,[]);g.get(k).push([l,i]);});
+  const groups=[...g.entries()].map(([k,arr])=>({k,arr:arr.sort((x,y)=>lineRank(x[0])-lineRank(y[0]))}))
+    .sort((x,y)=>Math.min(...x.arr.map(e=>lineRank(e[0])))-Math.min(...y.arr.map(e=>lineRank(e[0]))));
+  return groups.map(({k,arr})=>{const ls=arr.map(e=>e[0]),n=ls.reduce((s,l)=>s+l.qty,0);
+    const fin=ls.every(l=>l.st==='ok'||l.st==='rupture');
+    const who=[...new Set(ls.filter(l=>l.st==='cours'&&l.by).map(l=>l.by))];
+    const doneBy=[...new Set(ls.filter(l=>(l.st==='ok'||l.st==='rupture')&&l.by).map(l=>l.by))];
+    const free=ls.filter(l=>!l.st).length,mineC=ls.filter(l=>l.st==='cours'&&l.by===me()).length,others=who.filter(x=>x!==me());
+    const nv=ls.filter(l=>l.st==='ok'||l.st==='rupture').length;
+    let state,cls;
+    if(fin){state=`✓ Validée${doneBy.length?' · '+doneBy.join(', '):''}`;cls='ok';}
+    else if(who.length){state=`En cours · ${who.join(', ')}${nv?` · ${nv}/${ls.length} validées`:''}`;cls=mineC?'mine':'busy';}
+    else{state=nv?`${nv}/${ls.length} validées`:'Libre';cls='free';}
+    const B=esc(k),arm=st.armed==='bunl'+o.id+':'+k;let btns='';
+    if(open&&!fin){
+      if(free)btns+=`<button type="button" class="btn ${who.length?'':'primary'}" data-act="bclaim" data-o="${o.id}" data-b="${B}">✋ Je prends ${k===LIBRE?'les demandes libres':B}${free<ls.length?` (${free} restante${free>1?'s':''})`:''}</button>`;
+      if(mineC)btns+=`<button type="button" class="btn primary" data-act="bok" data-o="${o.id}" data-b="${B}">✓ Tout valider (${mineC})</button><button type="button" class="btn ghost sm" data-act="bfree" data-o="${o.id}" data-b="${B}">Libérer</button>`;
+      if(others.length&&!mineC)btns+=`<button type="button" class="btn ghost sm${arm?' armed':''}" data-act="bunlock" data-o="${o.id}" data-b="${B}">${arm?`Confirmer : libérer ${B}`:'Libérer (oublié ?)'}</button>`;}
+    return `<div class="bgrp b-${cls}"><div class="bgrp-h"><div><b class="bname">${B}</b> <small>${ls.length} ligne${ls.length>1?'s':''} · ${n} pièce${n>1?'s':''}</small></div><span class="bstate">${esc(state)}</span></div>
+      ${btns?`<div class="bgrp-b">${btns}</div>`:''}${arr.map(([l,i])=>lineRow(o,l,i)).join('')}</div>`;}).join('');}
+
 function orderCard(o){
   const open=st.open===o.id;const fresh=role==='entrepot'&&o.status==='demandee';
   const nOk=o.lines.filter(l=>l.st==='ok').length,nKo=o.lines.filter(l=>l.st==='rupture').length,nCours=o.lines.filter(l=>l.st==='cours').length;
@@ -728,10 +778,10 @@ function orderCard(o){
     </button>
     ${open?`<div class="order-b"><div class="who">Demandée par <b>${esc(o.by||'—')}</b> le <b>${esc(new Date(o.at).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</b> à <b>${esc(new Date(o.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>${o.editedAt?` · <b class="edited">corrigée à ${esc(new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>`:''}${o.readyAt?` · prête à ${esc(new Date(o.readyAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}`:''}</div>
       ${o.note?`<div class="note">${esc(o.note)}</div>`:''}${pickList(o)}
-      <div style="margin-top:6px">${o.lines.map((l,i)=>[l,i]).sort((x,y)=>lineRank(x[0])-lineRank(y[0])).map(([l,i])=>lineRow(o,l,i)).join('')}</div>${foot?`<div class="order-foot">${foot}</div>`:''}</div>`:''}
+      <div style="margin-top:6px">${brandGroups(o)}</div>${foot?`<div class="order-foot">${foot}</div>`:''}</div>`:''}
   </div>`;}
 function vOrders(){
-  const intro=`<div class="info">Plusieurs préparateurs ? Cochez <b>En cours</b> sur l'article que vous prenez : les autres le voient tout de suite. Puis indiquez la quantité préparée et cochez <b>Validée</b>.</div>`;
+  const intro=`<div class="info">À plusieurs : ouvrez la commande et touchez <b>✋ Je prends</b> sur une marque libre. Les autres voient tout de suite qu'elle est <b>en cours</b> à votre nom et prennent une autre marque. Ajustez la quantité préparée si besoin, puis <b>✓ Tout valider</b>.</div>`;
   const todo=S.orders.filter(o=>o.status==='demandee'||o.status==='prep').sort((a,b)=>a.at-b.at);
   const done=S.orders.filter(o=>o.status==='prete'||o.status==='recue').sort((a,b)=>b.at-a.at);
   return `<div><h2>Commandes du magasin</h2><p class="sub">Les plus anciennes en premier. Touchez une commande pour la préparer.</p></div>${intro}
@@ -1686,6 +1736,18 @@ document.addEventListener('click',e=>{
     case'qstep':{const l=S.cart[+t.dataset.i];l.qty=Math.min(50,Math.max(1,l.qty+(+t.dataset.d)));save();render();break;}
     case'send':shopSend();break;
     case'open':st.open=st.open===oid?null:oid;render();break;
+    case'bclaim':{const o=order(),b=t.dataset.b;if(!me()){needName();return;}
+      const idx=brandIdx(o,b).filter(i=>!o.lines[i].st);
+      linesSet(o,idx.map(i=>({i,patch:{st:'cours',by:me(),done:doneOf(o.lines[i]),at:Date.now()}})),o.status==='demandee'?{status:'prep'}:null);
+      toast(`<b>${esc(b)}</b> : c'est pour vous (${idx.length} ligne${idx.length>1?'s':''})`);break;}
+    case'bok':{const o=order(),b=t.dataset.b;if(!me()){needName();return;}
+      const idx=brandIdx(o,b).filter(i=>o.lines[i].st==='cours'&&o.lines[i].by===me());
+      linesSet(o,idx.map(i=>{const inp=document.querySelector(`[data-done="${o.id}:${i}"]`),d=Math.max(0,Math.min(999,parseInt(inp?inp.value:doneOf(o.lines[i]))||0));
+        return {i,patch:{st:d?'ok':'rupture',done:d,by:me(),at:Date.now()}};}));toast(`<b>${esc(b)}</b> validée`);break;}
+    case'bfree':{const o=order(),b=t.dataset.b;
+      linesSet(o,brandIdx(o,b).filter(i=>o.lines[i].st==='cours'&&o.lines[i].by===me()).map(i=>({i,patch:{st:null,by:null}})));break;}
+    case'bunlock':{const b=t.dataset.b,k='bunl'+oid+':'+b;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;const o=order();
+      linesSet(o,brandIdx(o,b).filter(i=>o.lines[i].st==='cours').map(i=>({i,patch:{st:null,by:null}})));break;}
     case'lclaim':{const o=order(),i=+t.dataset.i,l=o.lines[i];if(!me()){needName();return;}
       if(l.st==='cours'&&l.by===me())lineSet(o,i,{st:null,by:null});
       else if(!l.st)lineSet(o,i,{st:'cours',by:me(),done:doneOf(l),at:Date.now()},o.status==='demandee'?{status:'prep'}:null);
