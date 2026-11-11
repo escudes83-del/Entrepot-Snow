@@ -1165,10 +1165,14 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
    Pas encore utilisé pour le calcul : on collecte d'abord les mesures. */
 const DIM_GROUPS={D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
   M1:['Milieu · niveau 1 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M2:['Milieu · niveau 2 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M3:['Milieu · niveau 3 (étagère double face G + D)','Profondeur totale, allée G → allée D']};
+/* Au milieu, MG et MD du même rack et du même niveau sont une seule étagère : on la note M (ex. M3.2) */
+const DIM_LOCS=[...new Set(LOCS.filter(capGroup).map(e=>e.replace(/^M[GD]/,'M')))];
+const dimRank=e=>{const i=DIM_LOCS.indexOf(e);return i<0?999:i;};
 const POSE={plat:'À plat',tranche:'Sur la tranche',mixte:'À plat devant + sur la tranche derrière'};
 const dims=()=>{const d=S.dims=S.dims||{};d.locs=d.locs||{};
   /* ancien groupe « milieu niveaux 1 et 2 » : ses mesures sont reprises pour les niveaux 1 et 2, séparés */
-  if(d.locs.M12){['M1','M2'].forEach(k=>{if(!d.locs[k])d.locs[k]={...d.locs.M12};});delete d.locs.M12;}d.over=d.over||{};d.boxes=d.boxes||[];return d;};
+  if(d.locs.M12){['M1','M2'].forEach(k=>{if(!d.locs[k])d.locs[k]={...d.locs.M12};});delete d.locs.M12;}
+  if(d.over)Object.keys(d.over).forEach(e=>{if(/^M[GD]\d/.test(e)){const m=e.replace(/^M[GD]/,'M');if(!d.over[m])d.over[m]=d.over[e];delete d.over[e];}});d.over=d.over||{};d.boxes=d.boxes||[];return d;};
 const num=v=>{const n=parseFloat(String(v).replace(',','.'));return n>0?Math.round(n*10)/10:null;};
 const fmtD=(o,keys)=>keys.map(k=>o&&o[k]!=null?String(o[k]).replace('.',','):'?').join(' × ');
 /* le plus précis l'emporte : modèle > marque > toutes marques ; puis la plage de tailles la plus étroite */
@@ -1180,7 +1184,7 @@ function vDims(){const d=dims();
   const grp=Object.entries(DIM_GROUPS).map(([g,[lbl,pl]])=>{const o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}</b>
     <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
     <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;}).join('');
-  const ov=Object.entries(d.over).sort((a,b)=>locRank(a[0])-locRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
+  const ov=Object.entries(d.over).sort((a,b)=>dimRank(a[0])-dimRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
   const typeOpt=t=>Object.entries({botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
   const bt=st.boxType||'botte',sz=sizesOf(bt);
   const boxes=d.boxes.slice().sort((x,y)=>x.type.localeCompare(y.type)||(x.marque||'').localeCompare(y.marque||'')||(x.modele||'').localeCompare(y.modele||''));
@@ -1192,7 +1196,7 @@ function vDims(){const d=dims();
       <div class="dimgs">${grp}</div>
       <details class="dimdet"${Object.keys(d.over).length?' open':''}><summary>Un emplacement a des mesures différentes ?</summary>
         ${ov||'<p class="sub">Aucun pour l\'instant.</p>'}
-        <div class="dimadd"><select id="ovEmp" aria-label="Emplacement">${LOCS.filter(capGroup).map(e=>`<option>${e}</option>`).join('')}</select>
+        <div class="dimadd"><select id="ovEmp" aria-label="Emplacement">${DIM_LOCS.map(e=>`<option>${e}</option>`).join('')}</select>
           ${inp('id="ovL"',null,'Longueur')}${inp('id="ovP"',null,'Profondeur')}${inp('id="ovH"',null,'Hauteur')}
           <input type="text" id="ovNote" placeholder="Note (ex. : poteau au milieu)" aria-label="Note">
           <button type="button" class="btn sm" data-act="dimoveradd">Ajouter</button></div></details></div>
