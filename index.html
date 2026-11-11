@@ -248,6 +248,16 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .shnext{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .shnext .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;min-height:52px;border-color:var(--accent);font-size:15px}
 .shnext .btn small{font-size:12px;color:var(--muted);font-weight:500}
+.gcols{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.gcols .sz{font-family:inherit;font-size:14px}
+.grid{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.grow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.grow.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.grow.zero .gz b{opacity:.55}.grow.warn{border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b}
+.gz{display:flex;flex-direction:column}.gz b{font:700 18px var(--f-mono)}.gz small{font-size:12px;color:var(--muted)}.grow.zero .gz small{color:var(--bad)}.grow.warn .gz small{color:#f59e0b}
+.gstep{display:flex;align-items:center;gap:6px}
+.gstep button{width:48px;height:48px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface-2);color:inherit;font-size:24px;font-weight:700;cursor:pointer}
+.gstep button:disabled{opacity:.35}
+.gstep input{width:52px;height:44px;text-align:center;font:700 20px var(--f-mono);padding:0}
+.gfoot{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom));z-index:5;background:var(--bg);padding:8px 0 4px;display:flex;flex-direction:column;gap:6px}
 .opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .who{margin:8px 12px 0;font-size:14px}
 .pick{margin:8px 12px 2px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
@@ -1170,7 +1180,7 @@ document.addEventListener('submit',e=>{const f=e.target;
 /* ---------- Magasin : mini-appli téléphone ---------- */
 /* Commander pas à pas : type → marque → modèle → homme/femme → taille → couleur → nombre */
 const SH_STEPS=['type','marque','modele','genre','taille','couleur','qty'];
-const SH_Q={type:'Quoi ?',marque:'Quelle marque ?',modele:'Quel modèle ?',genre:'Homme ou femme ?',taille:'Quelle taille ?',couleur:'Quelle couleur ?',qty:'Combien ?'};
+const SH_Q_GRID='Combien par taille ?';const SH_Q={grid:SH_Q_GRID,type:'Quoi ?',marque:'Quelle marque ?',modele:'Quel modèle ?',genre:'Homme ou femme ?',taille:'Quelle taille ?',couleur:'Quelle couleur ?',qty:'Combien ?'};
 const shVal=(a,k)=>k==='couleur'?(a.couleur||''):a[k];
 /* quantité déjà demandée (commandes en cours + commande en préparation sur ce téléphone) */
 function reserved(aid){let n=0;
@@ -1185,6 +1195,7 @@ function shStart(preset){st.sh={step:'type',v:{},hist:[],q:1};
 function shNext(from){let i=SH_STEPS.indexOf(from)+1;
   while(i<SH_STEPS.length){const k=SH_STEPS[i];
     if(k==='qty'){st.sh.step='qty';st.sh.q=1;return;}
+    if(k==='taille'){st.sh.step='grid';st.sh.gq={};return;}
     const o=shOpts(k);
     if((k==='genre'||k==='couleur')&&o.size===1){st.sh.v[k]=[...o.keys()][0];i++;continue;}
     st.sh.step=k;return;}}
@@ -1211,6 +1222,7 @@ function vShopCmd(){
     ${crumbs?`<div class="crumbs">${crumbs}</div>`:''}</div>
     <h2 class="q">${SH_Q[sh.step]}</h2>`;
   if(sh.step==='qty')return head+shQty();
+  if(sh.step==='grid')return head+shGrid();
   const o=shOpts(sh.step);
   let keys=[...o.keys()];
   if(sh.step==='type')keys=Object.keys(TYPE);
@@ -1225,6 +1237,37 @@ function vShopCmd(){
       <div class="inline"><div class="field"><label for="freeTxt">Ce que vous cherchez</label><input type="text" id="freeTxt" placeholder="Ex. : Burton Ion 10.5 noir" value="${esc([v.marque,v.modele,v.genre&&GENRE[v.genre],v.taille&&shLabel('taille',v.taille)].filter(Boolean).join(' '))}"></div>
       <div class="field" style="flex:0 0 70px"><label for="freeQty">Nombre</label><input type="number" id="freeQty" min="1" max="50" value="1" style="text-align:center"></div>
       <button type="button" class="btn" data-act="free">Ajouter</button></div></details>`;}
+
+
+/* Grille : toutes les tailles du modèle, un compteur − n + par taille, bouton fixe en bas */
+function shGridPool(){const sh=st.sh,pool=shPool('taille');
+  const cols=new Map();pool.forEach(a=>{const c=a.couleur||'';cols.set(c,(cols.get(c)||0)+availOf(a));});
+  if(cols.size>1&&(sh.v.couleur===undefined||!cols.has(sh.v.couleur)))sh.v.couleur=[...cols.entries()].sort((x,y)=>y[1]-x[1])[0][0];
+  const list=cols.size>1?pool.filter(a=>(a.couleur||'')===sh.v.couleur):pool;
+  const by=new Map();list.forEach(a=>{const r=by.get(a.taille)||{z:a.taille,arts:[],n:0};r.arts.push(a);r.n+=availOf(a);by.set(a.taille,r);});
+  const rows=[...by.values()].sort((x,y)=>sizeRankStr(x.z)-sizeRankStr(y.z));
+  return {cols,rows,a:pool[0]};}
+function gridTot(){return Object.values(st.sh.gq||{}).reduce((x,y)=>x+(y||0),0);}
+function shGrid(){const sh=st.sh,{cols,rows,a}=shGridPool();if(!a)return '<div class="empty">Rien d\'enregistré.</div>';
+  const gq=sh.gq=sh.gq||{},tot=gridTot(),pl=a.type==='fix'?['article','articles']:a.type==='board'?['planche','planches']:['paire','paires'];
+  const over=rows.filter(r=>(gq[r.z]||0)>r.n);
+  return `<div class="card pickd"><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div>
+      <div class="d">${esc([TYPE[a.type],GENRE[sh.v.genre],serOf(a)].filter(Boolean).join(' · '))}</div></div>
+    ${cols.size>1?`<div class="gcols">${[...cols.entries()].map(([c,n])=>`<button type="button" class="sz" data-act="gcol" data-v="${esc(c)}" aria-pressed="${sh.v.couleur===c}">${esc(c||'Sans couleur')}<small>${n}</small></button>`).join('')}</div>`:''}
+    <div class="grid">${rows.map(r=>{const q=gq[r.z]||0,warn=q>r.n;
+      return `<div class="grow${q?' on':''}${!r.n?' zero':''}${warn?' warn':''}">
+        <div class="gz"><b>${esc(szLbl(a.type,r.z))}</b><small>${r.n?`${r.n} en stock`:'Rupture'}${warn?` · il en manque ${q-r.n}`:''}</small></div>
+        <div class="gstep"><button type="button" data-act="gq" data-z="${esc(r.z)}" data-d="-1" aria-label="Moins"${q?'':' disabled'}>−</button>
+          <input type="number" inputmode="numeric" min="0" max="50" value="${q||''}" placeholder="0" data-gqi="${esc(r.z)}" aria-label="Nombre ${esc(szLbl(a.type,r.z))}">
+          <button type="button" data-act="gq" data-z="${esc(r.z)}" data-d="1" aria-label="Plus">+</button></div></div>`;}).join('')}</div>
+    <div class="gfoot">${over.length?`<div class="alert warn sm">⚠ Plus que le stock pour ${over.map(r=>esc(szLbl(a.type,r.z))).join(', ')} : l'entrepôt ne pourra pas tout fournir.</div>`:''}
+      <button type="button" class="btn primary block" data-act="gadd" id="gaddBtn"${tot?'':' disabled'}>${tot?`Ajouter ${tot} ${tot>1?pl[1]:pl[0]} à la commande`:'Choisissez les quantités'}</button></div>`;}
+function gridAdd(){const {rows,a}=shGridPool(),gq=st.sh.gq||{};let n=0;
+  rows.forEach(r=>{let rest=gq[r.z]||0;if(!rest)return;n+=rest;
+    const g=r.arts.slice().sort((x,y)=>availOf(y)-availOf(x));
+    const put=(x,k)=>{const ex=S.cart.find(l=>l.aid===x.id);if(ex)ex.qty+=k;else S.cart.push({aid:x.id,qty:k});};
+    g.forEach(x=>{const k=Math.min(availOf(x),rest);if(k>0){put(x,k);rest-=k;}});if(rest>0)put(g[0],rest);});
+  return {n,a};}
 
 function shQty(){const sh=st.sh,g=shPool('qty');const tot=g.reduce((s,a)=>s+availOf(a),0),q=sh.q;
   const a=g[0];const locs=[...new Set(g.map(x=>x.emp))].sort((x,y)=>locRank(x)-locRank(y));
@@ -1257,7 +1300,7 @@ function vShopCart(){const ed=S.editing&&S.orders.find(o=>o.id===S.editing);
     <div class="cart">${S.cart.map(cartLine).join('')||'<div class="empty">Aucun article.</div>'}</div>
     ${(()=>{const last=[...S.cart].reverse().map(l=>l.aid&&art(l.aid)).find(Boolean);if(!last)return'';
       return `<div class="shnext">
-        <button type="button" class="btn block" data-act="shmore" data-k="taille" data-id="${last.id}"><span>＋ Autre taille · <b>${esc(last.marque+' '+last.modele)}</b></span><small>${esc(TYPE[last.type])} · ${esc(GENRE[last.genre]||'')}</small></button>
+        <button type="button" class="btn block" data-act="shmore" data-k="taille" data-id="${last.id}"><span>＋ Autres tailles · <b>${esc(last.marque+' '+last.modele)}</b></span><small>${esc(TYPE[last.type])} · ${esc(GENRE[last.genre]||'')}</small></button>
         <button type="button" class="btn block" data-act="shmore" data-k="modele" data-id="${last.id}"><span>＋ Autre modèle <b>${esc(last.marque)}</b></span><small>${esc(TYPE[last.type])}</small></button></div>`;})()}
     <button type="button" class="btn block add" data-act="shnew">+ Ajouter un autre article</button>
     <div class="field"><label for="cartNote">Notes pour l'entrepôt <small class="opt">facultatif</small></label><textarea id="cartNote" placeholder="Ex. : client en caisse, urgent">${esc(S.cartNote)}</textarea></div>
@@ -1328,6 +1371,9 @@ function shopClick(act,t){
       if(nx==='taille')shStart({type:pv.type,marque:pv.marque,modele:pv.modele,genre:pv.genre});
       else if(nx==='modele')shStart({type:pv.type,marque:pv.marque});
       save();render();window.scrollTo(0,0);toast(`Ajouté : <b>${q}</b> · ${esc(artName(g[0]))}${nx==='taille'?' · choisissez la taille suivante':nx==='modele'?' · choisissez le modèle suivant':''}`);return true;}
+    case'gq':{const z=t.dataset.z,gq=st.sh.gq=st.sh.gq||{};gq[z]=Math.max(0,Math.min(50,(gq[z]||0)+(+t.dataset.d)));render();return true;}
+    case'gcol':st.sh.v.couleur=t.dataset.v;st.sh.gq={};render();return true;
+    case'gadd':{const {n,a}=gridAdd();if(!n)return true;st.sh={step:null,v:{},hist:[],q:1};save();render();window.scrollTo(0,0);toast(`Ajouté : <b>${n}</b> · ${esc(a.marque+' '+a.modele)}`);return true;}
     case'shmore':{const a=art(t.dataset.id);if(!a)return true;shStart(t.dataset.k==='taille'?{type:a.type,marque:a.marque,modele:a.modele,genre:a.genre}:{type:a.type,marque:a.marque});break;}
     case'shorder':{const a=art(t.dataset.id);st.tab='cmd';shStart({type:a.type,marque:a.marque,modele:a.modele,genre:a.genre});break;}
     case'sqtype':st.sqType=st.sqType===t.dataset.v?'':t.dataset.v;break;
@@ -1676,6 +1722,9 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='q'){st.q=t.value;st.focus=null;const pos=t.selectionStart;render();const q=$('#q');if(q){q.focus();try{q.setSelectionRange(pos,pos);}catch(_){}}}
   else if(t.id==='sq'){st.sq=t.value;const pos=t.selectionStart;render();const q=$('#sq');if(q){q.focus();try{q.setSelectionRange(pos,pos);}catch(_){}}}
+  else if(t.dataset&&t.dataset.gqi!==undefined){const gq=st.sh.gq=st.sh.gq||{};gq[t.dataset.gqi]=Math.max(0,Math.min(50,parseInt(t.value)||0));
+    const b=$('#gaddBtn'),n=gridTot();if(b){b.disabled=!n;b.textContent=n?`Ajouter ${n} à la commande`:'Choisissez les quantités';}const row=t.closest('.grow');row.classList.toggle('on',!!gq[t.dataset.gqi]);
+    const pr=shGridPool().rows.find(r=>r.z===t.dataset.gqi);if(pr)row.classList.toggle('warn',gq[t.dataset.gqi]>pr.n);}
   else if(t.id==='cartNote'){S.cartNote=t.value;save();}
   else if(t.id==='myName'){S.myName=t.value;save();}
   else if(t.id==='arrNote'){arr().note=t.value;saveLocal();}
@@ -1684,6 +1733,7 @@ document.addEventListener('input',e=>{
   else if(t.dataset.qty!==undefined){S.cart[+t.dataset.qty].qty=Math.max(1,parseInt(t.value)||1);save();}
 });
 document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset&&t.dataset.gqi!==undefined){render();return;}
   if(t.dataset&&t.dataset.dim){const[g,k]=t.dataset.dim.split(':');const o=dims().locs[g]=dims().locs[g]||{};o[k]=k==='pose'?(t.value||null):num(t.value);save();return;}
   if(t.id==='bxType'){st.boxType=t.value;render();return;}
   if(t.dataset&&t.dataset.arrchunk!==undefined){const g=arr().groups.find(x=>x.id===t.dataset.arrchunk);if(g){g.over=g.over||{};
