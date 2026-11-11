@@ -653,7 +653,7 @@ function vPlan(){
       <button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
         <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button></div>
     ${lit?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
-    ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${focusOrd().id}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
+    ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${onum(focusOrd())}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
     ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${nb} article${nb>1?'s':''} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
     <div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
@@ -692,8 +692,13 @@ function lineRow(o,l,i){
     :open?`<span class="lpill free">Libre</span>`:'';
   return `<div class="row lrow ls-${l.st||'none'}">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div>${ctl?`<div class="lctl-w">${ctl}</div>`:''}</div>`;}
 const me=()=>(S.myName||'').trim();
+/* Numéro affiché d'une commande : JJMM-rang (ex. 1011-2 = 2e commande du 10 novembre). Les anciennes gardent leur numéro. */
+const onum=o=>o&&(o.num||String(o.id));
+function newNum(at){const d=new Date(at),pre=String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0');
+  const same=S.orders.filter(x=>x.num&&x.num.startsWith(pre+'-')&&new Date(x.at).getFullYear()===d.getFullYear());
+  return pre+'-'+(Math.max(0,...same.map(x=>parseInt(x.num.split('-')[1])||0))+1);}
 /* Noms proposés en boutons (modifiables ici) */
-const NOMS={magasin:['Yann','Gustave'],entrepot:['Pierre-Yves','Armel','Majel','Anas','Yad','Aurelio']};
+const NOMS={magasin:['Yann','Gustave'],entrepot:['Pierre-Yves','Armel','Majel','Anas','Yiad','Aurelio']};
 function nameField(lbl,list,ph){const cur=me(),other=cur&&!list.includes(cur);
   return `<div class="field"><span class="lbl-s">${lbl}</span><div class="names">${list.map(n=>`<button type="button" class="btn nm${cur===n?' on':''}" data-act="setname" data-n="${esc(n)}" aria-pressed="${cur===n}">${esc(n)}</button>`).join('')}</div>
     <input type="text" id="myName" class="nm-other${other?' on':''}" value="${other?esc(cur):''}" placeholder="${ph}" autocomplete="off" autocapitalize="words" aria-label="Autre nom"></div>`;}
@@ -772,10 +777,10 @@ function orderCard(o){
   if(role==='entrepot'&&(o.status==='demandee'||o.status==='prep')){const left=o.lines.filter(l=>!(l.st==='ok'||l.st==='rupture')).length;
     foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="prete"${left?' disabled':''}>Prête, prévenir le magasin</button>${left?`<span class="count">Encore ${left} ligne${left>1?'s':''} à valider.</span>`:''}`;}
   if(role==='magasin'&&o.status==='prete')foot=`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`;
-  if(role==='entrepot'){const arm=st.armed==='odel'+o.id;foot+=`<button type="button" class="btn danger${arm?' armed':''}" data-act="odel" data-o="${o.id}" style="margin-left:auto">${arm?'Confirmer : supprimer #'+o.id:'Supprimer la commande'}</button>`;}
+  if(role==='entrepot'){const arm=st.armed==='odel'+o.id;foot+=`<button type="button" class="btn danger${arm?' armed':''}" data-act="odel" data-o="${o.id}" style="margin-left:auto">${arm?'Confirmer : supprimer #'+onum(o):'Supprimer la commande'}</button>`;}
   return `<div class="order o-${o.status}${fresh?' new':''}">
     <button type="button" class="order-h" data-act="open" data-o="${o.id}" aria-expanded="${open}">
-      <span class="num">#${o.id}</span>
+      <span class="num">#${onum(o)}</span>
       <span class="main"><span class="t">${o.by?esc(o.by)+' · ':''}${(n=>`${n} pièce${n>1?'s':''}`)(o.lines.reduce((s,l)=>s+l.qty,0))}</span> <span class="count">· ${o.lines.length} ligne${o.lines.length>1?'s':''}</span> <span class="count">· ${fmtDT(o.at)} (${ago(o.at)})${o.status==='prete'||o.status==='recue'?` · ${prepd}/${asked} préparées`:''}${o.status==='prep'||o.status==='demandee'?(nCours?` · <b class="edited">${nCours} en cours</b>`:'')+(nOk+nKo?` · ${nOk+nKo}/${o.lines.length} validées`:''):''}</span></span>
       <span class="pill st-${o.status}">${ST[o.status]}</span>
     </button>
@@ -1348,7 +1353,7 @@ function cartLine(l,i){const a=l.aid&&art(l.aid);
 
 function vShopCart(){const ed=S.editing&&S.orders.find(o=>o.id===S.editing);
   const n=S.cart.reduce((s,l)=>s+l.qty,0);
-  return `${ed?`<div class="alert warn" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Vous corrigez la commande <b>#${ed.id}</b></span><button type="button" class="btn sm" data-act="ecancel">Annuler</button></div>`:''}
+  return `${ed?`<div class="alert warn" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Vous corrigez la commande <b>#${onum(ed)}</b></span><button type="button" class="btn sm" data-act="ecancel">Annuler</button></div>`:''}
     <h2 class="q">${ed?'Correction de la commande':'Ma commande'}</h2>
     <div class="cart">${S.cart.map(cartLine).join('')||'<div class="empty">Aucun article.</div>'}</div>
     ${(()=>{const last=[...S.cart].reverse().map(l=>l.aid&&art(l.aid)).find(Boolean);if(!last)return'';
@@ -1385,7 +1390,7 @@ function shopOrder(o){
     const name=a?`${a.marque} ${a.modele} · ${GENRE[a.genre]} · ${szLbl(a.type,a.taille)}${a.couleur?' · '+a.couleur:''}`:`« ${l.txt} »`;
     const fin=l.st==='ok'||l.st==='rupture',d=doneOf(l);
     return `<div class="oline"><b class="qbig">×${l.qty}</b><span>${esc(name)}${fin?`<br><small>${l.qty} demandée${l.qty>1?'s':''} · <b>${d} préparée${d>1?'s':''}</b></small>`:l.st==='cours'?'<br><small>En cours de préparation</small>':''}</span>${fin?`<span class="pill ln-${d<l.qty?'rupture':'ok'}">${d}/${l.qty}</span>`:''}</div>`;}).join('');
-  return `<div class="order o-${o.status}"><div class="order-h" style="cursor:default"><span class="num">#${o.id}</span>
+  return `<div class="order o-${o.status}"><div class="order-h" style="cursor:default"><span class="num">#${onum(o)}</span>
       <span class="main"><span class="count">${fmtDT(o.at)}${o.editedAt?` · corrigée à ${new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</span></span>
       <span class="pill st-${o.status}">${ST[o.status]}</span></div>
     <div class="order-b">${lines}${o.note?`<div class="note">${esc(o.note)}</div>`:''}
@@ -1403,11 +1408,11 @@ function shopSend(){
     if(!o||!(o.status==='demandee'||o.status==='prep')){toast('Trop tard : la commande est déjà prête.');shEditEnd();render();return;}
     o.lines=S.cart.map(l=>{const old=o.lines.find(x=>x.aid===l.aid&&x.txt===l.txt&&x.qty===l.qty);return {...l,st:old?old.st:null};});
     o.note=S.cartNote.trim();o.editedAt=Date.now();o.by=by;
-    notify('entrepot',`Commande #${o.id} corrigée par ${by}`);
-    shEditEnd();save();st.tab='mine';render();toast(`Correction de la commande <b>#${o.id}</b> envoyée. L'entrepôt est prévenu.`);return;}
-  const o={id:(S.seq=Math.max(S.seq||1000,...S.orders.map(x=>+x.id||0))+1),at:Date.now(),by,status:'demandee',note:S.cartNote.trim(),lines:S.cart.map(l=>({...l,st:null}))};
-  S.orders.push(o);notify('entrepot',`Nouvelle commande #${o.id} de ${by} (${o.lines.length} ligne${o.lines.length>1?'s':''})`);
-  S.cart=[];S.cartNote='';st.sh={step:null,v:{},hist:[],q:1};save();st.tab='mine';render();toast(`Commande <b>#${o.id}</b> envoyée. L'entrepôt est prévenu.`);}
+    notify('entrepot',`Commande #${onum(o)} corrigée par ${by}`);
+    shEditEnd();save();st.tab='mine';render();toast(`Correction de la commande <b>#${onum(o)}</b> envoyée. L'entrepôt est prévenu.`);return;}
+  const now=Date.now(),o={id:(S.seq=Math.max(S.seq||1000,...S.orders.map(x=>+x.id||0))+1),num:newNum(now),at:now,by,status:'demandee',note:S.cartNote.trim(),lines:S.cart.map(l=>({...l,st:null}))};
+  S.orders.push(o);notify('entrepot',`Nouvelle commande #${onum(o)} de ${by} (${o.lines.length} ligne${o.lines.length>1?'s':''})`);
+  S.cart=[];S.cartNote='';st.sh={step:null,v:{},hist:[],q:1};save();st.tab='mine';render();toast(`Commande <b>#${onum(o)}</b> envoyée. L'entrepôt est prévenu.`);}
 function shEditEnd(){const b=S.cartSaved||{cart:[],note:''};S.cart=b.cart;S.cartNote=b.note;S.cartSaved=null;S.editing=null;st.sh={step:null,v:{},hist:[],q:1};}
 function shopClick(act,t){
   switch(act){
@@ -1763,17 +1768,18 @@ document.addEventListener('click',e=>{
     case'ldone':{const o=order(),i=+t.dataset.i,l=o.lines[i];lineSet(o,i,{done:Math.max(0,Math.min(999,doneOf(l)+(+t.dataset.d)))});break;}
     case'lunlock':{const k='unl'+oid+':'+t.dataset.i;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;lineSet(order(),+t.dataset.i,{st:null,by:null});break;}
     case'odel':{const k='odel'+oid;if(st.armed!==k){st.armed=k;render();return;}st.armed=null;
-      S.orders=S.orders.filter(o=>String(o.id)!==String(oid));S.notifs=S.notifs.filter(n=>!String(n.text||'').includes('#'+oid+' '));
-      if(st.open==oid)st.open=null;save();render();toast(`Commande #${esc(String(oid))} supprimée`);break;}
+      const dn=onum(S.orders.find(o=>String(o.id)===String(oid)))||String(oid);
+      S.orders=S.orders.filter(o=>String(o.id)!==String(oid));S.notifs=S.notifs.filter(n=>!String(n.text||'').includes('#'+dn+' '));
+      if(st.open==oid)st.open=null;save();render();toast(`Commande #${esc(dn)} supprimée`);break;}
     case'ost':{const o=order();o.status=t.dataset.v;
       if(o.status==='prete'){const asked=o.lines.reduce((x,l)=>x+l.qty,0),prepd=o.lines.reduce((x,l)=>x+(l.st==='ok'?doneOf(l):0),0);
         /* retire du stock les lignes servies (une seule fois par commande) */
         let out=0,libre=0;
         o.readyAt=o.readyAt||Date.now();
         if(!o.deducted){o.lines.filter(l=>l.st==='ok').forEach(l=>{const a=l.aid&&art(l.aid);if(a){const before=qOf(a);a.qty=Math.max(0,before-doneOf(l));out+=before-a.qty;}else libre++;});o.deducted=true;}
-        notify('magasin',`Commande #${o.id} prête : ${prepd} préparée${prepd>1?'s':''} sur ${asked} demandée${asked>1?'s':''}${prepd<asked?' (il en manque '+(asked-prepd)+')':''}`);
-        toast(`Commande <b>#${o.id}</b> prête. Le magasin est prévenu.<br>Stock mis à jour : <b>−${out} pièce${out>1?'s':''}</b>${libre?` · ${libre} demande${libre>1?'s':''} libre${libre>1?'s':''} à retirer à la main`:''}`);}
-      if(o.status==='recue')toast(`Commande <b>#${o.id}</b> reçue`);
+        notify('magasin',`Commande #${onum(o)} prête : ${prepd} préparée${prepd>1?'s':''} sur ${asked} demandée${asked>1?'s':''}${prepd<asked?' (il en manque '+(asked-prepd)+')':''}`);
+        toast(`Commande <b>#${onum(o)}</b> prête. Le magasin est prévenu.<br>Stock mis à jour : <b>−${out} pièce${out>1?'s':''}</b>${libre?` · ${libre} demande${libre>1?'s':''} libre${libre>1?'s':''} à retirer à la main`:''}`);}
+      if(o.status==='recue')toast(`Commande <b>#${onum(o)}</b> reçue`);
       save();render();break;}
     case'rmtag':S[t.dataset.k].splice(+t.dataset.i,1);save();render();break;
     case'addtag':{const k=t.dataset.k,inp=$('#add-'+k),v=inp.value.trim();if(!v){inp.focus();return;}if(!S[k].includes(v)){S[k].push(v);if(k==='brands')S[k].sort((x,y)=>x.localeCompare(y));if(k==='sizesB'||k==='sizesS')S[k].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));}save();render();break;}
