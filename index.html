@@ -566,7 +566,7 @@ function matches(a,skip){
   if(skip!=='marque'&&st.fMarque&&a.marque!==st.fMarque)return false;
   if(skip!=='modele'&&st.fModele&&a.modele!==st.fModele)return false;
   if(skip!=='annee'&&st.fAnnee&&String(a.annee)!==st.fAnnee)return false;
-  if(skip!=='zone'&&st.fZone&&zoneOf(a.emp)!==st.fZone)return false;
+  if(skip!=='zone'&&st.fZone&&role!=='magasin'&&zoneOf(a.emp)!==st.fZone)return false;
   if(skip!=='couleur'&&st.fCouleur&&(a.couleur||'')!==st.fCouleur)return false;
   if(skip!=='serrage'&&st.fSerrage&&serOf(a)!==st.fSerrage)return false;
   if(skip!=='taille'&&st.fTailles.length&&!st.fTailles.includes(a.taille))return false;
@@ -579,7 +579,13 @@ function textMatch(a,q){
   const words=new Set(hay.split(/\s+/));
   return other.every(t=>t.length<=2?words.has(t):hay.includes(t));}
 /* compte en pièces (paires), comme le total affiché et l'appli magasin */
-function facet(skip,get){const m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+qOf(a));});return m;}
+function facet(skip,get){const Q=role==='magasin'?availOf:qOf,m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+Q(a));});return m;}
+/* total d'une recherche : modèles et pièces (au magasin : disponibles, avec ce qui est déjà en commande) */
+function sumLine(list,o={}){const mods=new Set(list.map(a=>[a.type,a.marque,a.modele,a.genre].join('|'))).size,p=list.reduce((t,a)=>t+qOf(a),0),ty=new Set(list.map(a=>a.type));
+  const u=ty.size===1&&ty.has('board')?['planche','planches']:o.shop&&!ty.has('board')?['paire','paires']:['pièce','pièces'],w=n=>`${n.toLocaleString('fr-FR')} ${n>1?u[1]:u[0]}`;
+  let t=`<b>${mods} modèle${mods>1?'s':''}</b>`;if(o.lines)t+=` · ${list.length} article${list.length>1?'s':''}`;
+  if(o.shop){const av=list.reduce((x,a)=>x+availOf(a),0);t+=` · <b>${w(av)} disponible${av>1?'s':''}</b>${p>av?` <small>(${p} en stock, dont ${p-av} déjà en commande)</small>`:''}`;}else t+=` · <b>${w(p)}</b>`;
+  return t;}
 const focusOrd=()=>st.focusOrder&&S.orders.find(o=>o.id===st.focusOrder);
 function hits(){const fo=focusOrd();if(fo)return new Set(fo.lines.map(l=>l.aid&&art(l.aid)).filter(Boolean).map(a=>a.emp));
   if(st.focus){const a=art(st.focus);return new Set(a?[a.emp]:[]);}if(!filtering())return new Set();return new Set(S.articles.filter(matches).map(a=>a.emp));}
@@ -621,7 +627,7 @@ function filterBar(){
     return `<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Tous</option>${keys.map(k=>`<option value="${esc(k)}"${k===cur?' selected':''}>${esc(lblFn(k))} (${m.get(k)||0})</option>`).join('')}</select></div>`;};
   const alpha=(x,y)=>x.localeCompare(y);
   const tailles=facet('taille',a=>a.taille);const tk=[...new Set([...tailles.keys(),...st.fTailles])].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));
-  return `<input class="search" type="search" id="q" placeholder="Ex. : ride sage 7 8, nitro L, D1.2…" value="${esc(st.q)}" autocomplete="off">
+  return `<input class="search" type="search" id="q" placeholder="${role==='magasin'?'Ex. : ride sage 7 8, nitro L…':'Ex. : ride sage 7 8, nitro L, D1.2…'}" value="${esc(st.q)}" autocomplete="off">
   <div class="filters">
     <div class="seg">${[['','Tout'],['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" data-ftype="${v}" aria-pressed="${st.fType===v}">${l}</button>`).join('')}</div>
     <div class="seg">${[['','H/F'],['H','Homme'],['F','Femme'],['U','Unisexe']].map(([v,l])=>`<button type="button" data-fgenre="${v}" aria-pressed="${st.fGenre===v}">${l}</button>`).join('')}</div>
@@ -630,7 +636,7 @@ function filterBar(){
     ${sel('fMarque','Marque',st.fMarque,facet('marque',a=>a.marque),alpha)}
     ${sel('fModele','Modèle',st.fModele,facet('modele',a=>a.modele),alpha)}
     ${sel('fAnnee','Année',st.fAnnee,facet('annee',a=>a.annee),(x,y)=>y-x)}
-    ${sel('fZone','Zone',st.fZone,facet('zone',a=>zoneOf(a.emp)),alpha,z=>ZONE_LBL[z]||z)}
+    ${role==='magasin'?'':sel('fZone','Zone',st.fZone,facet('zone',a=>zoneOf(a.emp)),alpha,z=>ZONE_LBL[z]||z)}
     ${sel('fCouleur','Couleur',st.fCouleur,facet('couleur',a=>a.couleur),alpha)}
     ${sel('fSerrage','Serrage bottes',st.fSerrage,facet('serrage',a=>serOf(a)),alpha)}
   </div>
@@ -654,7 +660,7 @@ function vSearch(){
       ${role==='entrepot'?`<button type="button" class="btn primary" data-act="new">+ Nouvel article</button>`:''}
     </div>
     ${filterBar()}
-    <div class="count">${list.length} article${list.length>1?'s':''} · ${(t=>`${t} pièce${t>1?'s':''}`)(list.reduce((s,a)=>s+qOf(a),0))}${filtering()&&list.length?` · emplacement${new Set(list.map(a=>a.emp)).size>1?'s':''} : <b>${[...new Set(list.map(a=>a.emp))].sort().join(', ')}</b>`:''}${S.demo?' <span class="demo">données d\'exemple</span>':''}</div>
+    <div class="count">${sumLine(list,{lines:1})}${filtering()&&list.length?` · emplacement${new Set(list.map(a=>a.emp)).size>1?'s':''} : <b>${[...new Set(list.map(a=>a.emp))].sort().join(', ')}</b>`:''}${S.demo?' <span class="demo">données d\'exemple</span>':''}</div>
     <div class="list">${list.length?list.map(a=>artRow(a)).join(''):`<div class="empty">Aucun article ne correspond.${role==='entrepot'?' Ajoutez-le avec « Nouvel article ».':''}</div>`}</div>`;}
 
 function chip(code,l,H,count){
@@ -910,7 +916,7 @@ function vPlan(){
         <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button>`}</div>
     ${lit||v3?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
     ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${onum(focusOrd())}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
-    ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${nb} article${nb>1?'s':''} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
+    ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${sumLine(S.articles.filter(matches),{lines:1})} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
     ${v3?p3dHost():`<div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
       <div class="col long" style="grid-area:g"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${g}</div>
@@ -1545,9 +1551,10 @@ function vShopCmd(){
     ${crumbs?`<div class="crumbs">${crumbs}</div>`:''}</div>
     <h2 class="q">${SH_Q[sh.step]}</h2>`;
   if(sh.step==='qty')return head+shQty();
-  if(sh.step==='grid')return head+shGrid();
+  if(sh.step==='grid')return head+`<div class="count">${sumLine(shPool('taille'),{shop:1})} pour ce choix</div>`+shGrid();
   const o=shOpts(sh.step);
   let keys=[...o.keys()];
+  const tot=`<div class="count">${sumLine(shPool(sh.step),{shop:1})}${sh.step==='type'?' en tout':' pour ce choix'}</div>`;
   if(sh.step==='type')keys=Object.keys(TYPE);
   const sorter={taille:(x,y)=>sizeRankStr(x)-sizeRankStr(y),genre:(x,y)=>'HFU'.indexOf(x)-'HFU'.indexOf(y)}[sh.step]||((x,y)=>x===''?1:y===''?-1:x.localeCompare(y));
   if(sh.step!=='type')keys.sort(sorter);
@@ -1555,7 +1562,7 @@ function vShopCmd(){
     const sub=sh.step==='type'?(c.n?`${c.stock} en stock`:'aucun enregistré'):z?'Rupture de stock':`${c.stock} en stock`;
     return `<button type="button" class="tile${sh.step==='type'?' big t-'+x:''}${z?' zero':''}" data-act="shpick" data-k="${sh.step}" data-v="${esc(x)}">${sh.step==='type'?PIC[x]||'':''}${esc(shLabel(sh.step,x))}<small>${sub}</small></button>`;};
   const empty=!keys.length?`<div class="empty">Rien d'enregistré ici pour l'instant.</div>`:'';
-  return head+`<div class="tiles${sh.step==='taille'?' sizes':''}">${keys.map(tile).join('')}</div>${empty}
+  return head+tot+`<div class="tiles${sh.step==='taille'?' sizes':''}">${keys.map(tile).join('')}</div>${empty}
     <details class="libre"><summary>Pas dans la liste ? Écrire la demande</summary>
       <div class="inline"><div class="field"><label for="freeTxt">Ce que vous cherchez</label><input type="text" id="freeTxt" placeholder="Ex. : Burton Ion 10.5 noir" value="${esc([v.marque,v.modele,v.genre&&GENRE[v.genre],v.taille&&shLabel('taille',v.taille)].filter(Boolean).join(' '))}"></div>
       <div class="field" style="flex:0 0 70px"><label for="freeQty">Nombre</label><input type="number" id="freeQty" min="1" max="50" value="1" style="text-align:center"></div>
@@ -1633,11 +1640,11 @@ function vShopCart(){const ed=S.editing&&S.orders.find(o=>o.id===S.editing);
     <button type="button" class="btn primary block" data-act="send"${S.cart.length?'':' disabled'}>${ed?'Envoyer la correction':'Envoyer à l\'entrepôt'}${n?` · ${n} pièce${n>1?'s':''}`:''}</button>`;}
 
 function vShopFind(){
-  const q=st.sq||'',ft=st.sqType||'';
-  const list=sortArts(S.articles.filter(a=>(!ft||a.type===ft)&&textMatch(a,q)));
+  /* même recherche que l'entrepôt (sans le filtre Zone) ; résultats en cartes par modèle */
+  const list=sortArts(S.articles.filter(a=>matches(a)));
   const groups=new Map();list.forEach(a=>{const k=[a.type,a.marque,a.modele,a.genre].join('|');if(!groups.has(k))groups.set(k,[]);groups.get(k).push(a);});
-  const show=q.trim()||ft;
-  const cards=[...groups.values()].slice(0,40).map(g=>{const a=g[0];
+  const show=filtering(),MAX=40;
+  const cards=[...groups.values()].slice(0,MAX).map(g=>{const a=g[0];
     const vars=new Map();g.forEach(x=>{const k=x.couleur||'';if(!vars.has(k))vars.set(k,[]);vars.get(k).push(x);});
     const locs=[...new Set(g.map(x=>x.emp))].sort((x,y)=>locRank(x)-locRank(y));
     const sz=x=>{const n=availOf(x);return `<span class="sz${n?'':' zero'}" style="cursor:default">${esc(szLbl(x.type,x.taille).replace(' cm',''))}<span class="qx">×${n}</span></span>`;};
@@ -1646,11 +1653,9 @@ function vShopFind(){
       <div class="where">${locs.map(c=>`<div>📍 <b>${esc(c)}</b> ${esc(locLabel(c))}${locs.length>1?`<br><small>${esc(g.filter(x=>x.emp===c).map(x=>szLbl(x.type,x.taille)+(vars.size>1&&x.couleur?' '+x.couleur:'')).join(', '))}</small>`:''}</div>`).join('')}</div>
       <button type="button" class="btn primary" data-act="shorder" data-id="${a.id}">Commander ce modèle</button></div>`;}).join('');
   return `<h2 class="q">Chercher un produit</h2>
-    <input class="search" type="search" id="sq" placeholder="Marque, modèle ou taille…" value="${esc(q)}" autocomplete="off">
-    <div class="tiles three">${[['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" class="tile t-${v}" data-act="sqtype" data-v="${v}" aria-pressed="${ft===v}">${PIC[v]}${l}</button>`).join('')}</div>
-    ${show?`<div class="count">${(()=>{const av=list.reduce((t,a)=>t+availOf(a),0),tot=list.reduce((t,a)=>t+qOf(a),0),ty=new Set(list.map(a=>a.type)),u=ty.size===1&&ty.has('board')?['planche','planches']:ty.has('board')?['pièce','pièces']:['paire','paires'];
-      return `${groups.size} modèle${groups.size>1?'s':''} · <b>${av} ${av>1?u[1]:u[0]} disponible${av>1?'s':''}</b>${tot>av?` <small>(${tot} en stock, dont ${tot-av} déjà en commande)</small>`:''}`;})()}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
-      :'<p class="sub">Tapez un nom ou touchez un type pour voir le stock et où il est rangé.</p>'}`;}
+    ${filterBar()}
+    ${show?`<div class="count">${sumLine(list,{shop:1})}${groups.size>MAX?` · les ${MAX} premiers affichés, précisez la recherche`:''}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
+      :'<p class="sub">Tapez un nom ou une taille, ou utilisez les filtres, pour voir le stock et où il est rangé.</p>'}`;}
 
 function shopOrder(o){
   const live=o.status==='demandee'||o.status==='prep';
