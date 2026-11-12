@@ -575,7 +575,8 @@ function textMatch(a,q){
   const hay=norm(`${a.marque} ${a.modele} ${TYPE[a.type]} ${a.type==='fix'?'fix fixation':a.type==='board'?'snowboard board planche':'botte boots'} ${GENRE[a.genre]} ${a.taille} ${a.annee} ${a.emp} ${ZONE_LBL[zoneOf(a.emp)]||''} ${a.couleur||''} ${serOf(a)} ${a.note}`);
   const words=new Set(hay.split(/\s+/));
   return other.every(t=>t.length<=2?words.has(t):hay.includes(t));}
-function facet(skip,get){const m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+1);});return m;}
+/* compte en pièces (paires), comme le total affiché et l'appli magasin */
+function facet(skip,get){const m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+qOf(a));});return m;}
 const focusOrd=()=>st.focusOrder&&S.orders.find(o=>o.id===st.focusOrder);
 function hits(){const fo=focusOrd();if(fo)return new Set(fo.lines.map(l=>l.aid&&art(l.aid)).filter(Boolean).map(a=>a.emp));
   if(st.focus){const a=art(st.focus);return new Set(a?[a.emp]:[]);}if(!filtering())return new Set();return new Set(S.articles.filter(matches).map(a=>a.emp));}
@@ -1644,7 +1645,8 @@ function vShopFind(){
   return `<h2 class="q">Chercher un produit</h2>
     <input class="search" type="search" id="sq" placeholder="Marque, modèle ou taille…" value="${esc(q)}" autocomplete="off">
     <div class="tiles three">${[['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" class="tile t-${v}" data-act="sqtype" data-v="${v}" aria-pressed="${ft===v}">${PIC[v]}${l}</button>`).join('')}</div>
-    ${show?`<div class="count">${groups.size} modèle${groups.size>1?'s':''}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
+    ${show?`<div class="count">${(()=>{const av=list.reduce((t,a)=>t+availOf(a),0),tot=list.reduce((t,a)=>t+qOf(a),0),ty=new Set(list.map(a=>a.type)),u=ty.size===1&&ty.has('board')?['planche','planches']:ty.has('board')?['pièce','pièces']:['paire','paires'];
+      return `${groups.size} modèle${groups.size>1?'s':''} · <b>${av} ${av>1?u[1]:u[0]} disponible${av>1?'s':''}</b>${tot>av?` <small>(${tot} en stock, dont ${tot-av} déjà en commande)</small>`:''}`;})()}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
       :'<p class="sub">Tapez un nom ou touchez un type pour voir le stock et où il est rangé.</p>'}`;}
 
 function shopOrder(o){
