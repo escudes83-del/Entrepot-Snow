@@ -133,6 +133,24 @@ textarea{resize:vertical;min-height:60px}
 .count{font-size:13px;color:var(--muted)}
 .demo{font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:2px 6px}
 
+/* Plan : bouton Plan / 3D et vue 3D */
+.seg3d{display:inline-flex;border:1px solid var(--line-strong);border-radius:999px;overflow:hidden}
+.seg3d button{font:600 14px var(--f-body,inherit);padding:8px 16px;border:0;background:var(--surface);color:var(--ink);cursor:pointer;min-height:40px}
+.seg3d button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.p3d{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:10px;align-items:start}
+.p3d-stage{position:relative;height:clamp(360px,64vh,740px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface-2);touch-action:none}
+.p3d-stage canvas{display:block;width:100%;height:100%}
+.p3d-msg{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:var(--muted)}
+.p3d-hint{position:absolute;left:8px;bottom:8px;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px;pointer-events:none}
+.p3d-bar{grid-column:1;display:flex;flex-wrap:wrap;gap:6px}
+.p3d-side{grid-column:2;grid-row:1/span 2;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.p3d .legend{grid-column:1/-1}
+.p3d-code{font:700 24px var(--f-mono);color:var(--accent)}
+.p3d-nums{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.p3d-nums b{display:block;font:700 22px var(--f-disp)}.p3d-nums span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.p3d-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:14px;max-height:320px;overflow:auto}
+.p3d-list li{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:4px}.p3d-list li span:last-child{font-family:var(--f-mono);color:var(--muted)}
+@media (max-width:760px){.p3d{grid-template-columns:minmax(0,1fr)}.p3d-side{grid-column:1;grid-row:auto}}
 /* Plan */
 .plan-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
 .plan{display:grid;min-width:280px;gap:5px;
@@ -582,6 +600,7 @@ function render(){
   v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='mine'?vShopMine():vShopCmd())
     :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='orders'?vOrders():st.tab==='arr'?vArrivage():vSettings());
   tint(v);
+  if(role==='entrepot'&&st.tab==='plan'&&p3dOn()){const h=document.getElementById('p3d');if(h)P3D.mount(h,hits());}
 }
 /* Colore les codes d'emplacement et les racks du plan selon leur zone */
 function tint(root){
@@ -637,6 +656,107 @@ function chip(code,l,H,count){
     txt=`Recherche : ${f.p} pièce${f.p>1?'s':''} (${ms.length} modèle${ms.length>1?'s':''})&#10;${show.map(x=>`• ${esc(x.lbl)} : ${x.p}`).join('&#10;')}${ms.length>6?`&#10;+ ${ms.length-6} autre${ms.length-6>1?'s':''}`:''}&#10;Total ici : ${p} pièce${p>1?'s':''}`;}
   return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
 function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
+
+/* ---------- Vue 3D (onglet Plan) ----------
+   Même stock que le plan, en direct : la scène est refaite quand le stock change.
+   La recherche, l'article ou la commande affichés sur le plan s'allument en orange. three.js est chargé à la première ouverture. */
+let P3D_ON=null;const p3dOn=()=>{if(P3D_ON===null){try{P3D_ON=localStorage.getItem(KEY+'-3d')==='1';}catch(e){P3D_ON=false;}}return P3D_ON;};
+const p3dHost=()=>`<div class="p3d" id="p3d"><div class="p3d-stage" id="p3dStage"><div class="p3d-msg" id="p3dMsg">Chargement de la 3D…</div><div class="p3d-hint" id="p3dHint">Glisser : tourner · 2 doigts ou clic droit : déplacer · pincer ou molette : zoom</div></div>
+  <div class="p3d-bar" role="group" aria-label="Vues 3D"><button type="button" class="btn sm" data-v3="all">Vue d'ensemble</button><button type="button" class="btn sm" data-v3="ent">Depuis l'entrée</button><button type="button" class="btn sm" data-v3="top">De dessus</button></div>
+  <aside class="p3d-side" id="p3dSide" aria-live="polite"></aside>
+  <div class="legend"><span><i style="width:12px;height:12px;border-radius:3px;background:#3d7fc4"></i>Bottes</span><span><i style="width:12px;height:12px;border-radius:3px;background:#f08a24"></i>Fixations</span><span><i style="width:12px;height:12px;border-radius:3px;background:#3fa66b"></i>Snowboards</span><span><i style="width:12px;height:12px;border-radius:3px;background:#a5784a"></i>Palettes</span><span>Les boîtes dessinées montrent le remplissage de chaque niveau (estimé)</span></div></div>`;
+const P3D=(()=>{
+  let lib=null,T3=null,R=null,scene,camera,controls,sig='',dyn=[],hitsL=[],host=null,sel=null,hov=null,anim=null,occ={},lit=new Set();
+  const BASE=15,SH=3,LVH=51,ML=242,NM=6,T=ML*NM,Mx=230,Mw=105,Gx=0,Gw=60,Dx=455,Dw=60,PLx=70;
+  const lvY=l=>BASE+(l-1)*(LVH+SH),TOPH=lvY(3)+SH+LVH+8,sG=T/5;
+  const VIEWS={all:{p:[-520,1150,T+650],t:[257,60,T/2]},ent:{p:[395,165,T+110],t:[395,90,T-700]},top:{p:[257,2300,T/2+1],t:[257,0,T/2]}};
+  const load=src=>new Promise((ok,ko)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=ko;document.head.appendChild(e);});
+  function need(){if(!lib)lib=load('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').then(()=>load('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js')).then(()=>{T3=window.THREE;});return lib;}
+  const css=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+  const capOf=c=>{const g=capGroup(c),C=caps();return g?C[g].botte:40;};
+  let mPost,mShelf,mPal,mGhost,mWall,floorMat;
+  function add(o,keep){scene.add(o);if(!keep)dyn.push(o);return o;}
+  function box(w,h,d,mat,x,y,z,keep){const m=new T3.Mesh(new T3.BoxGeometry(w,h,d),mat);m.position.set(x+w/2,y+h/2,z+d/2);return add(m,keep);}
+  function textCanvas(text,fg,bg){const c=document.createElement('canvas'),x=c.getContext('2d'),f='700 64px "Barlow Condensed","Arial Narrow",sans-serif';x.font=f;const w=Math.ceil(x.measureText(text).width)+44;c.width=w;c.height=92;x.font=f;
+    if(bg){x.fillStyle=bg;const r=18;x.beginPath();x.moveTo(r,0);x.arcTo(w,0,w,92,r);x.arcTo(w,92,0,92,r);x.arcTo(0,92,0,0,r);x.arcTo(0,0,w,0,r);x.fill();}x.fillStyle=fg;x.textBaseline='middle';x.fillText(text,22,48);return c;}
+  function sprite(text,x,y,z,h,dim){const c=textCanvas(text,dim?'rgba(255,255,255,.75)':'#fff',dim?'rgba(20,27,36,.4)':'rgba(20,27,36,.82)'),sp=new T3.Sprite(new T3.SpriteMaterial({map:new T3.CanvasTexture(c),depthWrite:false}));sp.scale.set(h*c.width/c.height,h,1);sp.position.set(x,y,z);add(sp,true);}
+  function floorText(text,x,z,h,rot){const c=textCanvas(text,'rgba(255,255,255,.9)','rgba(20,27,36,.45)'),m=new T3.Mesh(new T3.PlaneGeometry(h*c.width/c.height,h),new T3.MeshBasicMaterial({map:new T3.CanvasTexture(c),transparent:true,depthWrite:false}));m.rotation.set(-Math.PI/2,0,rot||0);m.position.set(x,1,z);add(m,true);}
+  /* partie fixe : sol, racks, étiquettes, planches */
+  function init(){
+    R=new T3.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));
+    scene=new T3.Scene();camera=new T3.PerspectiveCamera(42,1,10,30000);
+    controls=new T3.OrbitControls(camera,R.domElement);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.495;controls.minDistance=120;controls.maxDistance=5000;
+    camera.position.set(...VIEWS.all.p);controls.target.set(...VIEWS.all.t);
+    scene.add(new T3.HemisphereLight(0xffffff,0x8090a0,.75));const sun=new T3.DirectionalLight(0xffffff,.75);sun.position.set(-600,1400,900);scene.add(sun);
+    mPost=new T3.MeshLambertMaterial({color:0x4b5866});mShelf=new T3.MeshLambertMaterial({color:0x9aa7b4});mPal=new T3.MeshLambertMaterial({color:0xa5784a});
+    mGhost=new T3.MeshBasicMaterial({color:0x7b8794,wireframe:true,transparent:true,opacity:.35});mWall=new T3.MeshLambertMaterial({color:0x7c8b9a,transparent:true,opacity:.18});
+    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(700,T+520),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(257,-.5,T/2+80);scene.add(fl);
+    const rack=(x,z,w,len,levels,codes,split)=>{box(w-8,BASE-4,len-8,mPal,x+4,0,z+4,1);[[x,z],[x+w-5,z],[x,z+len-5],[x+w-5,z+len-5]].forEach(([px,pz])=>box(5,TOPH,5,mPost,px,0,pz,1));
+      [1,2,3].forEach(l=>box(w,SH,len,mShelf,x,lvY(l),z,1));box(w,SH,len,mShelf,x,lvY(3)+SH+LVH,z,1);if(split)box(1.5,TOPH-BASE,len-10,mWall,x+w/2,BASE,z+5,1);
+      levels.forEach(l=>{if(split){slot(codes(l,'G'),x,z,w/2,len,l);slot(codes(l,'D'),x+w/2,z,w/2,len,l);}else slot(codes(l),x,z,w,len,l);});};
+    const slot=(code,x,z,w,len,l)=>{const y=lvY(l)+SH,hm=new T3.Mesh(new T3.BoxGeometry(w-2,LVH-1,len-2),new T3.MeshBasicMaterial({color:css('--accent')||0xff7a33,transparent:true,opacity:0,depthWrite:false}));
+      hm.position.set(x+w/2,y+LVH/2,z+len/2);hm.userData={code,x,z,w,len,y};scene.add(hm);hitsL.push(hm);};
+    for(let r=1;r<=5;r++){const z=T-r*sG;if(r===4)rack(Gx,z+4,Gw,sG-8,[2,3],l=>`G4.${l}`);else{const g=new T3.Mesh(new T3.BoxGeometry(Gw,TOPH,sG-8),mGhost);g.position.set(Gx+Gw/2,TOPH/2,z+4+(sG-8)/2);scene.add(g);}
+      rack(Dx,z+4,Dw,sG-8,[1,2,3],l=>`D${r}.${l}`);}
+    for(let r=1;r<=NM;r++)rack(Mx,T-r*ML+3,Mw,ML-6,[1,2,3],(l,sd)=>`M${sd}${r}.${l}`,true);
+    rack(0,-80,Dx+Dw,62,[1,2,3],l=>`F1.${l}`);rack(Dx,T+60,Dw,110,[1,2,3],l=>`E1.${l}`);rack(Dx,T+190,Dw,80,[1,2,3],l=>`BAV1.${l}`);rack(Dx,T+290,Dw,80,[1,2,3],l=>`BAR1.${l}`);
+    {const n=34,im=new T3.InstancedMesh(new T3.BoxGeometry(3,150,28),new T3.MeshLambertMaterial({color:0xffffff}),n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795];
+      for(let i=0;i<n;i++){o.position.set(PLx+8+(i%3)*11,75,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[i%pal.length]);im.setColorAt(i,c);}scene.add(im);}
+    const labels=()=>{const yT=TOPH+30;for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+Dw/2,yT,z,34);sprite(`G${r}`,Gx+Gw/2,yT,z,r===4?34:24,r!==4);}
+      for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2,34);
+      sprite('FOND F1',(Dx+Dw)/2,yT,-50,34);sprite('ÉTAGÈRE E1',Dx+Dw/2,yT,T+115,34);sprite('BAV',Dx+Dw/2,yT,T+230,34);sprite('BAR',Dx+Dw/2,yT,T+330,34);
+      floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);};
+    (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(labels,labels);
+    const ray=new T3.Raycaster(),pt=new T3.Vector2();let down=null;
+    const at=ev=>{const r=R.domElement.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);const h=ray.intersectObjects(hitsL,false)[0];return h?h.object.userData.code:null;};
+    R.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+    R.domElement.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<6){const c=at(e);sel=c&&c!==sel?c:null;paint();info();}down=null;});
+    R.domElement.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const c=at(e);if(c!==hov){hov=c;paint();R.domElement.style.cursor=c?'pointer':'grab';}});
+    controls.addEventListener('start',()=>{anim=null;const h=document.getElementById('p3dHint');if(h)h.hidden=true;});
+    R.setAnimationLoop(now=>{if(!host||!document.body.contains(host)){return;}
+      if(anim){const k=Math.min(1,(now-anim.s)/800),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;camera.position.lerpVectors(anim.p0,anim.p1,e);controls.target.lerpVectors(anim.t0,anim.t1,e);if(k>=1)anim=null;}
+      controls.update();R.render(scene,camera);});}
+  /* partie qui suit le stock : les boîtes */
+  function stock(){
+    occ={};S.articles.forEach(a=>{if(!a.emp)return;const o=occ[a.emp]=occ[a.emp]||{p:0,t:{},m:new Map()};const n=qOf(a);o.p+=n;o.t[a.type]=(o.t[a.type]||0)+n;const k=`${a.marque} ${a.modele} ${GENRE[a.genre]||''}`.trim();o.m.set(k,(o.m.get(k)||0)+n);});
+    const s=JSON.stringify(Object.entries(occ).map(([e,o])=>[e,o.t]))+JSON.stringify(caps());if(s===sig)return;sig=s;
+    dyn.forEach(o=>{scene.remove(o);o.geometry&&o.geometry.dispose();});dyn=[];
+    const cells={botte:[],fix:[],board:[]};
+    hitsL.forEach(h=>{const {code,x,z,w,len,y}=h.userData,d=occ[code];if(!d||!d.p)return;
+      const bw=22,bd=Math.min(34,w-6),bh=14,nx=Math.max(1,Math.floor((len-6)/bw)),nd=Math.max(1,Math.floor((w-4)/bd)),ny=Math.max(1,Math.floor((LVH-3)/bh));
+      const tot=nx*nd*ny,n=Math.max(1,Math.round(Math.min(1,d.p/capOf(code))*tot)),ty=Object.entries(d.t).filter(([,v])=>v>0),seq=[];
+      ty.forEach(([t,v],i)=>{const c=i===ty.length-1?n-seq.length:Math.round(v/d.p*n);for(let j=0;j<c&&seq.length<n;j++)seq.push(t);});
+      let k=0;for(let iy=0;iy<ny&&k<n;iy++)for(let ix=0;ix<nx&&k<n;ix++)for(let id=0;id<nd&&k<n;id++){const t=seq[k++]||'botte';
+        cells[t==='fix'?'fix':t==='board'?'board':'botte'].push([x+2+id*bd+bd/2,y+iy*bh+bh/2,z+3+ix*bw+bw/2,bd-3,bh-1.6,bw-2.5]);}});
+    const TC={botte:0x3d7fc4,fix:0xf08a24,board:0x3fa66b};
+    Object.entries(cells).forEach(([t,arr])=>{if(!arr.length)return;const im=new T3.InstancedMesh(new T3.BoxGeometry(1,1,1),new T3.MeshLambertMaterial({color:0xffffff}),arr.length),o=new T3.Object3D(),c=new T3.Color();
+      arr.forEach(([x,y,z,sx,sy,sz],i)=>{o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(TC[t]).offsetHSL(0,0,((i*37)%11-5)/100);im.setColorAt(i,c);});add(im);});}
+  function paint(){hitsL.forEach(h=>{const c=h.userData.code;h.material.opacity=c===sel?.45:lit.has(c)?.34:c===hov?.18:0;});}
+  const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  function info(){const side=document.getElementById('p3dSide');if(!side)return;side.replaceChildren();
+    if(!sel){const v=Object.values(occ),tot=v.reduce((a,o)=>a+o.p,0),b=v.reduce((a,o)=>a+(o.t.botte||0),0),f=v.reduce((a,o)=>a+(o.t.fix||0),0);
+      const n=el('div','p3d-nums');[[tot,'pièces'],[b,'bottes'],[f,'fixations']].forEach(([x,l])=>{const d=el('div');d.append(el('b',null,x.toLocaleString('fr-FR')),el('span',null,l));n.append(d);});
+      side.append(el('div','opt','Tout l\'entrepôt, en direct'),n,el('p','opt',lit.size?`${lit.size} emplacement${lit.size>1?'s':''} en orange. Touchez un niveau pour voir son contenu.`:'Touchez un niveau pour voir son contenu.'));return;}
+    const d=occ[sel]||{p:0,t:{},m:new Map()};
+    side.append(el('div','p3d-code',sel),el('div','opt',locLabel(sel)));
+    const n=el('div','p3d-nums');[[d.p.toLocaleString('fr-FR'),'pièces'],[String(d.m.size),d.m.size>1?'modèles':'modèle']].concat(capGroup(sel)?[[Math.round(d.p/capOf(sel)*100)+' %','rempli (estimé)']]:[]).forEach(([x,l])=>{const q=el('div');q.append(el('b',null,x),el('span',null,l));n.append(q);});side.append(n);
+    if(!d.p)side.append(el('p','opt','Emplacement vide.'));
+    else{const ul=el('ul','p3d-list');[...d.m.entries()].sort((a,b)=>b[1]-a[1]).forEach(([m,q])=>{const li=el('li');li.append(el('span',null,m),el('span',null,String(q)));ul.append(li);});side.append(ul);}
+    const b=el('button','btn sm ghost','Tout l\'entrepôt');b.type='button';b.addEventListener('click',()=>{sel=null;paint();info();});side.append(b);}
+  function view(k){const v=VIEWS[k];if(!v||!camera)return;const p1=new T3.Vector3(...v.p),t1=new T3.Vector3(...v.t);
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){camera.position.copy(p1);controls.target.copy(t1);return;}anim={p0:camera.position.clone(),t0:controls.target.clone(),p1,t1,s:performance.now()};}
+  function size(){if(!host||!R)return;const st=document.getElementById('p3dStage'),w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;R.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  let ro=null;
+  function mount(h,H){host=h;lit=H||new Set();
+    h.querySelectorAll('[data-v3]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.v3)));
+    need().then(()=>{if(host!==h)return;if(!T3||!T3.OrbitControls)throw 0;if(!R)init();
+      const stg=document.getElementById('p3dStage'),msg=document.getElementById('p3dMsg');if(msg)msg.remove();stg.prepend(R.domElement);
+      scene.background=new T3.Color(css('--surface-2')||'#1d2832');floorMat.color.set(css('--line')||'#2b3844');
+      if(sel&&!occ[sel]&&!hitsL.some(x=>x.userData.code===sel))sel=null;
+      stock();paint();info();if(!ro){ro=new ResizeObserver(size);}ro.disconnect();ro.observe(stg);size();})
+    .catch(()=>{const m=document.getElementById('p3dMsg');if(m)m.textContent='La 3D n\'a pas pu se charger (pas de connexion internet ?). Le plan reste disponible avec le bouton Plan.';});}
+  return {mount};})();
+
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
   if(!st.focus&&!focusOrd()&&filtering()){const h=count.__hit={};S.articles.filter(a=>matches(a)).forEach(a=>{const c=h[a.emp]=h[a.emp]||{m:new Map(),p:0};const k=[a.type,a.marque,a.modele,a.genre].join('|');
@@ -651,14 +771,15 @@ function vPlan(){
   for(let r=6;r>=1;r--)m+=`<div class="rack"><span class="rk">M${r}</span><div class="mrow">${chips('MG',r,H,count)}<i class="sep"></i>${chips('MD',r,H,count)}</div></div>`;
   const ext=`<div class="rack"><span class="rk">E1</span>${chips('E',1,H,count)}</div>`
     +`<div class="rack"><span class="rk">BAV</span>${chips('BAV',1,H,count)}</div><div class="rack"><span class="rk">BAR</span>${chips('BAR',1,H,count)}</div>`;
-  const lit=lightOn();
-  return `<div class="plan-top"><div><h2>Plan de l'entrepôt</h2><p class="sub">Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l'entrée.</p></div>
-      <button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
-        <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button></div>
-    ${lit?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
+  const lit=lightOn(),v3=p3dOn();
+  return `<div class="plan-top"><div><h2>Plan de l'entrepôt</h2><p class="sub">${v3?'En 3D, avec le stock en direct. Touchez un niveau pour voir son contenu.':'Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l’entrée.'}</p></div>
+      <div class="seg3d" role="group" aria-label="Affichage"><button type="button" data-act="p3d" data-v="0" aria-pressed="${!v3}">Plan</button><button type="button" data-act="p3d" data-v="1" aria-pressed="${v3}">3D</button></div>
+      ${v3?'':`<button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
+        <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button>`}</div>
+    ${lit||v3?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
     ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${onum(focusOrd())}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
     ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${nb} article${nb>1?'s':''} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
-    <div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
+    ${v3?p3dHost():`<div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
       <div class="col long" style="grid-area:g"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${g}</div>
       <div class="plz" style="grid-area:pl"><div class="pl zone-lbl" title="Planches debout">planches debout</div><div class="zone-lbl" title="Allée vers le fond et le côté gauche du milieu">allée</div></div>
@@ -669,7 +790,7 @@ function vPlan(){
       <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}</div>
     </div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 2 et 3</span></div>
-    <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`;}
+    <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`}`;}
 
 function lineRow(o,l,i){
   const a=l.aid&&art(l.aid);
@@ -1749,6 +1870,7 @@ document.addEventListener('click',e=>{
       window._lfx=setTimeout(()=>{st.lightFx=false;const p=document.querySelector('.plan');if(p)p.classList.remove('fx');},1300);
       /* le néon de l'allée s'efface au bout de 2 secondes */
       window._lgl=setTimeout(()=>{st.lightGlow=false;const p=document.querySelector('.plan');if(p)p.classList.remove('glow');},2000);break;}
+    case'p3d':P3D_ON=t.dataset.v==='1';try{localStorage.setItem(KEY+'-3d',P3D_ON?'1':'0');}catch(e){}render();break;
     case'unfocus':st.focus=null;st.focusOrder=null;render();break;
     case'oplan':st.focus=null;st.focusOrder=oid;st.tab='plan';render();window.scrollTo(0,0);break;
     case'loc':openLoc(t.dataset.code);break;
