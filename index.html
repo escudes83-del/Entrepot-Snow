@@ -694,8 +694,8 @@ const P3D=(()=>{
   const A=id=>AM.get(id)||art(id);
   /* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
   function dimOf(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m)return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
-    /* racks de gauche : le niveau 1 a la même hauteur que D1.1 */
-    if(z==='G'&&l==='1')return {L:0,P:0,H:dimOf('D1.1').H,pose:''};
+    /* racks de gauche : mesures du groupe « Gauche » de Réglages, les mêmes pour tous ; niveau 1 sans hauteur = celle de D1.1 */
+    if(z==='G'){const x=d.locs['G'+l]||{};return {L:x.L||0,P:x.P||0,H:x.H||(l==='1'?dimOf('D1.1').H:0),pose:x.pose||''};}
     if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=d.over[code];}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=d.over[`M${r}.${l}`];}
     const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^M[GD]/.test(code)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
   /* repère d'un rack : u le long du rack, v depuis l'allée vers le fond, w vers le haut */
@@ -715,7 +715,7 @@ const P3D=(()=>{
     [[0,0],[o.len-5,0],[0,dep-5],[o.len-5,dep-5]].forEach(([u,v])=>cub(F,u,v,0,5,5,top,mPost));
     o.levels.forEach(l=>cub(F,0,0,ys[l-1],o.len,ds[l-1],SH,mShelf));
     if(o.split)cub(F,5,dep/2-.75,BASE,o.len-10,1.5,top-BASE,mWall);
-    o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];
+    if(!o.noSlot)o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];
       if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h);slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h);}
       else slot(o.code(l),F,o.len,ds[l-1],y,h);});
     return top;}
@@ -729,13 +729,13 @@ const P3D=(()=>{
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
-      if(r===4)tops.push(rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G4.${l}`}));
+      /* gauche : seul G4 est un emplacement ; les autres racks de gauche ont la même forme (hauteurs de G4), sans emplacement */
+      tops.push(rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G4.${l}`,noSlot:r!==4}));
       tops.push(rack({ax:'z',ox:Dx,oz:z,fd:1,len:DL,dep:62,levels:[1,2,3],code:l=>`D${r}.${l}`}));}
     for(let r=1;r<=NM;r++)tops.push(rack({ax:'z',ox:Mx,oz:T-r*ML+3,fd:1,len:ML-6,dep:Mw,levels:[1,2,3],split:true,code:(l,sd)=>`M${sd}${r}.${l}`}));
     tops.push(rack({ax:'x',ox:0,oz:-18,fd:-1,len:Dx+62,dep:62,levels:[1,2,3],code:l=>`F1.${l}`}));
     [['E1',60,110],['BAV1',190,80],['BAR1',290,80]].forEach(([c,z,len])=>tops.push(rack({ax:'z',ox:Dx,oz:T+z,fd:1,len,dep:62,levels:[1,2,3],code:l=>`${c}.${l}`})));
     const TOP=Math.max(...tops),yT=TOP+30;
-    for(let r=1;r<=5;r++)if(r!==4){const g=new T3.Mesh(new T3.BoxGeometry(Gw,TOP*.8,DL),mGhost);g.position.set(Gx+Gw/2,TOP*.4,T-r*sG+sG/2);gR.add(g);}
     {const n=34,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795,0xe8e8e8,0x7a2e8c];
       for(let i=0;i<n;i++){const k=.92+((i*7)%5)*.03;o.position.set(PLx+8+(i%3)*11,75*k+1,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.scale.set(1,k,1);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[(i*3)%pal.length]);im.setColorAt(i,c);}gR.add(im);}
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw/2,yT,z,r===4?34:24,r!==4);}
@@ -1416,6 +1416,7 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
    S.dims = {locs:{D12:{L,P,H,pose},...}, over:{emp:{L,P,H}}, boxes:[{id,type,marque,modele,from,to,L,l,H}]}
    Pas encore utilisé pour le calcul : on collecte d'abord les mesures. */
 const DIM_GROUPS={D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
+  G1:['Gauche · niveau 1 (tous les racks G ; hauteur vide = celle de D1.1)','Profondeur'],G2:['Gauche · niveau 2 (tous les racks G)','Profondeur'],G3:['Gauche · niveau 3 (tous les racks G, sans dessus)','Profondeur'],
   M1:['Milieu · niveau 1 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M2:['Milieu · niveau 2 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M3:['Milieu · niveau 3 (étagère double face G + D)','Profondeur totale, allée G → allée D']};
 /* Au milieu, MG et MD du même rack et du même niveau sont une seule étagère : on la note M (ex. M3.2) */
 const DIM_LOCS=[...new Set(LOCS.filter(capGroup).map(e=>e.replace(/^M[GD]/,'M')))];
