@@ -267,6 +267,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
+.pkrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvq{display:inline-flex;align-items:center;gap:4px}.mvq input{width:60px;text-align:center;font:inherit;padding:6px}
 .mvbar{position:sticky;top:8px;z-index:3;border:2px solid var(--accent);display:flex;flex-direction:column;gap:10px}
@@ -379,7 +380,7 @@ main h2{padding-left:10px;border-left:4px solid var(--accent)}
 @media (prefers-reduced-motion:no-preference){.toast{animation:pop .25s ease-out}@keyframes pop{from{transform:translate(-50%,12px);opacity:0}}}
 /* Magasin : mini-appli téléphone, gros boutons */
 body.shop main{max-width:520px}
-body.shop .tabs-in{max-width:520px;grid-template-columns:repeat(3,1fr)}
+body.shop .tabs-in{max-width:560px;grid-template-columns:repeat(4,1fr)}
 .shead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .btn.back{padding:8px 12px;font-size:15px}
 .crumbs{display:flex;flex-wrap:wrap;gap:4px}
@@ -616,9 +617,10 @@ const IC={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
   move:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></svg>',
   arr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
+  pick:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9l8-4 8 4v9l-8 4-8-4z"/><path d="M4 9l8 4 8-4M12 13v9"/><path d="M15 3.5l2.5 2.5L22 1.5"/></svg>',
   cmd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h2l2.4 11h11L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'};
 const TABS={entrepot:[['search','Rechercher','search'],['plan','Plan','plan'],['move','Déplacer','move'],['arr','Arrivage','arr'],['orders','Commandes','orders'],['settings','Réglages','settings']],
-  magasin:[['cmd','Commander','cmd'],['find','Chercher','search'],['mine','Mes commandes','orders']]};
+  magasin:[['cmd','Commander','cmd'],['find','Chercher','search'],['pick','Pick-up','pick'],['mine','Mes commandes','orders']]};
 /* Éclairage de l'allée de droite (démonstration) : éteint par défaut, choix gardé sur l'appareil */
 let LIGHT=null;const lightOn=()=>{if(LIGHT===null){try{LIGHT=localStorage.getItem(KEY+'-light')==='1';}catch(e){LIGHT=false;}}return LIGHT;};
 /* ---------- Rendu ---------- */
@@ -629,7 +631,7 @@ function render(){SLOTC.clear();updUndo();
   document.querySelectorAll('#tabs button').forEach(b=>{
     if(b.dataset.tab==='orders'||b.dataset.tab==='mine'){const n=unread().length;if(n)b.insertAdjacentHTML('beforeend',`<span class="badge">${n}</span>`);}});
   const v=$('#view');
-  v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='mine'?vShopMine():vShopCmd())
+  v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='pick'?vShopPick():st.tab==='mine'?vShopMine():vShopCmd())
     :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='move'?vMove():st.tab==='orders'?vOrders():st.tab==='arr'?vArrivage():vSettings());
   tint(v);
   if(role==='entrepot'&&st.tab==='plan'&&p3dOn()){const h=document.getElementById('p3d');if(h)P3D.mount(h,hits());}
@@ -1130,7 +1132,7 @@ function orderCard(o){
     <button type="button" class="order-h" data-act="open" data-o="${o.id}" aria-expanded="${open}">
       <span class="num">#${onum(o)}</span>
       <span class="main"><span class="t">${o.by?esc(o.by)+' · ':''}${(n=>`${n} pièce${n>1?'s':''}`)(o.lines.reduce((s,l)=>s+l.qty,0))}</span> <span class="count">· ${o.lines.length} ligne${o.lines.length>1?'s':''}</span> <span class="count">· ${fmtDT(o.at)} (${ago(o.at)})${o.status==='prete'||o.status==='recue'?` · ${prepd}/${asked} préparées`:''}${o.status==='prep'||o.status==='demandee'?(nCours?` · <b class="edited">${nCours} en cours</b>`:'')+(nOk+nKo?` · ${nOk+nKo}/${o.lines.length} validées`:''):''}</span></span>
-      <span class="pill st-${o.status}">${ST[o.status]}</span>
+      <span class="pill st-${o.status}">${o.pickup?'Pick-up':ST[o.status]}</span>
     </button>
     ${open?`<div class="order-b"><div class="who">Demandée par <b>${esc(o.by||'—')}</b> le <b>${esc(new Date(o.at).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</b> à <b>${esc(new Date(o.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>${o.editedAt?` · <b class="edited">corrigée à ${esc(new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</b>`:''}${o.readyAt?` · prête à ${esc(new Date(o.readyAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}`:''}</div>
       ${o.note?`<div class="note">${esc(o.note)}</div>`:''}${pickList(o)}
@@ -1769,20 +1771,51 @@ function vShopFind(){
     ${show?`<div class="count">${sumLine(list,{shop:1})}${groups.size>MAX?` · les ${MAX} premiers affichés, précisez la recherche`:''}</div>${cards||'<div class="empty">Rien trouvé.</div>'}`
       :'<p class="sub">Tapez un nom ou une taille, ou utilisez les filtres, pour voir le stock et où il est rangé.</p>'}`;}
 
+/* ---------- Pick-up : un employé du magasin monte chercher lui-même ----------
+   Il note ce qu'il prend : le stock baisse tout de suite, l'entrepôt est prévenu, et c'est gardé dans « Mes commandes ». */
+function vShopPick(){const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{const a=art(id);if(!a||!qOf(a))delete pk[id];else pk[id]=Math.min(qOf(a),Math.max(1,pk[id]));});
+  const list=sortArts(S.articles.filter(a=>matches(a)&&qOf(a)>0)),show=filtering(),MAX=60;
+  const chosen=Object.keys(pk).map(art).filter(Boolean),nb=chosen.reduce((t,a)=>t+pk[a.id],0);
+  const row=a=>{const n=pk[a.id]||0,av=availOf(a);return `<div class="row pkrow${n?' on':''}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${av<qOf(a)?` <small class="opt">(dont ${qOf(a)-av} déjà en commande)</small>`:''}<br><small class="opt">📍 ${esc(locLabel(a.emp))}</small></div></div>
+    <div class="acts">${n?`<div class="stepper"><div class="in"><button type="button" data-act="pkdec" data-id="${a.id}" aria-label="Moins">−</button><output>${n}</output><button type="button" data-act="pkadd" data-id="${a.id}" aria-label="Plus"${n>=qOf(a)?' disabled':''}>+</button></div></div>`:`<button type="button" class="btn sm primary" data-act="pkadd" data-id="${a.id}">+ Je prends</button>`}</div></div>`;};
+  const basket=chosen.length?`<div class="card mvbar"><div class="mvhead"><b>Je prends ${nb} boîte${nb>1?'s':''}</b><button type="button" class="btn sm ghost" data-act="pkclear">Tout retirer</button></div>
+      <div class="list">${chosen.map(a=>`<div class="d">×${pk[a.id]} · <b>${esc(a.marque)} ${esc(a.modele)}</b> ${esc(szLbl(a.type,a.taille))} · <b class="mono">${esc(a.emp)}</b>${pk[a.id]>availOf(a)?' · <span class="bad">réservée pour une commande</span>':''}</div>`).join('')}</div>
+      ${nameField('Qui prend ? (touchez votre nom)',NOMS.magasin,'Autre nom…')}
+      <button type="button" class="btn primary block" data-act="pkgo">✓ J'ai pris ${nb} boîte${nb>1?'s':''}</button></div>`:'';
+  return `<h2 class="q">Pick-up</h2>
+    <p class="sub">Vous montez chercher vous-même ? Trouvez la boîte, touchez « Je prends », puis validez : le stock est mis à jour et l'entrepôt est prévenu.</p>
+    ${basket}${filterBar()}
+    ${show?`<div class="count">${sumLine(list,{shop:1})}</div><div class="list">${list.slice(0,MAX).map(row).join('')||'<div class="empty">Rien trouvé.</div>'}</div>${list.length>MAX?`<p class="sub">Les ${MAX} premiers sont affichés : précisez la recherche.</p>`:''}`
+      :'<p class="sub">Tapez une marque, un modèle ou une taille pour trouver la boîte et son emplacement.</p>'}`;}
+function pickGo(){const pk=st.pk||{},L=Object.entries(pk).map(([id,k])=>[art(id),k]).filter(([a,k])=>a&&k>0);if(!L.length)return;
+  const who=me();if(!who){needName();return;}
+  const at=Date.now(),d=new Date(at),pre=String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0'),k=S.orders.filter(o=>o.pickup&&o.num&&o.num.startsWith('P'+pre+'-')).length+1;
+  const o={id:at,num:`P${pre}-${k}`,at,by:who,status:'recue',pickup:true,deducted:true,readyAt:at,lines:[]};let n=0;
+  L.forEach(([a,q])=>{q=Math.min(q,qOf(a));if(!q)return;a.qty=qOf(a)-q;n+=q;o.lines.push({aid:a.id,qty:q,st:'ok',done:q,by:who});});
+  if(!n)return;S.orders.push(o);
+  notify('entrepot',`Pick-up : ${who} a pris ${n} boîte${n>1?'s':''} (${L.slice(0,3).map(([a])=>`${a.marque} ${a.modele} ${szLbl(a.type,a.taille)} en ${a.emp}`).join(', ')}${L.length>3?'…':''})`);
+  pushMeta={kind:'pickup',ref:String(o.id),label:'Pick-up de '+who};save();st.pk={};render();
+  toast(`<b>Noté : ${n} boîte${n>1?'s':''}</b> retirée${n>1?'s':''} du stock. L'entrepôt est prévenu.`);}
+function pickUndo(id){const o=S.orders.find(x=>String(x.id)===String(id)&&x.pickup);if(!o){toast('Pick-up introuvable');return;}
+  o.lines.forEach(l=>{const a=art(l.aid);if(a)a.qty=qOf(a)+doneOf(l);});S.orders=S.orders.filter(x=>x!==o);
+  notify('entrepot',`Pick-up #${onum(o)} annulé : les boîtes sont remises en stock`);
+  pushMeta={kind:'undo',label:'Pick-up annulé'};save();render();toast('<b>Pick-up annulé</b> : les boîtes sont remises en stock');}
 function shopOrder(o){
   const live=o.status==='demandee'||o.status==='prep';
   const lines=o.lines.map(l=>{const a=l.aid&&art(l.aid);
     const name=a?`${a.marque} ${a.modele} · ${GENRE[a.genre]} · ${szLbl(a.type,a.taille)}${a.couleur?' · '+a.couleur:''}`:`« ${l.txt} »`;
     const fin=l.st==='ok'||l.st==='rupture',d=doneOf(l);
+    if(o.pickup)return `<div class="oline"><b class="qbig">×${l.qty}</b><span>${esc(name)}${a?`<br><small>pris en <b>${esc(a.emp)}</b></small>`:''}</span></div>`;
     return `<div class="oline"><b class="qbig">×${l.qty}</b><span>${esc(name)}${fin?`<br><small>${l.qty} demandée${l.qty>1?'s':''} · <b>${d} préparée${d>1?'s':''}</b></small>`:l.st==='cours'?'<br><small>En cours de préparation</small>':''}</span>${fin?`<span class="pill ln-${d<l.qty?'rupture':'ok'}">${d}/${l.qty}</span>`:''}</div>`;}).join('');
   return `<div class="order o-${o.status}"><div class="order-h" style="cursor:default"><span class="num">#${onum(o)}</span>
       <span class="main"><span class="count">${fmtDT(o.at)}${o.editedAt?` · corrigée à ${new Date(o.editedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</span></span>
-      <span class="pill st-${o.status}">${ST[o.status]}</span></div>
-    <div class="order-b">${lines}${o.note?`<div class="note">${esc(o.note)}</div>`:''}
+      <span class="pill st-${o.status}">${o.pickup?'Pick-up':ST[o.status]}</span></div>
+    <div class="order-b">${o.pickup?`<div class="d">Pris à l'entrepôt par <b>${esc(o.by||'—')}</b></div>`:''}${lines}${o.note?`<div class="note">${esc(o.note)}</div>`:''}
       <div class="order-foot">${live?`<button type="button" class="btn" data-act="oedit" data-o="${o.id}">✎ Corriger</button>`:''}
       ${o.status==='demandee'?`<button type="button" class="btn danger${st.armed==='ocan'+o.id?' armed':''}" data-act="ocancel" data-o="${o.id}">${st.armed==='ocan'+o.id?'Confirmer : annuler #'+onum(o):'✕ Annuler la commande'}</button>`
         :o.status==='prep'?`<small class="opt">En préparation à l'entrepôt : pour annuler, prévenez-les.</small>`:''}
-      ${o.status==='prete'?`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`:''}</div></div></div>`;}
+      ${o.status==='prete'?`<button type="button" class="btn primary" data-act="ost" data-o="${o.id}" data-v="recue">J'ai reçu la commande</button>`:''}
+      ${o.pickup&&Date.now()-o.at<36e5*12?`<button type="button" class="btn${st.armed==='pku'+o.id?' armed':''}" data-act="pkundo" data-o="${o.id}">${st.armed==='pku'+o.id?'Confirmer : remettre en stock':'↶ Annuler ce pick-up'}</button>`:''}</div></div></div>`;}
 function vShopMine(){const mine=S.orders.slice().sort((a,b)=>b.at-a.at);
   const open=mine.filter(o=>o.status!=='recue'),old=mine.filter(o=>o.status==='recue').slice(0,10);
   return `<h2 class="q">Mes commandes</h2>
@@ -2122,9 +2155,14 @@ document.addEventListener('click',e=>{
     case'mvundo':undoLastMove();break;
     case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
     case'tohist':st.tab='settings';render();setTimeout(()=>{const h=$('#hist');if(h)h.scrollIntoView({block:'start'});},50);break;
+    case'pkadd':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();break;}
+    case'pkdec':{const a=art(t.dataset.id);if(!a||!st.pk)break;st.pk[a.id]=(st.pk[a.id]||0)-1;if(st.pk[a.id]<=0)delete st.pk[a.id];render();break;}
+    case'pkclear':st.pk={};render();break;
+    case'pkgo':pickGo();break;
+    case'pkundo':{const id=t.dataset.o;if(st.armed!=='pku'+id){st.armed='pku'+id;render();break;}st.armed=null;pickUndo(id);break;}
     case'undoask':undoAsk();break;
-    case'undogo':{const e=cloud.journal.find(x=>x.id===t.dataset.id);closeSheet();if(!e||e.undone){toast('Déjà annulée');break;}if(e.kind==='arr'&&e.ref)arrUndo(+e.ref);else undoJournal(e);break;}
-    case'undomine':{const e=cloud.myLast;undoBar(null);if(!e||e.undone){toast('Déjà annulée');break;}e.undone=true;if(e.kind==='arr'&&e.ref)arrUndo(+e.ref);else undoJournal(e);break;}
+    case'undogo':{const e=cloud.journal.find(x=>x.id===t.dataset.id);closeSheet();if(!e||e.undone){toast('Déjà annulée');break;}if(e.kind==='pickup'&&e.ref&&S.orders.some(x=>String(x.id)===e.ref))pickUndo(e.ref);else if(e.kind==='arr'&&e.ref)arrUndo(+e.ref);else undoJournal(e);break;}
+    case'undomine':{const e=cloud.myLast;undoBar(null);if(!e||e.undone){toast('Déjà annulée');break;}e.undone=true;if(e.kind==='pickup'&&e.ref)pickUndo(e.ref);else if(e.kind==='arr'&&e.ref)arrUndo(+e.ref);else undoJournal(e);break;}
     case'jrundo':if(st.armed!=='jrundo'){st.armed='jrundo';render();break;}st.armed=null;undoJournal(jrLast());break;
     case'bkload':backupsLoad();break;
     case'bknow':if(!cloud.on)break;backupMake(dayId()+'-'+new Date().toTimeString().slice(0,5).replace(':','h'),'Sauvegarde manuelle').then(()=>{render();toast('<b>Sauvegarde faite</b>');}).catch(()=>toast('La sauvegarde a échoué (connexion ?)'));break;
@@ -2267,6 +2305,7 @@ function cloudPush(){
   if(role==='entrepot'){
     if(cloud.sent.stock!==null){const j=cfgJson();if(j!==cloud.sent.stock){cloud.sent.stock=j;fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,v:2,at:Date.now()}).catch(cloudErr);}}
     if(cloud.sent.arts)pushArts();}
+  else if(cloud.sent.arts&&pushMeta&&(pushMeta.kind==='pickup'||pushMeta.kind==='undo'))pushArts(); /* magasin : seulement un pick-up */
   [['orders',S.orders],['notifs',S.notifs]].forEach(([col,arr])=>{const sent=cloud.sent[col];if(!sent)return;
     const seen=new Set();
     arr.forEach(x=>{const id=String(x.id).replace('.','_'),j=JSON.stringify(x);seen.add(id);
