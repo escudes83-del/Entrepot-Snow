@@ -694,6 +694,8 @@ const P3D=(()=>{
   const A=id=>AM.get(id)||art(id);
   /* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
   function dimOf(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m)return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
+    /* racks de gauche : le niveau 1 a la même hauteur que D1.1 */
+    if(z==='G'&&l==='1')return {L:0,P:0,H:dimOf('D1.1').H,pose:''};
     if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=d.over[code];}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=d.over[`M${r}.${l}`];}
     const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^M[GD]/.test(code)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
   /* repère d'un rack : u le long du rack, v depuis l'allée vers le fond, w vers le haut */
