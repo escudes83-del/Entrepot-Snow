@@ -671,7 +671,7 @@ function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>lev
 let P3D_ON=null;const p3dOn=()=>{if(P3D_ON===null){try{P3D_ON=localStorage.getItem(KEY+'-3d')==='1';}catch(e){P3D_ON=false;}}return P3D_ON;};
 let P3D_COL=null;const p3dCol=()=>{if(P3D_COL===null){try{P3D_COL=localStorage.getItem(KEY+'-3dcol')||'marque';}catch(e){P3D_COL='marque';}}return P3D_COL;};
 const p3dHost=()=>`<div class="p3d" id="p3d"><div class="p3d-stage" id="p3dStage"><div class="p3d-msg" id="p3dMsg">Chargement de la 3D…</div><div class="p3d-tip" id="p3dTip" hidden></div><div class="p3d-hint" id="p3dHint">Touchez une boîte pour la choisir, puis glissez-la vers un niveau · Glisser ailleurs : tourner · Molette ou pincer : zoom</div></div>
-  <div class="p3d-bar"><div class="p3d-views" role="group" aria-label="Vues 3D"><button type="button" class="btn sm" data-v3="all">Vue d'ensemble</button><button type="button" class="btn sm" data-v3="ent">Depuis l'entrée</button><button type="button" class="btn sm" data-v3="top">De dessus</button></div>
+  <div class="p3d-bar"><div class="p3d-views" role="group" aria-label="Vues 3D"><button type="button" class="btn sm" data-v3="all">Vue d'ensemble</button><button type="button" class="btn sm" data-v3="ent">Depuis l'entrée</button><button type="button" class="btn sm" data-v3="top">De dessus</button><button type="button" class="btn sm" data-v3="pl">Les planches</button></div>
     <div class="seg3d sm" role="group" aria-label="Couleur des boîtes">${[['type','Type'],['marque','Marque'],['modele','Modèle']].map(([k,l])=>`<button type="button" data-c3="${k}" aria-pressed="${p3dCol()===k}">${l}</button>`).join('')}</div></div>
   <aside class="p3d-side" id="p3dSide" aria-live="polite"></aside>
   <div class="legend" id="p3dLeg"></div></div>`;
@@ -680,7 +680,7 @@ const P3D=(()=>{
   let gR=null,gB=null,sigR='',sigB='',hitsL=[],IM=null,inst=[],occ={},sel=null,hov=null,dest=null,drag=null,down=null,moveMode=false,undo=null,AM=new Map(),BCOL=new Map();
   const pick=new Map(); /* article choisi -> nombre de boîtes à déplacer */
   const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=230,Mw=105,Gx=0,Gw=60,Dx=455,PLx=70,DL=244,sG=T/5,LVD=51;
-  const VIEWS={all:{p:[-760,1500,T+900],t:[257,60,T/2-60]},ent:{p:[395,190,T+180],t:[395,110,T-700]},top:{p:[257,2400,T/2+1],t:[257,0,T/2]}};
+  const VIEWS={all:{p:[-760,1500,T+900],t:[257,60,T/2-60]},ent:{p:[395,190,T+180],t:[395,110,T-700]},top:{p:[257,2400,T/2+1],t:[257,0,T/2]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
   const DEFB={botte:{L:46,l:37,H:14.5},fix:{L:40,l:32,H:16},board:{L:155,l:30,H:6}};
   const TC={botte:'#3d7fc4',fix:'#f08a24',board:'#3fa66b'},TN={botte:'Bottes',fix:'Fixations',board:'Snowboards'};
   const PAL=['#3d7fc4','#e8663d','#3fa66b','#d4a72c','#8e5cc4','#d1495b','#2bb3b1','#8a6a4b','#e377c2','#6b8e23','#1f5fa8','#9aa5b1'],SELC='#fff36b';
@@ -714,6 +714,13 @@ const P3D=(()=>{
       if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h);slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h);}
       else slot(o.code(l),F,o.len,ds[l-1],y,h);});
     return top;}
+  /* une planche de snow debout : spatules arrondies, taille cintrée (sidecut), nose et tail relevés, carres sombres */
+  function boardGeo(){const L=150,Wn=29.5,Ww=25,E=13,h=L/2,cx=Ww-Wn/2,sh=new T3.Shape();
+    sh.moveTo(0,-h);sh.quadraticCurveTo(Wn/2,-h,Wn/2,-h+E);sh.quadraticCurveTo(cx,0,Wn/2,h-E);sh.quadraticCurveTo(Wn/2,h,0,h);
+    sh.quadraticCurveTo(-Wn/2,h,-Wn/2,h-E);sh.quadraticCurveTo(-cx,0,-Wn/2,-h+E);sh.quadraticCurveTo(-Wn/2,-h,0,-h);
+    const g=new T3.ExtrudeGeometry(sh,{depth:1,bevelEnabled:true,bevelThickness:.3,bevelSize:.4,bevelSegments:1,curveSegments:12});g.translate(0,0,-.5);
+    const p=g.attributes.position;for(let i=0;i<p.count;i++){const d=Math.abs(p.getY(i))-(h-E-6);if(d>0)p.setZ(i,p.getZ(i)+.02*d*d);}
+    p.needsUpdate=true;g.computeVertexNormals();g.rotateY(Math.PI/2);return g;}
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
@@ -724,8 +731,8 @@ const P3D=(()=>{
     [['E1',60,110],['BAV1',190,80],['BAR1',290,80]].forEach(([c,z,len])=>tops.push(rack({ax:'z',ox:Dx,oz:T+z,fd:1,len,dep:62,levels:[1,2,3],code:l=>`${c}.${l}`})));
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=5;r++)if(r!==4){const g=new T3.Mesh(new T3.BoxGeometry(Gw,TOP*.8,DL),mGhost);g.position.set(Gx+Gw/2,TOP*.4,T-r*sG+sG/2);gR.add(g);}
-    {const n=34,im=new T3.InstancedMesh(new T3.BoxGeometry(3,150,28),new T3.MeshLambertMaterial({color:0xffffff}),n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795];
-      for(let i=0;i<n;i++){o.position.set(PLx+8+(i%3)*11,75,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[i%pal.length]);im.setColorAt(i,c);}gR.add(im);}
+    {const n=34,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795,0xe8e8e8,0x7a2e8c];
+      for(let i=0;i<n;i++){const k=.92+((i*7)%5)*.03;o.position.set(PLx+8+(i%3)*11,75*k+1,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.scale.set(1,k,1);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[(i*3)%pal.length]);im.setColorAt(i,c);}gR.add(im);}
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw/2,yT,z,r===4?34:24,r!==4);}
     for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2,34);
     sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
