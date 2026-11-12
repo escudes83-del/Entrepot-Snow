@@ -272,6 +272,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .mvbar{position:sticky;top:8px;z-index:3;border:2px solid var(--accent);display:flex;flex-direction:column;gap:10px}
 .mvhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.mvhead .btn{margin-left:auto}
 .mvdone{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.arrlog{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 .jr{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.jr.off{opacity:.55}.jr-l{color:var(--muted);margin-top:2px}
 .boxask{margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--warn-bg);color:var(--ink);display:flex;flex-direction:column;gap:6px}
@@ -332,6 +333,10 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}}
 
+.undotop{margin-left:auto;margin-right:8px;font:600 13px var(--f-body,inherit);padding:6px 12px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+.undotop:hover{border-color:var(--accent);color:var(--accent)}
+.undobar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--surface);color:var(--ink);border:2px solid var(--accent);padding:8px 8px 8px 14px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;max-width:calc(100% - 24px);box-sizing:border-box;font-size:14px}
+.undobar[hidden]{display:none}.undobar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.25);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;text-align:center}
 .toast b{color:var(--accent)}
 /* ---------- Couleurs conviviales ---------- */
@@ -454,6 +459,7 @@ details.libre .inline{margin-top:10px}
 <header class="top"><div class="top-in">
   <div class="brand"><i></i>Entrepôt Snow</div>
   <span id="sync" class="sync" data-s="wait" role="status"></span>
+  <button type="button" id="undoTop" class="undotop" data-act="undoask" hidden title="Annuler la dernière modification du stock">↶ Annuler</button>
   <div class="role"><span>Je suis</span><div class="seg" id="roleSeg">
     <button type="button" data-role="entrepot">Entrepôt</button><button type="button" data-role="magasin">Magasin</button>
   </div></div>
@@ -465,6 +471,7 @@ details.libre .inline{margin-top:10px}
 
 <div id="sheetRoot"></div>
 <div id="toastRoot"></div>
+<div id="undoBar" class="undobar" role="status" hidden></div>
 
 <script>
 /* ---------- Emplacements ---------- */
@@ -615,7 +622,7 @@ const TABS={entrepot:[['search','Rechercher','search'],['plan','Plan','plan'],['
 /* Éclairage de l'allée de droite (démonstration) : éteint par défaut, choix gardé sur l'appareil */
 let LIGHT=null;const lightOn=()=>{if(LIGHT===null){try{LIGHT=localStorage.getItem(KEY+'-light')==='1';}catch(e){LIGHT=false;}}return LIGHT;};
 /* ---------- Rendu ---------- */
-function render(){SLOTC.clear();
+function render(){SLOTC.clear();updUndo();
   document.body.classList.toggle('shop',role==='magasin');
   const tabs=$('#tabs');tabs.innerHTML=TABS[role].map(([k,l,i])=>`<button type="button" data-tab="${k}"${k===st.tab?' aria-current="page"':''}>${IC[i]}${l}</button>`).join('');
   document.querySelectorAll('#roleSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.role===role));
@@ -1448,7 +1455,20 @@ function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k
       ${unplaced?`<div class="info">${unplaced} boîte${unplaced>1?'s':''} sans place dans les racks gérés : choisissez un emplacement avec « Changer l'emplacement » (la liste propose aussi le fond, la gauche, l'étagère et les blocs), ou augmentez les capacités dans Réglages.</div>`:''}
       <div class="inline" style="margin-top:10px"><button type="button" class="btn primary${arm('arrok')?' armed':''}" data-act="arrok"${unplaced?' disabled':''}>${A.test?`🧪 Essayer le rangement (${tot} boîtes)`:arm('arrok')?`Confirmer : ranger ${tot} boîtes`:`Valider : ranger les ${tot} boîtes`}</button>
         <button type="button" class="btn danger${arm('arrclr')?' armed':''}" data-act="arrclr">${arm('arrclr')?'Confirmer : tout effacer':'Effacer l\'arrivage'}</button></div>`:''}
-    ${log.length?`<h3 class="sec">Derniers arrivages rangés</h3>${log.map(l=>`<div class="d">${esc(fmtDT(l.at))} · ${l.from==='magasin'?'Retour magasin':'Fournisseur'}${l.note?' · '+esc(l.note):''} · <b>${l.n} boîtes</b>, ${l.models} modèle${l.models>1?'s':''}${l.by?' · '+esc(l.by):''}</div>`).join('')}`:''}`;}
+    ${log.length?`<h3 class="sec">Derniers arrivages rangés</h3>${log.map(l=>`<div class="d arrlog">${esc(fmtDT(l.at))} · ${l.from==='magasin'?'Retour magasin':'Fournisseur'}${l.note?' · '+esc(l.note):''} · <b>${l.n} boîtes</b>, ${l.models} modèle${l.models>1?'s':''}${l.by?' · '+esc(l.by):''}${l.undone?' · <i>annulé</i>':arrUndoable(l.at)?` <button type="button" class="btn sm${st.armed==='au'+l.at?' armed':''}" data-act="arrundo" data-at="${l.at}">${st.armed==='au'+l.at?'Confirmer : annuler ce rangement':'↶ Annuler ce rangement'}</button>`:''}</div>`).join('')}`:''}
+    ${(()=>{const e=cloud.on&&jrLast();return e?`<p class="sub" style="margin-top:12px">Une autre erreur ? Dernière modification du stock : ${esc((e.lines||[])[0]||'')}${e.n>1?' …':''} · <button type="button" class="linkbtn" data-act="tohist">voir l'historique</button></p>`:'';})()}`;}
+/* annuler le rangement d'un arrivage : stock remis comme avant (si rien n'a été touché depuis) et arrivage remis dans la liste */
+let lastArr=null;
+const arrJr=at=>cloud.journal.find(e=>e.kind==='arr'&&e.ref===String(at)&&!e.undone);
+const arrUndoable=at=>!!(lastArr&&lastArr.at===at&&lastArr.after===JSON.stringify(S.articles))||!!arrJr(at);
+function arrUndo(at){const log=(S.arrLog||[]).find(l=>l.at===at),je=arrJr(at),grs=(lastArr&&lastArr.at===at&&lastArr.groups)||(je&&je.groups)||(log&&log.groups)||'[]';
+  const back=()=>{const A=arr();JSON.parse(grs).forEach(g=>{if(!A.groups.some(x=>x.id===g.id))A.groups.push(g);});if(log)log.undone=Date.now();};
+  if(lastArr&&lastArr.at===at&&lastArr.after===JSON.stringify(S.articles)){S.articles=JSON.parse(lastArr.before);lastArr=null;back();
+    pushMeta={kind:'undo',ref:je?je.id:'',label:'Annulation d\'un arrivage'};save();
+    if(je&&cloud.on)cloud.fs.updateDoc(cloud.fs.doc(cloud.db,C('journal'),je.id),{undone:Date.now(),undoneBy:me()||''}).catch(cloudErr);
+    closeSheet();st.tab='arr';render();toast('<b>Rangement annulé</b> : le stock est comme avant, l\'arrivage est revenu dans la liste.');return;}
+  if(je){const n0=JSON.stringify(S.articles);undoJournal(je);if(JSON.stringify(S.articles)!==n0){back();save();closeSheet();st.tab='arr';render();}return;}
+  toast('Impossible d\'annuler ce rangement ici : passez par Réglages › Historique.');}
 function arrSheet(gid){const A=arr(),g0=gid&&A.groups.find(x=>x.id===gid);
   const g=g0?JSON.parse(JSON.stringify(g0)):{id:'g'+Date.now().toString(36),type:'botte',marque:'',modele:'',genre:'H',couleur:'',serrage:'',annee:new Date().getFullYear(),sizes:{}};
   const sizeGrid=t=>{const list=sizesOf(t);return `<div class="agrid">${list.map(z=>`<label class="acell${g.sizes[z]?' on':''}"><span>${esc(szLbl(t,z).replace(' cm',''))}</span><input type="number" min="0" max="999" inputmode="numeric" data-az="${esc(z)}" value="${g.sizes[z]||''}" placeholder="0"></label>`).join('')}</div>`;};
@@ -1485,7 +1505,7 @@ function arrSheet(gid){const A=arr(),g0=gid&&A.groups.find(x=>x.id===gid);
     Object.assign(g,{type:f.dataset.type,marque,modele,genre:$('#a-genre').value,couleur:sameAs(fixColor($('#a-couleur').value.trim()),known),serrage:f.dataset.type==='botte'?$('#a-serrage').value:'',annee:parseInt($('#a-annee').value)||'',sizes});
     const A=arr();const i=A.groups.findIndex(x=>x.id===g.id);if(i<0)A.groups.push(g);else A.groups[i]=g;
     saveLocal();closeSheet();render();toast(`${esc(gName(g))} · <b>${gTot(g)} boîtes</b> ${i<0?'ajoutées à l\'arrivage':'modifiées'}`);});}
-function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
+function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands,arrBefore=JSON.stringify(S.articles);
   if(T){S.articles=JSON.parse(JSON.stringify(realA));S.brands=realB.slice();}
   const plan=planArrivage();let n=0,mv=0;const stamp=Date.now().toString(36);const known=[...new Set(S.articles.map(x=>x.couleur).filter(Boolean))];
   if(!S.brands.includes)S.brands=[];
@@ -1497,14 +1517,16 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands;
       n+=l.qty;});});
   const done=plan;
   if(T){S.articles=realA;S.brands=realB;}
-  else{(S.arrLog=S.arrLog||[]).push({at:Date.now(),from:A.from,note:A.note,n,models:plan.length,by:me()});if(S.arrLog.length>30)S.arrLog.shift();
-    S.arr={from:A.from,note:'',groups:[],test:false};save();}
+  else{const at=Date.now(),grs=JSON.stringify(A.groups);(S.arrLog=S.arrLog||[]).push({at,from:A.from,note:A.note,n,models:plan.length,by:me(),groups:grs});if(S.arrLog.length>30)S.arrLog.shift();
+    S.arr={from:A.from,note:'',groups:[],test:false};
+    pushMeta={kind:'arr',label:`Arrivage rangé · ${n} boîtes${A.note?' · '+A.note:''}`,ref:String(at),groups:grs};lastArr={at,before:arrBefore,after:null,groups:grs};save();lastArr.after=JSON.stringify(S.articles);}
   sheet(`<div class="sheet-in" style="display:flex;flex-direction:column;gap:10px">
     ${T?`<div class="testban">ESSAI · rien n'a été changé dans le stock</div>`:''}
     <div class="sheet-h"><h2>${T?'Essai de rangement':'Arrivage rangé'} · ${n} boîtes</h2><button type="button" class="btn ghost" data-act="close">OK</button></div>
     ${done.some(p=>p.moves.length)?`<p class="sub"><b>1. D'abord, déplacer :</b></p>${done.flatMap(p=>p.moves).map(m=>`<div class="d">${esc(m.label)} (${m.n}) : <b class="mono">${esc(m.from)}</b> → <b class="mono">${esc(m.to)}</b></div>`).join('')}<p class="sub"><b>2. Puis ranger :</b></p>`:''}
     ${done.map(p=>`<div class="d"><b>${esc(gName(p.g))}</b> ${esc(GENRE[p.g.genre]||'')} : ${p.chunks.map(c=>`<b class="mono">${esc(c.emp)}</b> (${c.n})${T?` <small>${esc(chunkSizes(p.g.type,c))}</small>`:''}`).join(T?'<br>':', ')}</div>`).join('')}
-    <p class="sub">${T?`C'était un essai : le stock n'a pas bougé. L'arrivage est gardé, vous pouvez le modifier et réessayer.`:`Le stock est à jour${mv?', déplacements compris':''}.`}</p></div>`);
+    <p class="sub">${T?`C'était un essai : le stock n'a pas bougé. L'arrivage est gardé, vous pouvez le modifier et réessayer.`:`Le stock est à jour${mv?', déplacements compris':''}.`}</p>
+    ${T?'':`<button type="button" class="btn" data-act="arrundo">↶ Erreur ? Annuler ce rangement</button><small class="opt">Remet le stock comme avant et remet cet arrivage dans la liste, pour le corriger. Possible aussi plus tard, en bas de l'onglet Arrivage.</small>`}</div>`);
   render();}
 
 
@@ -2098,6 +2120,11 @@ document.addEventListener('click',e=>{
       const pairs=Object.entries(st.mv||{}).map(([id,k])=>[art(id),k]).filter(x=>x[0]);const n=moveArticles(pairs,to);st.mv={};st.mvTo='';render();
       if(n)toast(`<b>${n} boîte${n>1?'s':''}</b> déplacée${n>1?'s':''} vers <b>${esc(to)}</b>`);else toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);break;}
     case'mvundo':undoLastMove();break;
+    case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
+    case'tohist':st.tab='settings';render();setTimeout(()=>{const h=$('#hist');if(h)h.scrollIntoView({block:'start'});},50);break;
+    case'undoask':undoAsk();break;
+    case'undogo':{const e=cloud.journal.find(x=>x.id===t.dataset.id);closeSheet();if(!e||e.undone){toast('Déjà annulée');break;}if(e.kind==='arr'&&e.ref)arrUndo(+e.ref);else undoJournal(e);break;}
+    case'undomine':{const e=cloud.myLast;undoBar(null);if(!e||e.undone){toast('Déjà annulée');break;}e.undone=true;if(e.kind==='arr'&&e.ref)arrUndo(+e.ref);else undoJournal(e);break;}
     case'jrundo':if(st.armed!=='jrundo'){st.armed='jrundo';render();break;}st.armed=null;undoJournal(jrLast());break;
     case'bkload':backupsLoad();break;
     case'bknow':if(!cloud.on)break;backupMake(dayId()+'-'+new Date().toTimeString().slice(0,5).replace(':','h'),'Sauvegarde manuelle').then(()=>{render();toast('<b>Sauvegarde faite</b>');}).catch(()=>toast('La sauvegarde a échoué (connexion ?)'));break;
@@ -2254,7 +2281,21 @@ function pushArts(){const {fs,db}=cloud,sent=cloud.sent.arts,seen=new Set(),ch=[
     ch.slice(i,i+400).forEach(c=>{const r=fs.doc(db,C('arts'),c.id);if(c.a){sent.set(c.id,c.a);B.set(r,{json:c.a,at});}else{sent.delete(c.id);B.delete(r);}});
     B.commit().catch(cloudErr);}
   const big=ch.reduce((n,c)=>n+(c.a||'').length+(c.b||'').length,0)>700000,lines=ch.slice(0,12).map(chText);
-  fs.setDoc(fs.doc(db,C('journal'),at+'-'+Math.random().toString(36).slice(2,6)),{at,by:me()||'',n:ch.length,lines,kind:meta&&meta.kind||'',label:meta&&meta.label||'',ref:meta&&meta.ref||'',ch:big?null:ch}).catch(cloudErr);}
+  const jid=at+'-'+Math.random().toString(36).slice(2,6),entry={at,by:me()||'',n:ch.length,lines,kind:meta&&meta.kind||'',label:meta&&meta.label||'',ref:meta&&meta.ref||'',groups:meta&&meta.groups||'',ch:big?null:ch};
+  fs.setDoc(fs.doc(db,C('journal'),jid),entry).catch(cloudErr);
+  if(entry.kind!=='undo'&&entry.ch){cloud.myLast={id:jid,...entry};undoBar(entry);}else undoBar(null);}
+/* ---------- Annuler partout : bouton ↶ en haut, et bandeau après chaque modification du stock ---------- */
+let undoBarT;
+function undoBar(e){const b=$('#undoBar');if(!b)return;clearTimeout(undoBarT);if(!e){b.hidden=true;return;}
+  b.innerHTML=`<span>✓ ${esc(e.lines[0]||'Stock modifié')}${e.n>1?` <small class="opt">(+ ${e.n-1})</small>`:''}</span><button type="button" class="btn sm primary" data-act="undomine">↶ Annuler</button>`;b.hidden=false;
+  undoBarT=setTimeout(()=>{b.hidden=true;},12000);}
+function updUndo(){const u=$('#undoTop');if(u)u.hidden=!(role==='entrepot'&&cloud.on&&jrLast());}
+function undoAsk(){const e=jrLast();if(!e){toast('Rien à annuler');return;}
+  sheet(`<div class="sheet-in" style="display:flex;flex-direction:column;gap:12px">
+    <div class="sheet-h"><h2>Annuler la dernière modification ?</h2><button type="button" class="btn ghost" data-act="close">Non</button></div>
+    <div class="info"><b>${fmtDT(e.at)}</b>${e.by?' · '+esc(e.by):''} · ${e.n} article${e.n>1?'s':''}${e.label?' · '+esc(e.label):''}<br>${(e.lines||[]).slice(0,8).map(esc).join('<br>')}${e.n>8?`<br><small>+ ${e.n-8} autre${e.n-8>1?'s':''}</small>`:''}</div>
+    <p class="sub">Le stock sera remis comme juste avant, pour tout le monde. Vous pourrez annuler encore la modification d'avant, une par une (Réglages › Historique).</p>
+    <button type="button" class="btn primary block" data-act="undogo" data-id="${esc(e.id)}">↶ Oui, annuler cette modification</button></div>`);}
 function cloudErr(e){console.warn('Synchro',e);setSync('off','Hors ligne');}
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 /* ---------- Historique : annuler la dernière modification du stock ---------- */
@@ -2335,7 +2376,7 @@ async function cloudStart(){
       },cloudErr);});
     /* historique : les 20 dernières modifications du stock */
     if(role==='entrepot')fs.onSnapshot(fs.query(fs.collection(db,C('journal')),fs.orderBy('at','desc'),fs.limit(20)),qs=>{
-      cloud.journal=qs.docs.map(d=>({id:d.id,...d.data()}));if(st.tab==='settings'||st.tab==='move')softRender();},e=>console.warn('Historique',e));
+      cloud.journal=qs.docs.map(d=>({id:d.id,...d.data()}));updUndo();if(st.tab==='settings'||st.tab==='move')softRender();},e=>console.warn('Historique',e));
   }catch(e){console.warn('Synchro indisponible',e);cloud.on=false;setSync('off','Hors ligne');}
 }
 window.addEventListener('offline',()=>setSync('off','Hors ligne'));
