@@ -59,7 +59,7 @@ h3{font-family:var(--f-disp);font-weight:600;font-size:15px;letter-spacing:.08em
 
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
-.tabs-in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.tabs-in{max-width:680px;margin:0 auto;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
 .tabs button{background:none;border:0;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:600;position:relative}
 .tabs button svg{width:22px;height:22px}
 @media (max-width:400px){.tabs button{font-size:11px;padding:10px 2px 12px}.tabs button[aria-current="page"] svg{padding:3px 8px}}
@@ -267,6 +267,14 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
+.mvrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.mvq{display:inline-flex;align-items:center;gap:4px}.mvq input{width:60px;text-align:center;font:inherit;padding:6px}
+.mvbar{position:sticky;top:8px;z-index:3;border:2px solid var(--accent);display:flex;flex-direction:column;gap:10px}
+.mvhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.mvhead .btn{margin-left:auto}
+.mvdone{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+.jr{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.jr.off{opacity:.55}.jr-l{color:var(--muted);margin-top:2px}
+.boxask{margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--warn-bg);color:var(--ink);display:flex;flex-direction:column;gap:6px}
 .dim-in{width:70px;text-align:center}.dimrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
 .dimdet{margin-top:10px}.dimdet summary{cursor:pointer;font-weight:600;padding:6px 0}
 .dimadd{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.dimadd #ovNote{flex:1;min-width:160px}
@@ -599,14 +607,15 @@ const IC={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
   plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h4V8h8v12h4V4z"/></svg>',
   orders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+  move:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></svg>',
   arr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>',
   cmd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h2l2.4 11h11L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'};
-const TABS={entrepot:[['search','Rechercher','search'],['plan','Plan','plan'],['arr','Arrivage','arr'],['orders','Commandes','orders'],['settings','Réglages','settings']],
+const TABS={entrepot:[['search','Rechercher','search'],['plan','Plan','plan'],['move','Déplacer','move'],['arr','Arrivage','arr'],['orders','Commandes','orders'],['settings','Réglages','settings']],
   magasin:[['cmd','Commander','cmd'],['find','Chercher','search'],['mine','Mes commandes','orders']]};
 /* Éclairage de l'allée de droite (démonstration) : éteint par défaut, choix gardé sur l'appareil */
 let LIGHT=null;const lightOn=()=>{if(LIGHT===null){try{LIGHT=localStorage.getItem(KEY+'-light')==='1';}catch(e){LIGHT=false;}}return LIGHT;};
 /* ---------- Rendu ---------- */
-function render(){
+function render(){SLOTC.clear();
   document.body.classList.toggle('shop',role==='magasin');
   const tabs=$('#tabs');tabs.innerHTML=TABS[role].map(([k,l,i])=>`<button type="button" data-tab="${k}"${k===st.tab?' aria-current="page"':''}>${IC[i]}${l}</button>`).join('');
   document.querySelectorAll('#roleSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.role===role));
@@ -614,7 +623,7 @@ function render(){
     if(b.dataset.tab==='orders'||b.dataset.tab==='mine'){const n=unread().length;if(n)b.insertAdjacentHTML('beforeend',`<span class="badge">${n}</span>`);}});
   const v=$('#view');
   v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='mine'?vShopMine():vShopCmd())
-    :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='orders'?vOrders():st.tab==='arr'?vArrivage():vSettings());
+    :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='move'?vMove():st.tab==='orders'?vOrders():st.tab==='arr'?vArrivage():vSettings());
   tint(v);
   if(role==='entrepot'&&st.tab==='plan'&&p3dOn()){const h=document.getElementById('p3d');if(h)P3D.mount(h,hits());}
 }
@@ -673,6 +682,93 @@ function chip(code,l,H,count){
   return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
 function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
 
+/* ---------- Place dans un emplacement, d'après les mesures (Réglages › Dimensions) ----------
+   Sert à la 3D, au conseil de rangement de l'arrivage et au menu Déplacer. */
+const BOX_DEF={botte:{L:46,l:37,H:14.5},fix:{L:40,l:32,H:16},board:{L:155,l:30,H:6}};
+/* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
+function locDims(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m)return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
+  /* racks de gauche : mesures du groupe « Gauche », les mêmes pour tous ; niveau 1 sans hauteur = celle de D1.1 */
+  if(z==='G'){const x=d.locs['G'+l]||{};return {L:x.L||0,P:x.P||0,H:x.H||(l==='1'?locDims('D1.1').H:0),pose:x.pose||''};}
+  if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=d.over[code];}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=d.over[`M${r}.${l}`];}
+  const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^M[GD]/.test(code)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
+/* une boîte posée : [long du rack, profondeur, hauteur] selon qu'elle est à plat ou sur la tranche */
+const boxOri=(o,b)=>o==='flat'?[b.L,b.l,b.H]:o==='flatL'?[b.l,b.L,b.H]:o==='edge'?[b.L,b.H,b.l]:[b.H,b.L,b.l];
+const capFor=(r,Lc,Hc,LN)=>LN.reduce((s,ln)=>{const [a,,h]=boxOri(ln.o,r);return s+Math.floor((Lc+.5)/a)*Math.floor((Hc+.5)/h);},0);
+/* files de boîtes depuis l'allée ; plusieurs façons de remplir la profondeur, on garde celle qui loge le plus */
+function laneSet(pose,P,r,Lc,Hc){const mk=(front,back)=>{const out=[];let v=0;const put=(o,d)=>{out.push({v,o,d});v+=d;};
+    if(front){const d=boxOri(front,r)[1];if(d<=P+.5)put(front,d);}const db=boxOri(back,r)[1];while(v+db<=P+.5)put(back,db);return out;};
+  const C=pose==='tranche'?[[null,'book'],[null,'edge']]:pose==='mixte'?[['flat','edge'],['flatL','edge'],[null,'flat'],[null,'flatL']]:[[null,'flat'],[null,'flatL']];
+  let best=null,bc=-1;C.forEach(([f,b])=>{const ln=mk(f,b);if(!ln.length)return;const c=capFor(r,Lc,Hc,ln);if(c>bc){bc=c;best=ln;}});
+  return best||[{v:0,o:'flat',d:P}];}
+const boxOf=a=>boxFor(a)||BOX_DEF[a.type]||BOX_DEF.botte;
+const SLOTC=new Map(); /* vidé à chaque affichage */
+/* nombre de boîtes de format b qui tiennent dans un emplacement mesuré (0 = pas mesuré) */
+function slotCap(code,b){const k=code+'|'+b.L+'|'+b.l+'|'+b.H;if(SLOTC.has(k))return SLOTC.get(k);const d=locDims(code);let c=0;
+  if(d.L&&d.P&&d.H&&capGroup(code))c=capFor(b,d.L,d.H,laneSet(d.pose||'plat',d.P,b,d.L,d.H));SLOTC.set(k,c);return c;}
+/* boîte moyenne d'un type (d'après les boîtes mesurées), et boîte d'un modèle (la plus grande de ses tailles) */
+function typBox(t){const bs=dims().boxes.filter(b=>b.type===t&&b.L&&b.l&&b.H);if(!bs.length)return BOX_DEF[t]||BOX_DEF.botte;const m=k=>Math.round(bs.reduce((s,b)=>s+b[k],0)/bs.length*10)/10;return {L:m('L'),l:m('l'),H:m('H')};}
+function modelBox(t,marque,modele){const bs=dims().boxes.filter(b=>b.type===t&&b.L&&b.l&&b.H&&(!b.marque||norm(b.marque)===norm(marque))&&(!b.modele||norm(b.modele)===norm(modele)));
+  const spec=bs.filter(b=>b.modele),use=spec.length?spec:bs.filter(b=>b.marque);if(!use.length)return null;return use.slice().sort((x,y)=>y.L*y.l*y.H-x.L*x.l*x.H)[0];}
+/* part déjà prise : chaque boîte rangée compte 1 / (nombre de boîtes de son format qui tiennent ici) */
+function locUse(code){let f=0;S.articles.forEach(a=>{if(a.emp!==code)return;const q=qOf(a);if(!q)return;const c=slotCap(code,boxOf(a));if(c)f+=q/c;});return f;}
+function locFree(code,b){const c=slotCap(code,b);return c?Math.max(0,Math.floor((1-locUse(code))*c+1e-6)):null;}
+/* ---------- Déplacer des articles (menu Déplacer et 3D) ----------
+   L'article change d'emplacement ; s'il existe déjà là-bas (même modèle, taille, couleur), les quantités s'additionnent
+   et les commandes en cours suivent l'article gardé. */
+const sameArt=(x,a)=>x.type===a.type&&x.marque===a.marque&&x.modele===a.modele&&x.genre===a.genre&&x.taille===a.taille&&norm(x.couleur)===norm(a.couleur);
+function relinkOrders(from,to){S.orders.forEach(o=>{if(o.status!=='demandee'&&o.status!=='prep')return;o.lines.forEach(l=>{if(l.aid===from)l.aid=to;});});(S.cart||[]).forEach(l=>{if(l.aid===from)l.aid=to;});}
+let lastMove=null;
+function moveArticles(pairs,to){const before=JSON.stringify(S.articles),stamp=Date.now().toString(36);let n=0;
+  pairs.forEach(([a,k0],i)=>{if(!a||a.emp===to||!qOf(a))return;const k=Math.min(qOf(a),Math.max(1,k0||qOf(a)));n+=k;
+    const ex=S.articles.find(x=>x!==a&&x.emp===to&&sameArt(x,a));
+    if(k>=qOf(a)){if(ex){ex.qty=qOf(ex)+k;S.articles=S.articles.filter(y=>y!==a);relinkOrders(a.id,ex.id);}else a.emp=to;}
+    else{a.qty=qOf(a)-k;if(ex)ex.qty=qOf(ex)+k;else S.articles.push({...a,id:'a'+stamp+'m'+i,emp:to,qty:k});}});
+  if(n){pushMeta={kind:'move',label:`Déplacement vers ${to}`};save();lastMove={before,after:JSON.stringify(S.articles),n,to};}return n;}
+function undoLastMove(){if(!lastMove)return;
+  if(JSON.stringify(S.articles)!==lastMove.after){lastMove=null;render();toast('Le stock a changé depuis : passez par Réglages › Historique.');return;}
+  S.articles=JSON.parse(lastMove.before);lastMove=null;pushMeta={kind:'undo',label:'Annulation d\'un déplacement'};save();render();toast('Déplacement annulé');}
+/* ---------- Menu Déplacer : 1. trouver les boîtes, 2. combien, 3. où ---------- */
+function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const a=art(id);if(!a||!qOf(a))delete sel[id];else sel[id]=Math.min(qOf(a),Math.max(1,sel[id]||1));});
+  const list=sortArts(S.articles.filter(a=>matches(a)&&qOf(a)>0)),show=filtering(),MAX=80;
+  const chosen=Object.keys(sel).map(art).filter(Boolean),nb=chosen.reduce((t,a)=>t+sel[a.id],0);
+  const row=a=>{const on=sel[a.id]!=null;return `<div class="row mvrow${on?' on':''}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(artDesc(a))} · <b>${qOf(a)} en stock</b></div></div>
+    <div class="acts">${on?`<span class="mvq"><input type="number" min="1" max="${qOf(a)}" value="${sel[a.id]}" data-mvq="${a.id}" inputmode="numeric" aria-label="Nombre de boîtes à déplacer"><small>/ ${qOf(a)}</small></span>`:''}<button type="button" class="btn sm${on?' primary':''}" data-act="mvpick" data-id="${a.id}" aria-pressed="${on}">${on?'✓ Choisi':'Choisir'}</button></div></div>`;};
+  let dest='';
+  if(chosen.length){const fq=new Map();chosen.forEach(a=>{const b=boxOf(a);fq.set(b,(fq.get(b)||0)+sel[a.id]);});const ref=[...fq.entries()].sort((x,y)=>y[1]-x[1])[0][0];
+    const from=new Set(chosen.map(a=>a.emp)),keys=new Set(chosen.map(a=>[a.type,a.marque,a.modele,a.genre].join('|')));
+    const same=new Set(S.articles.filter(a=>keys.has([a.type,a.marque,a.modele,a.genre].join('|'))&&!from.has(a.emp)).map(a=>a.emp));
+    const opts=LOCS.filter(e=>!(from.size===1&&from.has(e))).map(e=>[e,locFree(e,ref)]);
+    const o=([e,f])=>`<option value="${e}"${st.mvTo===e?' selected':''}>${same.has(e)?'★ ':''}${e}${f!=null?` · place pour ≈ ${f}`:''} · ${esc(locLabel(e))}</option>`;
+    const srt=(x,y)=>(same.has(y[0])-same.has(x[0]))||locRank(x[0])-locRank(y[0]);
+    const fits=opts.filter(([,f])=>f!=null&&f>=nb).sort(srt),small=opts.filter(([,f])=>f!=null&&f<nb).sort((x,y)=>y[1]-x[1]),unk=opts.filter(([,f])=>f==null).sort(srt);
+    dest=`<div class="card mvbar"><div class="mvhead"><b>${nb} boîte${nb>1?'s':''} choisie${nb>1?'s':''}</b> <small class="opt">· ${chosen.length} article${chosen.length>1?'s':''}${from.size?' · depuis '+[...from].sort((x,y)=>locRank(x)-locRank(y)).join(', '):''}</small>
+        <button type="button" class="btn sm ghost" data-act="mvclear">Tout retirer</button></div>
+      <div class="field"><label for="mvTo">Où les mettre ? <small class="opt">★ = le même modèle y est déjà · place calculée d'après les mesures</small></label>
+        <select id="mvTo"><option value="">Choisir l'emplacement…</option>${fits.length?`<optgroup label="Assez de place pour ${nb}">${fits.map(o).join('')}</optgroup>`:''}${small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(o).join('')}</optgroup>`:''}${unk.length?`<optgroup label="Pas encore mesurés">${unk.map(o).join('')}</optgroup>`:''}</select></div>
+      <button type="button" class="btn primary block" data-act="mvgo">Déplacer ${nb} boîte${nb>1?'s':''}</button></div>`;}
+  const done=lastMove&&JSON.stringify(S.articles)===lastMove.after?`<div class="info mvdone"><span>✓ <b>${lastMove.n} boîte${lastMove.n>1?'s':''}</b> déplacée${lastMove.n>1?'s':''} vers <b>${esc(lastMove.to)}</b></span><button type="button" class="btn sm" data-act="mvundo">↶ Annuler ce déplacement</button></div>`:'';
+  return `<div><h2>Déplacer des boîtes</h2><p class="sub">1. Trouvez les boîtes avec la recherche · 2. touchez « Choisir » (et le nombre si vous n'en déplacez qu'une partie) · 3. choisissez où les mettre. Le stock est mis à jour pour tout le monde.</p></div>
+    ${done}${dest}
+    ${filterBar()}
+    ${show?`<div class="count">${sumLine(list,{lines:1})}${list.length>1&&list.length<=MAX?` · <button type="button" class="linkbtn" data-act="mvall">tout choisir</button>`:''}</div>
+      <div class="list">${list.slice(0,MAX).map(row).join('')||'<div class="empty">Aucun article ne correspond.</div>'}</div>${list.length>MAX?`<p class="sub">Les ${MAX} premiers sont affichés : précisez la recherche.</p>`:''}`
+      :`<p class="sub">Tapez une marque, un modèle, une taille ou un emplacement (ex. : « D1.2 ») pour trouver les boîtes à déplacer.${chosen.length?'':' Vous pouvez aussi déplacer à la souris dans Plan › 3D.'}</p>${chosen.length?`<div class="list">${chosen.map(row).join('')}</div>`:''}`}`;}
+/* ---------- Réglages : historique et sauvegardes ---------- */
+function vHistory(){
+  if(!cloud.on)return `<div class="card"><h3>Historique et sauvegardes</h3><p class="sub">Disponible quand l'appli est en ligne.</p></div>`;
+  const last=jrLast(),K={undo:'Annulation',restore:'Retour à une sauvegarde',move:'Déplacement'};
+  const item=e=>`<div class="jr${e.undone?' off':''}"><div class="jr-h"><b>${fmtDT(e.at)}</b>${e.by?' · '+esc(e.by):''} · ${e.n} article${e.n>1?'s':''}${e.label?' · '+esc(e.label):e.kind&&K[e.kind]?' · '+K[e.kind]:''}${e.undone?' · <i>annulée</i>':''}</div>
+    <div class="jr-l">${(e.lines||[]).slice(0,4).map(esc).join('<br>')}${e.n>4?`<br><small class="opt">+ ${e.n-4} autre${e.n-4>1?'s':''}</small>`:''}</div></div>`;
+  const bk=cloud.backups;
+  return `<div class="card" id="hist"><h3>Historique et sauvegardes</h3>
+    <p class="sub">Chaque modification du stock est notée. Vous pouvez <b>annuler la dernière</b>, ou <b>revenir à une sauvegarde</b> (une par jour, faite à la première ouverture ; 30 jours gardés).</p>
+    ${last?`<div class="info"><b>Dernière modification</b> · ${fmtDT(last.at)}${last.by?' · '+esc(last.by):''}<br><small>${(last.lines||[]).slice(0,3).map(esc).join('<br>')}${last.n>3?`<br>+ ${last.n-3} autre${last.n-3>1?'s':''}`:''}</small></div>
+      <div class="inline"><button type="button" class="btn${st.armed==='jrundo'?' armed':''}" data-act="jrundo">${st.armed==='jrundo'?'Confirmer : annuler cette modification':'↶ Annuler la dernière modification'}</button></div>`:'<p class="sub">Aucune modification à annuler pour l\'instant.</p>'}
+    <details class="dimdet"><summary>Les ${cloud.journal.length} dernières modifications</summary>${cloud.journal.map(item).join('')||'<p class="sub">Rien pour l\'instant.</p>'}</details>
+    <details class="dimdet"${bk?' open':''}><summary>Sauvegardes</summary>
+      ${bk===null?`<button type="button" class="btn sm" data-act="bkload">Afficher les sauvegardes</button>`:bk.length?bk.slice().reverse().map(b=>`<div class="dimrow"><span><b>${esc(b.id)}</b> · ${fmtDT(b.at)} · ${b.n} articles, ${b.p} pièces${b.why?` <small class="opt">${esc(b.why)}</small>`:''}</span> <button type="button" class="btn sm" data-act="bkrestore" data-id="${esc(b.id)}">🔒 Revenir à cette sauvegarde</button></div>`).join(''):'<p class="sub">Pas encore de sauvegarde.</p>'}
+      <div class="inline" style="margin-top:8px"><button type="button" class="btn sm" data-act="bknow">Faire une sauvegarde maintenant</button></div></details></div>`;}
+
 /* ---------- Vue 3D (onglet Plan) ----------
    Même stock que le plan, en direct. Les racks prennent les mesures de Réglages › Dimensions (sans dessus),
    chaque boîte est dessinée à sa taille (dimensions des boîtes) et rangée selon la pose de l'emplacement.
@@ -687,11 +783,11 @@ const p3dHost=()=>`<div class="p3d" id="p3d"><div class="p3d-stage" id="p3dStage
   <div class="legend" id="p3dLeg"></div></div>`;
 const P3D=(()=>{
   let lib=null,T3=null,R=null,scene,camera,controls,host=null,anim=null,lit=new Set();
-  let gR=null,gB=null,sigR='',sigB='',hitsL=[],IM=null,inst=[],occ={},sel=null,hov=null,dest=null,drag=null,down=null,moveMode=false,undo=null,AM=new Map(),BCOL=new Map();
+  let gR=null,gB=null,sigR='',sigB='',hitsL=[],IM=null,inst=[],occ={},sel=null,hov=null,dest=null,drag=null,down=null,moveMode=false,AM=new Map(),BCOL=new Map();
   const pick=new Map(); /* article choisi -> nombre de boîtes à déplacer */
   const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=230,Mw=105,Gx=0,Gw=60,Dx=455,PLx=70,DL=244,sG=T/5,LVD=51;
   const VIEWS={all:{p:[-760,1500,T+900],t:[257,60,T/2-60]},ent:{p:[395,190,T+180],t:[395,110,T-700]},top:{p:[257,2400,T/2+1],t:[257,0,T/2]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
-  const DEFB={botte:{L:46,l:37,H:14.5},fix:{L:40,l:32,H:16},board:{L:155,l:30,H:6}};
+  const DEFB=BOX_DEF;
   const TC={botte:'#3d7fc4',fix:'#f08a24',board:'#3fa66b'},TN={botte:'Bottes',fix:'Fixations',board:'Snowboards'};
   const PAL=['#3d7fc4','#e8663d','#3fa66b','#d4a72c','#8e5cc4','#d1495b','#2bb3b1','#8a6a4b','#e377c2','#6b8e23','#1f5fa8','#9aa5b1'],SELC='#fff36b';
   const load=src=>new Promise((ok,ko)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=ko;document.head.appendChild(e);});
@@ -699,12 +795,7 @@ const P3D=(()=>{
   const css=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
   const gkey=a=>[a.type,a.marque,a.modele,a.genre].join('|'),gname=a=>`${a.marque} ${a.modele} ${GENRE[a.genre]||''}`.trim();
   const A=id=>AM.get(id)||art(id);
-  /* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
-  function dimOf(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m)return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
-    /* racks de gauche : mesures du groupe « Gauche » de Réglages, les mêmes pour tous ; niveau 1 sans hauteur = celle de D1.1 */
-    if(z==='G'){const x=d.locs['G'+l]||{};return {L:x.L||0,P:x.P||0,H:x.H||(l==='1'?dimOf('D1.1').H:0),pose:x.pose||''};}
-    if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=d.over[code];}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=d.over[`M${r}.${l}`];}
-    const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^M[GD]/.test(code)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
+  const dimOf=locDims,lanes=laneSet,ori=boxOri,capacity=capFor;
   /* repère d'un rack : u le long du rack, v depuis l'allée vers le fond, w vers le haut */
   const frame=(ax,ox,oz,fd)=>ax==='z'?{c:(u,v,w)=>[ox+fd*v,w,oz+u],s:(a,b,c)=>[b,c,a]}:{c:(u,v,w)=>[ox+u,w,oz+fd*v],s:(a,b,c)=>[a,c,b]};
   let mPost,mShelf,mPal,mGhost,mWall,floorMat;
@@ -750,13 +841,6 @@ const P3D=(()=>{
     sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
     floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
-  /* plusieurs façons de remplir la profondeur ; on garde celle qui loge le plus de boîtes du format le plus courant */
-  function lanes(pose,P,r,Lc,Hc){const mk=(front,back)=>{const out=[];let v=0;const put=(o,d)=>{out.push({v,o,d});v+=d;};
-      if(front){const d=ori(front,r)[1];if(d<=P+.5)put(front,d);}const db=ori(back,r)[1];while(v+db<=P+.5)put(back,db);return out;};
-    const C=pose==='tranche'?[[null,'book'],[null,'edge']]:pose==='mixte'?[['flat','edge'],['flatL','edge'],[null,'flat'],[null,'flatL']]:[[null,'flat'],[null,'flatL']];
-    let best=null,bc=-1;C.forEach(([f,b])=>{const ln=mk(f,b);if(!ln.length)return;const c=capacity(r,Lc,Hc,ln);if(c>bc){bc=c;best=ln;}});
-    return best||[{v:0,o:'flat',d:P}];}
-  const ori=(o,b)=>o==='flat'?[b.L,b.l,b.H]:o==='flatL'?[b.l,b.L,b.H]:o==='edge'?[b.L,b.H,b.l]:[b.H,b.L,b.l]; /* [long du rack, profondeur, hauteur] */
   function pack(bxs,Lc,Hc,LN,mix){const res=[];let li=0,u=0,w=0,cw=0,prev=null,over=0;
     for(const bx of bxs){let ok=false;
       while(li<LN.length){const [a,d,h]=ori(LN[li].o,bx.b);
@@ -765,7 +849,6 @@ const P3D=(()=>{
         res.push({bx,u,v:LN[li].v,w,a,d,h});w+=h;cw=Math.max(cw,a);prev=bx.g;ok=true;break;}
       if(!ok)over++;}
     return {res,over};}
-  const capacity=(r,Lc,Hc,LN)=>LN.reduce((s,ln)=>{const [a,,h]=ori(ln.o,r);return s+Math.floor((Lc+.5)/a)*Math.floor((Hc+.5)/h);},0);
   function geo(hm){const {len,dep,h}=hm.userData,d=dimOf(hm.userData.code);return {Lc:d.L||len,Pc:d.P||dep,Hc:d.H||h,pose:d.pose||'plat',known:!!(d.L&&d.P&&d.H)};}
   function buildBoxes(){
     occ={};const by={};S.articles.forEach(a=>{if(!a.emp||qOf(a)<=0)return;(by[a.emp]=by[a.emp]||[]).push(a);const o=occ[a.emp]=occ[a.emp]||{p:0,t:{},m:new Map(),n:0,over:0,cap:0};const n=qOf(a);o.p+=n;o.t[a.type]=(o.t[a.type]||0)+n;const k=gkey(a),x=o.m.get(k)||{a,n:0};x.n+=n;o.m.set(k,x);});
@@ -793,8 +876,8 @@ const P3D=(()=>{
   const pl=(n,s,p)=>`${n.toLocaleString('fr-FR')} ${n>1?p:s}`;
   const nums=(side,arr)=>{const n=el('div','p3d-nums');arr.forEach(([x,l])=>{const d=el('div');d.append(el('b',null,x),el('span',null,l));n.append(d);});side.append(n);};
   function info(){const side=document.getElementById('p3dSide');if(!side)return;side.replaceChildren();
-    if(undo){if(JSON.stringify(S.articles)!==undo.after)undo=null;else{const w=el('div','p3d-ok');w.append(el('span',null,`✓ ${pl(undo.n,'boîte déplacée','boîtes déplacées')} vers ${undo.to}`),
-      btn('Annuler ce déplacement','sm',()=>{S.articles=JSON.parse(undo.before);undo=null;save();render();toast('Déplacement annulé');}));side.append(w);}}
+    if(lastMove&&JSON.stringify(S.articles)===lastMove.after){const w=el('div','p3d-ok');w.append(el('span',null,`✓ ${pl(lastMove.n,'boîte déplacée','boîtes déplacées')} vers ${lastMove.to}`),
+      btn('Annuler ce déplacement','sm',undoLastMove));side.append(w);}
     if(pick.size)pickPanel(side);else if(sel)levelPanel(side);else allPanel(side);}
   function allPanel(side){const v=Object.values(occ),tot=v.reduce((a,o)=>a+o.p,0),b=v.reduce((a,o)=>a+(o.t.botte||0),0),f=v.reduce((a,o)=>a+(o.t.fix||0),0);
     side.append(el('div','opt','Tout l\'entrepôt, en direct'));nums(side,[[tot.toLocaleString('fr-FR'),'boîtes'],[b.toLocaleString('fr-FR'),'bottes'],[f.toLocaleString('fr-FR'),'fixations']]);
@@ -830,12 +913,8 @@ const P3D=(()=>{
   /* déplacement : l'article change d'emplacement ; s'il existe déjà là-bas (même modèle, taille, couleur), les quantités s'additionnent */
   function doMove(to){const L=[...pick.keys()].map(id=>art(id)).filter(Boolean);moveMode=false;if(!L.length)return;
     if(L.every(a=>a.emp===to)){toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);return;}
-    const before=JSON.stringify(S.articles),stamp=Date.now().toString(36);let n=0;
-    L.forEach((a,i)=>{if(a.emp===to)return;const k=Math.min(qOf(a),Math.max(1,pick.get(a.id)||qOf(a)));n+=k;
-      const ex=S.articles.find(x=>x!==a&&x.emp===to&&x.type===a.type&&x.marque===a.marque&&x.modele===a.modele&&x.genre===a.genre&&x.taille===a.taille&&norm(x.couleur)===norm(a.couleur));
-      if(k>=qOf(a)){if(ex){ex.qty=qOf(ex)+k;S.articles=S.articles.filter(y=>y!==a);}else a.emp=to;}
-      else{a.qty=qOf(a)-k;if(ex)ex.qty=qOf(ex)+k;else S.articles.push({...a,id:'a'+stamp+'m'+i,emp:to,qty:k});}});
-    pick.clear();sel=to;save();undo={before,after:JSON.stringify(S.articles),n,to};render();}
+    moveArticles(L.map(a=>[a,pick.get(a.id)]),to);
+    pick.clear();sel=to;render();}
   function tip(e,txt){const t=document.getElementById('p3dTip'),st=document.getElementById('p3dStage');if(!t||!st)return;if(!txt){t.hidden=true;return;}const r=st.getBoundingClientRect();t.textContent=txt;t.hidden=false;t.style.left=(e.clientX-r.left)+'px';t.style.top=(e.clientY-r.top)+'px';}
   function init(){
     R=new T3.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));
@@ -881,7 +960,7 @@ const P3D=(()=>{
     const sb=JSON.stringify(S.articles.map(a=>[a.id,a.emp,qOf(a),a.type,a.marque,a.modele,a.genre,a.taille]))+JSON.stringify(D.boxes);if(sb!==sigB){sigB=sb;buildBoxes();}else recolor();}
   function view(k){const v=VIEWS[k];if(!v||!camera)return;const p1=new T3.Vector3(...v.p),t1=new T3.Vector3(...v.t);
     if(matchMedia('(prefers-reduced-motion: reduce)').matches){camera.position.copy(p1);controls.target.copy(t1);return;}anim={p0:camera.position.clone(),t0:controls.target.clone(),p1,t1,s:performance.now()};}
-  function size(){if(!host||!R)return;const st=document.getElementById('p3dStage'),w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;R.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  function size(){if(!host||!R)return;const st=document.getElementById('p3dStage');if(!st)return;const w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;R.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   let ro=null;
   function mount(h,H){host=h;lit=H||new Set();
     h.querySelectorAll('[data-v3]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.v3)));
@@ -1070,9 +1149,10 @@ function vSettings(){
     <div class="card"><h3>Inventaire (Excel)</h3>
       <p class="sub">Un fichier Excel du stock du jour, classé par type, marque, modèle et taille. Il contient un résumé, une feuille par type (tailles en colonnes) et le détail avec les emplacements.</p>
       <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>
+    ${vHistory()}
     ${vDims()}
     <div class="card"><h3>Capacité des racks</h3>
-      <p class="sub">Nombre de boîtes qu'un emplacement peut contenir quand il est plein. Calculé d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
+      <p class="sub"><b>Les emplacements mesurés (Dimensions ci-dessus) utilisent leurs mesures et la taille des boîtes.</b> Les nombres ci-dessous ne servent qu'aux emplacements pas encore mesurés : boîtes qu'ils contiennent quand ils sont pleins, d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
       <div class="info" style="margin:8px 0">Règles de rangement : <b>bottes au milieu</b> (plus facile d'accès) ; <b>droite niveaux 1-2</b> pour les gros lots de bottes ; <b>jamais de bottes au niveau 3 de droite</b> ; <b>fixations à droite</b>. Un modèle trop gros est réparti par groupes de tailles.</div>
       <div class="field" style="max-width:320px"><label for="bigLot">Gros lot de bottes à partir de</label><div class="inline"><input type="number" id="bigLot" min="5" max="500" value="${bigLot()}" inputmode="numeric" style="width:90px" data-cap="big"> <span>boîtes d'un même modèle</span></div></div>
       <table class="capt"><tr><th></th><th>Bottes</th><th>Fixations</th></tr>${Object.entries(CAP_GROUPS).map(([g,l])=>`<tr><td>${l}</td><td><input type="number" min="1" max="999" data-cap="${g}:botte" value="${caps()[g].botte}" inputmode="numeric"${g==='D3'?' disabled title="Jamais de bottes au niveau 3 de droite"':''}>${g==='D3'?' <small class="opt">jamais</small>':''}</td><td><input type="number" min="1" max="999" data-cap="${g}:fix" value="${caps()[g].fix}" inputmode="numeric"></td></tr>`).join('')}</table>
@@ -1177,7 +1257,7 @@ function inventaireXlsx(){
 const CAP_GROUPS={D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3'};
 function capGroup(emp){const m=/^([A-Z]+)\d+\.(\d)$/.exec(emp||'');if(!m)return null;
   if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';return null;}
-function occMap(){const o={};S.articles.forEach(a=>{const x=o[a.emp]=o[a.emp]||{botte:0,fix:0,board:0};x[a.type]=(x[a.type]||0)+qOf(a);});return o;}
+function occMap(){const o={};S.articles.forEach(a=>{const x=o[a.emp]=o[a.emp]||{botte:0,fix:0,board:0,f:0};const q=qOf(a);x[a.type]=(x[a.type]||0)+q;const c=q&&slotCap(a.emp,boxOf(a));if(c)x.f+=q/c;});return o;}
 function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,fix:0});
   Object.entries(occMap()).forEach(([emp,o])=>{const g=capGroup(emp);if(!g)return;
     if(o.botte&&!o.fix)c[g].botte=Math.max(c[g].botte,o.botte);if(o.fix&&!o.botte)c[g].fix=Math.max(c[g].fix,o.fix);});
@@ -1185,12 +1265,14 @@ function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,
   Object.values(c).forEach(x=>{if(!x.botte&&x.fix)x.botte=Math.round(x.fix*r);if(!x.fix&&x.botte)x.fix=Math.round(x.botte/r);if(!x.botte)x.botte=20;if(!x.fix)x.fix=18;});
   return c;}
 const caps=()=>{if(!S.caps||!S.caps.D12)S.caps=capsCalc();return S.caps;};
-function capCtx(occ){const C=caps();
-  const cap=(emp,t)=>{const g=capGroup(emp);return g?(t==='botte'?C[g].botte:C[g].fix):0;};
-  const fill=emp=>{const g=capGroup(emp);if(!g)return 1;const o=occ[emp]||{botte:0,fix:0,board:0};return (o.botte||0)/C[g].botte+((o.fix||0)+(o.board||0))/C[g].fix;};
+/* place d'un emplacement : d'après les mesures s'il est mesuré (bx = boîte du modèle qu'on range), sinon d'après les capacités de Réglages */
+function capCtx(occ,bx){const C=caps(),typ=t=>bx&&bx.t===t&&bx.b?bx.b:typBox(t),meas=emp=>!!slotCap(emp,BOX_DEF.botte);
+  const cap=(emp,t)=>{const g=capGroup(emp);if(!g)return 0;const m=slotCap(emp,typ(t));if(m)return m;return t==='botte'?C[g].botte:C[g].fix;};
+  const fill=emp=>{const g=capGroup(emp);if(!g)return 1;const o=occ[emp]||{botte:0,fix:0,board:0,f:0};if(meas(emp))return o.f||0;return (o.botte||0)/C[g].botte+((o.fix||0)+(o.board||0))/C[g].fix;};
   const free=(emp,t)=>Math.max(0,Math.floor((1-fill(emp))*cap(emp,t)+1e-6));
-  const add=(emp,t,n)=>{const x=occ[emp]=occ[emp]||{botte:0,fix:0,board:0};x[t]=(x[t]||0)+n;};
+  const add=(emp,t,n)=>{const x=occ[emp]=occ[emp]||{botte:0,fix:0,board:0,f:0};x[t]=(x[t]||0)+n;const c=slotCap(emp,typ(t));if(c)x.f=(x.f||0)+n/c;};
   return {cap,fill,free,add};}
+const mBox=(t,marque,modele)=>({t,b:modelBox(t,marque,modele)||typBox(t)});
 const plural=(n,a,b)=>n>1?b:a;
 /* Règles de rangement (choix de l'entrepôt) :
    - bottes : de préférence au milieu (MG / MD), plus facile d'accès ;
@@ -1206,7 +1288,7 @@ const tierOrder=(t,e,big)=>{const k=locTier(t,e,big);/* à rang égal : milieu a
 /* Conseils pour ranger n boîtes d'un modèle au même endroit : [{emp, why, moves:[{ids,from,to,label,n}]}] */
 function placeSuggest(t,marque,modele,genre,n){
   const big=t==='botte'&&n>=bigLot();
-  const occ=occMap(),X=capCtx(occ),ok=(ty,e,b)=>locTier(ty,e,b)>0,managed=LOCS.filter(e=>ok(t,e,big));
+  const occ=occMap(),BX=mBox(t,marque,modele),X=capCtx(occ,BX),ok=(ty,e,b)=>locTier(ty,e,b)>0,managed=LOCS.filter(e=>ok(t,e,big));
   const key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
   const here=new Map();S.articles.filter(a=>key(a)===K).forEach(a=>here.set(a.emp,(here.get(a.emp)||0)+qOf(a)));
   const sameLocs=[...here.entries()].sort((a,b)=>b[1]-a[1]);const res=[];
@@ -1215,7 +1297,7 @@ function placeSuggest(t,marque,modele,genre,n){
   if(fit)res.push({emp:fit[0],why:`avec ${fit[1]} ${modele} déjà là · place pour ≈ ${X.free(fit[0],t)}`,moves:[]});
   /* 2. sinon : libérer de la place à côté du même modèle en déplaçant de petits restes */
   const main=sameLocs.find(([e])=>ok(t,e,big));
-  if(!fit&&main){const L=main[0],occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2);
+  if(!fit&&main){const L=main[0],occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2,BX);
     const groups=new Map();S.articles.filter(a=>a.emp===L&&key(a)!==K&&qOf(a)>0&&!a._new).forEach(a=>{const k=key(a);const g=groups.get(k)||{ids:[],n:0,t:a.type,a,k};g.ids.push(a.id);g.n+=qOf(a);groups.set(k,g);});
     const moves=[];
     for(const g of [...groups.values()].filter(g=>g.n<=Math.max(6,n)).sort((x,y)=>x.n-y.n)){if(Y.free(L,t)>=n||moves.length>=3)break; /* seulement de petits restes */
@@ -1234,7 +1316,7 @@ function placeSuggest(t,marque,modele,genre,n){
 /* Trop gros pour un seul endroit : on répartit par groupes de tailles entières (une taille n'est coupée que si elle ne tient nulle part) */
 function splitLot(t,marque,modele,genre,sizes){
   const n=Object.values(sizes).reduce((x,y)=>x+y,0),big=t==='botte'&&n>=bigLot();
-  const occ=occMap(),X=capCtx(occ),K=[t,norm(marque),norm(modele),genre].join('|');
+  const occ=occMap(),X=capCtx(occ,mBox(t,marque,modele)),K=[t,norm(marque),norm(modele),genre].join('|');
   const same=new Set(S.articles.filter(a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|')===K).map(a=>a.emp));
   const zs=Object.keys(sizes).filter(z=>sizes[z]>0).sort((x,y)=>(t==='fix'?(S.sizesF.indexOf(x)+1||99)-(S.sizesF.indexOf(y)+1||99):sizeRankStr(x)-sizeRankStr(y))).map(z=>({z,q:sizes[z]}));
   const locs=LOCS.filter(e=>locTier(t,e,big)>0&&X.free(e,t)>0).map(e=>({e,room:X.free(e,t)}))
@@ -1247,7 +1329,7 @@ function splitLot(t,marque,modele,genre,sizes){
   return out;}
 function applyMoves(moves){let k=0;moves.forEach(m=>m.ids.forEach(id=>{const a=art(id);if(!a||a.emp!==m.from)return;
   const ex=S.articles.find(x=>x!==a&&x.emp===m.to&&x.type===a.type&&x.marque===a.marque&&x.modele===a.modele&&x.genre===a.genre&&x.taille===a.taille&&norm(x.couleur)===norm(a.couleur));
-  if(ex){ex.qty=qOf(ex)+qOf(a);S.articles=S.articles.filter(y=>y!==a);}else a.emp=m.to;k++;}));return k;}
+  if(ex){ex.qty=qOf(ex)+qOf(a);S.articles=S.articles.filter(y=>y!==a);relinkOrders(a.id,ex.id);}else a.emp=m.to;k++;}));return k;}
 function movesSheet(moves,emp,title){
   sheet(`<div class="sheet-in" style="display:flex;flex-direction:column;gap:12px">
     <div class="sheet-h"><h2>${title}</h2><button type="button" class="btn ghost" data-act="close">OK</button></div>
@@ -1267,12 +1349,12 @@ const gDesc=g=>`${TYPE[g.type]} · ${GENRE[g.genre]||''}${g.couleur?' · '+g.cou
    Proposé seulement si c'est utile : pas de place en un seul endroit, ou seulement en dernier recours,
    ou pour rejoindre le même modèle. On déplace au maximum 4 modèles et moins de boîtes qu'on n'en range. */
 function optimizeFor(t,marque,modele,genre,n){const big=t==='botte'&&n>=bigLot();
-  const occ=occMap(),X=capCtx(occ),key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
+  const occ=occMap(),BX=mBox(t,marque,modele),X=capCtx(occ,BX),key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
   const same=new Set(S.articles.filter(a=>key(a)===K).map(a=>a.emp)),brand=new Set(S.articles.filter(a=>a.type===t&&norm(a.marque)===norm(marque)).map(a=>a.emp));
   let best=null;
   LOCS.filter(L=>locTier(t,L,big)===1&&X.cap(L,t)>=n).forEach(L=>{
     if(X.free(L,t)>=n)return;
-    const occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2);
+    const occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2,BX);
     const groups=new Map();S.articles.filter(a=>a.emp===L&&key(a)!==K&&qOf(a)>0&&!a._new).forEach(a=>{const k=key(a);const g=groups.get(k)||{ids:[],n:0,t:a.type,a,k};g.ids.push(a.id);g.n+=qOf(a);groups.set(k,g);});
     /* d'abord ce qui n'est pas à sa place selon les règles, puis les plus petits */
     const order=[...groups.values()].sort((x,y)=>(locTier(y.t,L,false)-locTier(x.t,L,false))||x.n-y.n);
@@ -1321,7 +1403,7 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
 /* répartit les tailles d'un modèle dans ses morceaux (emplacements) */
 function chunkLines(step){const res=[];step.chunks.forEach(c=>Object.entries(c.sizes||{}).forEach(([z,q])=>{if(q>0)res.push({emp:c.emp,taille:z,qty:q});}));return res;}
 /* liste des emplacements possibles pour un morceau : d'abord ceux qui ont la place, puis les autres, puis hors racks */
-function chunkOpts(t,c){const X=capCtx(occMap()),big=t==='botte'&&c.n>=bigLot();
+function chunkOpts(g,c){const t=g.type,X=capCtx(occMap(),mBox(t,g.marque,g.modele)),big=t==='botte'&&c.n>=bigLot();
   const ok=LOCS.filter(e=>locTier(t,e,big)>0&&e!==c.emp).map(e=>[e,X.free(e,t)]);
   const fits=ok.filter(x=>x[1]>=c.n).sort((a,b)=>tierOrder(t,a[0],big)-tierOrder(t,b[0],big)||a[1]-b[1]);
   const small=ok.filter(x=>x[1]>0&&x[1]<c.n).sort((a,b)=>b[1]-a[1]);
@@ -1344,6 +1426,9 @@ function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k
     <h3 class="sec">1. Ce qui arrive ${A.groups.length?`<small class="opt">· ${A.groups.length} modèle${A.groups.length>1?'s':''} · ${tot} boîte${tot>1?'s':''}</small>`:''}</h3>
     ${A.groups.map(g=>`<div class="card agrp"><div class="agrp-h"><div><div class="t"><span class="mk">${esc(g.marque)}</span> ${esc(g.modele)}</div><div class="d">${esc(gDesc(g))}${g.annee?' · '+esc(g.annee):''}</div></div><b class="qn">${gTot(g)}</b></div>
       <div class="d mono" style="margin-top:6px">${gSizes(g).map(z=>`${esc(szLbl(g.type,z))} ×${g.sizes[z]}`).join(' · ')}</div>
+      ${g.type!=='board'&&!modelBox(g.type,g.marque,g.modele)?`<div class="boxask"><div><b>📦 Taille de la boîte ?</b> <small class="opt">Inconnue pour ce modèle : le rangement prend une boîte moyenne. Mesurez-en une (longueur × largeur × hauteur, en cm).</small></div>
+        <div class="inline"><input type="text" inputmode="decimal" class="dim-in" data-bx="${g.id}:L" placeholder="L" aria-label="Longueur">×<input type="text" inputmode="decimal" class="dim-in" data-bx="${g.id}:l" placeholder="l" aria-label="Largeur">×<input type="text" inputmode="decimal" class="dim-in" data-bx="${g.id}:H" placeholder="H" aria-label="Hauteur"> cm
+        <button type="button" class="btn sm" data-act="arrbox" data-g="${g.id}">Enregistrer</button></div></div>`:''}
       <div class="inline" style="margin-top:8px"><button type="button" class="btn sm" data-act="arredit" data-g="${g.id}">Modifier</button><button type="button" class="btn sm ghost${arm('ad'+g.id)?' armed':''}" data-act="arrdel" data-g="${g.id}">${arm('ad'+g.id)?'Confirmer : retirer':'Retirer'}</button></div></div>`).join('')||'<div class="empty">Rien pour l\'instant. Ajoutez le premier modèle.</div>'}
     <button type="button" class="btn primary block" data-act="arradd">+ Ajouter un modèle</button>
     ${plan.length?`<h3 class="sec">2. Plan de rangement</h3>
@@ -1355,7 +1440,7 @@ function vArrivage(){const A=arr(),tot=A.groups.reduce((x,g)=>x+gTot(g),0),arm=k
           <div class="chk-h">${c.emp?`<b class="mono pe">→ ${esc(c.emp)}</b>`:`<b class="bad">Sans place</b>`} <span>${c.n} ${plural(c.n,'boîte','boîtes')}</span>${c.forced?' <small class="opt">· choisi par vous</small>':''}</div>
           ${A.test?`<div class="chk-sz">${esc(chunkSizes(p.g.type,c))}</div>`:''}
           <label class="opt" for="ce-${p.g.id}-${ci}">${p.chunks.length>1?'Changer l\'emplacement de ce groupe de tailles':'Changer l\'emplacement'}</label>
-          <select id="ce-${p.g.id}-${ci}" data-arrchunk="${p.g.id}" data-sizes="${esc(Object.keys(c.sizes||{}).join('|'))}">${chunkOpts(p.g.type,c)}</select></div>`).join('')}</div>`).join('')}
+          <select id="ce-${p.g.id}-${ci}" data-arrchunk="${p.g.id}" data-sizes="${esc(Object.keys(c.sizes||{}).join('|'))}">${chunkOpts(p.g,c)}</select></div>`).join('')}</div>`).join('')}
       ${unplaced?`<div class="info">${unplaced} boîte${unplaced>1?'s':''} sans place dans les racks gérés : choisissez un emplacement avec « Changer l'emplacement » (la liste propose aussi le fond, la gauche, l'étagère et les blocs), ou augmentez les capacités dans Réglages.</div>`:''}
       <div class="inline" style="margin-top:10px"><button type="button" class="btn primary${arm('arrok')?' armed':''}" data-act="arrok"${unplaced?' disabled':''}>${A.test?`🧪 Essayer le rangement (${tot} boîtes)`:arm('arrok')?`Confirmer : ranger ${tot} boîtes`:`Valider : ranger les ${tot} boîtes`}</button>
         <button type="button" class="btn danger${arm('arrclr')?' armed':''}" data-act="arrclr">${arm('arrclr')?'Confirmer : tout effacer':'Effacer l\'arrivage'}</button></div>`:''}
@@ -1482,7 +1567,8 @@ function pwHash(pw){let h1=0x811c9dc5,h2=0x1505;const t='entrepot-snow|'+pw;
   return h1.toString(16)+'-'+h2.toString(16);}
 const LOCK_ACT={wipe:['Partir de zéro','Tout le stock (articles, commandes) sera effacé pour tout le monde. Impossible de revenir en arrière.','Effacer tout le stock'],
   reset:['Recharger la liste importée','Le stock actuel sera remplacé par la liste importée au début, pour tout le monde.','Recharger la liste'],
-  pwchange:['Changer le mot de passe','Entrez le mot de passe actuel.','Continuer']};
+  pwchange:['Changer le mot de passe','Entrez le mot de passe actuel.','Continuer'],
+  restore:['Revenir à une sauvegarde','Le stock (articles) sera remis comme dans la sauvegarde choisie, pour tout le monde. L\'état actuel est d\'abord gardé dans une sauvegarde.','Revenir à cette sauvegarde']};
 function lockSheet(act){
   if(!S.lock||!S.lock.h||act==='pwset'){sheet(`<form id="lockNew" class="sheet-in" style="display:flex;flex-direction:column;gap:12px" data-next="${act}">
       <div class="sheet-h"><h2>Créer un mot de passe</h2><button type="button" class="btn ghost" data-act="close">Annuler</button></div>
@@ -1504,7 +1590,7 @@ document.addEventListener('submit',e=>{const f=e.target;
     S.lock={h:pwHash(a),at:Date.now()};save();closeSheet();render();toast('<b>Mot de passe enregistré</b>');const nx=f.dataset.next;if(nx&&nx!=='pwchange'&&nx!=='pwset')lockSheet(nx);return;}
   if(f.id==='lockAsk'){e.preventDefault();const act=f.dataset.actTo;
     if(pwHash($('#pwAsk').value)!==S.lock.h){toast('<b>Mot de passe incorrect</b>');$('#pwAsk').value='';$('#pwAsk').focus();return;}
-    closeSheet();if(act==='wipe')doWipe();else if(act==='reset')doReset();else if(act==='pwchange')lockSheet('pwset');}});
+    closeSheet();if(act==='wipe')doWipe();else if(act==='reset')doReset();else if(act==='pwchange')lockSheet('pwset');else if(act==='restore')doRestore(st.restoreId);}});
 
 /* ---------- Magasin : mini-appli téléphone ---------- */
 /* Commander pas à pas : type → marque → modèle → homme/femme → taille → couleur → nombre */
@@ -2001,7 +2087,21 @@ document.addEventListener('click',e=>{
       const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const a=document.createElement('a');
       a.href=url;a.download=`stock-entrepot-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
       toast(`Copie téléchargée : <b>${S.articles.length} articles</b>. Elle est dans le dossier Téléchargements.`);break;}
-    case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
+    case'mvpick':{st.mv=st.mv||{};const a=art(t.dataset.id);if(!a)break;if(st.mv[a.id]!=null)delete st.mv[a.id];else st.mv[a.id]=qOf(a);render();break;}
+    case'mvall':{st.mv=st.mv||{};S.articles.filter(a=>matches(a)&&qOf(a)>0).forEach(a=>{st.mv[a.id]=qOf(a);});render();break;}
+    case'mvclear':st.mv={};render();break;
+    case'mvgo':{const to=($('#mvTo')||{}).value;if(!to){toast('Choisissez d\'abord <b>où les mettre</b>');$('#mvTo')&&$('#mvTo').focus();break;}
+      const pairs=Object.entries(st.mv||{}).map(([id,k])=>[art(id),k]).filter(x=>x[0]);const n=moveArticles(pairs,to);st.mv={};st.mvTo='';render();
+      if(n)toast(`<b>${n} boîte${n>1?'s':''}</b> déplacée${n>1?'s':''} vers <b>${esc(to)}</b>`);else toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);break;}
+    case'mvundo':undoLastMove();break;
+    case'jrundo':if(st.armed!=='jrundo'){st.armed='jrundo';render();break;}st.armed=null;undoJournal(jrLast());break;
+    case'bkload':backupsLoad();break;
+    case'bknow':if(!cloud.on)break;backupMake(dayId()+'-'+new Date().toTimeString().slice(0,5).replace(':','h'),'Sauvegarde manuelle').then(()=>{render();toast('<b>Sauvegarde faite</b>');}).catch(()=>toast('La sauvegarde a échoué (connexion ?)'));break;
+    case'bkrestore':st.restoreId=t.dataset.id;lockSheet('restore');break;
+    case'arrbox':{const g=arr().groups.find(x=>String(x.id)===t.dataset.g);if(!g)break;const v=k=>num(($(`[data-bx="${g.id}:${k}"]`)||{}).value);const L=v('L'),l=v('l'),H=v('H');
+      if(!L||!l||!H){toast('Indiquez les <b>3 mesures</b> de la boîte');break;}
+      dims().boxes.push({id:'b'+Date.now().toString(36),type:g.type,marque:g.marque,modele:g.modele,from:'',to:'',L,l,H});save();render();toast(`Boîte ${esc(g.modele)} enregistrée : ${L} × ${l} × ${H} cm`);break;}
+    case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.arts=cloud.sent.arts||new Map();cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
     case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
     case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
     case'light':{const on=!lightOn();LIGHT=on;try{localStorage.setItem(KEY+'-light',on?'1':'0');}catch(e){}
@@ -2094,9 +2194,11 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='importFile'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const sk=d&&d.stock;
       if(!sk||!Array.isArray(sk.articles))throw new Error('format');
       STOCK_KEYS.forEach(k=>{if(sk[k]!==undefined)S[k]=sk[k];});
-      if(cloud.on){cloud.empty=false;cloud.sent.stock='';cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();}
+      if(cloud.on){cloud.empty=false;cloud.sent.stock='';cloud.sent.arts=cloud.sent.arts||new Map();cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();}
       save();render();toast(`Copie chargée : <b>${S.articles.length} articles</b>${cloud.on?' · envoyés en ligne':''}`);}
     catch(err){toast("Ce fichier n'est pas une copie du stock.");}};r.readAsText(t.files[0]);t.value='';return;}
+  if(t.dataset&&t.dataset.mvq){const a=art(t.dataset.mvq);if(a&&st.mv){st.mv[a.id]=Math.max(1,Math.min(qOf(a),parseInt(t.value)||1));render();}return;}
+  if(t.id==='mvTo'){st.mvTo=t.value;return;}
   const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fCouleur:'fCouleur',fSerrage:'fSerrage'};
   if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id==='freeTxt'){e.preventDefault();document.querySelector('[data-act="free"]').click();}
@@ -2106,28 +2208,80 @@ const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"en
   storageBucket:"entrepotsnow.firebasestorage.app",messagingSenderId:"754342580173",appId:"1:754342580173:web:20ee46db9b4aab080c7e84"};
 const FBU='https://www.gstatic.com/firebasejs/10.12.2/';
 const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','dims','lock'];
+/* En ligne, chaque article est un document à part (collection « arts ») : deux personnes qui changent
+   des articles différents en même temps ne s'écrasent plus. cfg/stock ne garde que les réglages (listes, mesures…). */
+const CFG_KEYS=STOCK_KEYS.filter(k=>k!=='articles');
 /* ?ns=test : bac à sable pour les essais, sans toucher aux vraies données */
 const NS=(()=>{try{return (new URLSearchParams(location.search).get('ns')||'').replace(/[^a-z0-9]/gi,'');}catch(e){return'';}})();
 const C=n=>NS?NS+'_'+n:n;
-const cloud={on:false,fs:null,db:null,pending:false,sent:{stock:null,orders:null,notifs:null}};
+const cloud={on:false,fs:null,db:null,pending:false,sent:{stock:null,arts:null,orders:null,notifs:null},journal:[],backups:null};
 const stockJson=()=>JSON.stringify(Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]])));
+const cfgJson=()=>JSON.stringify(Object.fromEntries(CFG_KEYS.map(k=>[k,S[k]])));
+const artDocId=id=>String(id).replace(/\//g,'_');
+const dayId=(t=Date.now())=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+let pushMeta=null; /* étiquette de la prochaine modification (annulation, retour à une sauvegarde…) pour l'historique */
 function setSync(state,txt){const e=$('#sync');if(!e)return;e.dataset.s=state;e.textContent=txt;}
 /* ne pas redessiner sous les doigts de quelqu'un qui tape */
 function softRender(){const ae=document.activeElement;
   if(ae&&$('#view').contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)){cloud.pending=true;return;}render();}
 document.addEventListener('focusout',()=>{if(!cloud.pending)return;setTimeout(()=>{const ae=document.activeElement;
   if(!(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))){cloud.pending=false;render();}},60);});
+/* texte lisible d'un changement d'articles, pour l'historique */
+function chText(c){const b=c.b&&JSON.parse(c.b),a=c.a&&JSON.parse(c.a),x=a||b,nm=`${x.marque} ${x.modele} ${szLbl(x.type,x.taille)}`;
+  if(a&&b){if(a.emp!==b.emp)return `${nm} : ${b.emp} → ${a.emp}${qOf(a)!==qOf(b)?` (${qOf(b)} → ${qOf(a)})`:` (×${qOf(a)})`}`;
+    if(qOf(a)!==qOf(b))return `${nm} en ${a.emp} : ${qOf(b)} → ${qOf(a)}`;return `${nm} en ${a.emp} : fiche modifiée`;}
+  return a?`+ ${nm} en ${a.emp} ×${qOf(a)}`:`− ${nm} en ${b.emp} ×${qOf(b)}`;}
 function cloudPush(){
   if(!cloud.on)return;const {fs,db}=cloud;
-  if(cloud.sent.stock!==null&&role==='entrepot'){const j=stockJson();
-    if(j!==cloud.sent.stock){cloud.sent.stock=j;fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,at:Date.now()}).catch(cloudErr);}}
+  if(role==='entrepot'){
+    if(cloud.sent.stock!==null){const j=cfgJson();if(j!==cloud.sent.stock){cloud.sent.stock=j;fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,v:2,at:Date.now()}).catch(cloudErr);}}
+    if(cloud.sent.arts)pushArts();}
   [['orders',S.orders],['notifs',S.notifs]].forEach(([col,arr])=>{const sent=cloud.sent[col];if(!sent)return;
     const seen=new Set();
     arr.forEach(x=>{const id=String(x.id).replace('.','_'),j=JSON.stringify(x);seen.add(id);
       if(sent.get(id)!==j){sent.set(id,j);fs.setDoc(fs.doc(db,C(col),id),{json:j,at:Date.now()}).catch(cloudErr);}});
     [...sent.keys()].forEach(id=>{if(!seen.has(id)){sent.delete(id);fs.deleteDoc(fs.doc(db,C(col),id)).catch(cloudErr);}});});}
+/* n'envoie que les articles changés (par lots), et note le changement dans l'historique */
+function pushArts(){const {fs,db}=cloud,sent=cloud.sent.arts,seen=new Set(),ch=[];
+  S.articles.forEach(a=>{const id=artDocId(a.id),j=JSON.stringify(a);seen.add(id);const b=sent.get(id)||null;if(b!==j)ch.push({id,b,a:j});});
+  [...sent.keys()].forEach(id=>{if(!seen.has(id))ch.push({id,b:sent.get(id),a:null});});
+  const meta=pushMeta;pushMeta=null;if(!ch.length)return;const at=Date.now();
+  for(let i=0;i<ch.length;i+=400){const B=fs.writeBatch(db);
+    ch.slice(i,i+400).forEach(c=>{const r=fs.doc(db,C('arts'),c.id);if(c.a){sent.set(c.id,c.a);B.set(r,{json:c.a,at});}else{sent.delete(c.id);B.delete(r);}});
+    B.commit().catch(cloudErr);}
+  const big=ch.reduce((n,c)=>n+(c.a||'').length+(c.b||'').length,0)>700000,lines=ch.slice(0,12).map(chText);
+  fs.setDoc(fs.doc(db,C('journal'),at+'-'+Math.random().toString(36).slice(2,6)),{at,by:me()||'',n:ch.length,lines,kind:meta&&meta.kind||'',label:meta&&meta.label||'',ref:meta&&meta.ref||'',ch:big?null:ch}).catch(cloudErr);}
 function cloudErr(e){console.warn('Synchro',e);setSync('off','Hors ligne');}
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+/* ---------- Historique : annuler la dernière modification du stock ---------- */
+const jrLast=()=>cloud.journal.find(e=>!e.undone&&e.kind!=='undo'&&e.ch);
+function undoJournal(e){if(!cloud.on||!cloud.sent.arts||!e||!e.ch)return;const cur=cloud.sent.arts;
+  const bad=e.ch.filter(c=>(cur.get(c.id)||null)!==c.a);
+  if(bad.length){toast(`Impossible d'annuler : ${bad.length} article${bad.length>1?'s ont':' a'} été modifié${bad.length>1?'s':''} depuis (${esc(chText({b:bad[0].a||bad[0].b,a:cur.get(bad[0].id)||null}).slice(0,60))}…).`);return;}
+  e.ch.forEach(c=>{const i=S.articles.findIndex(a=>artDocId(a.id)===c.id);
+    if(c.b){const o=JSON.parse(c.b);if(i>=0)S.articles[i]=o;else S.articles.push(o);}else if(i>=0)S.articles.splice(i,1);});
+  pushMeta={kind:'undo',ref:e.id,label:'Annulation'};save();
+  cloud.fs.updateDoc(cloud.fs.doc(cloud.db,C('journal'),e.id),{undone:Date.now(),undoneBy:me()||''}).catch(cloudErr);
+  render();toast(`<b>Annulé</b> : ${e.n} article${e.n>1?'s':''} remis comme avant`);}
+/* ---------- Sauvegardes : une copie complète par jour (à la première ouverture), 30 jours gardés ---------- */
+async function backupMake(id,why){const {fs,db}=cloud,at=Date.now();
+  await fs.setDoc(fs.doc(db,C('backups'),id),{at,by:me()||'',why:why||'',n:S.articles.length,p:S.articles.reduce((t,a)=>t+qOf(a),0),json:stockJson()});
+  const ix=fs.doc(db,C('cfg'),'backups'),d=await fs.getDoc(ix),list=(d.exists()&&d.data().list||[]).filter(x=>x.id!==id);
+  list.push({id,at,why:why||'',n:S.articles.length,p:S.articles.reduce((t,a)=>t+qOf(a),0),by:me()||''});list.sort((x,y)=>x.at-y.at);
+  const old=list.splice(0,Math.max(0,list.length-30));old.forEach(x=>fs.deleteDoc(fs.doc(db,C('backups'),x.id)).catch(()=>{}));
+  await fs.setDoc(ix,{list});cloud.backups=list;}
+async function dailyBackup(){if(cloud.bk||role!=='entrepot'||!cloud.on||!cloud.sent.arts||!cloud.sent.arts.size)return;cloud.bk=1;
+  try{const {fs,db}=cloud,id=dayId(),d=await fs.getDoc(fs.doc(db,C('backups'),id));if(!d.exists())await backupMake(id,'Sauvegarde du jour');
+    const old=await fs.getDocs(fs.query(fs.collection(db,C('journal')),fs.where('at','<',Date.now()-30*864e5)));old.forEach(x=>fs.deleteDoc(x.ref).catch(()=>{}));}
+  catch(e){console.warn('Sauvegarde',e);}}
+async function backupsLoad(){if(!cloud.on)return;try{const d=await cloud.fs.getDoc(cloud.fs.doc(cloud.db,C('cfg'),'backups'));cloud.backups=d.exists()&&d.data().list||[];}catch(e){cloud.backups=[];}softRender();}
+async function doRestore(id){if(!cloud.on)return;const {fs,db}=cloud;
+  try{const d=await fs.getDoc(fs.doc(db,C('backups'),id));if(!d.exists()){toast('Sauvegarde introuvable');return;}
+    const old=JSON.parse(d.data().json);
+    await backupMake(dayId()+'-avant-retour-'+new Date().toTimeString().slice(0,5).replace(':','h'),'Avant le retour au '+id);
+    S.articles=old.articles||[];pushMeta={kind:'restore',ref:id,label:'Retour à la sauvegarde du '+id};save();render();
+    toast(`Stock remis comme le <b>${esc(id)}</b> : ${S.articles.length} articles. L'état d'avant est gardé dans les sauvegardes.`);}
+  catch(e){console.warn(e);toast('Le retour à la sauvegarde a échoué (connexion ?)');}}
 async function cloudStart(){
   if(location.protocol==='file:'){setSync('off','Fichier local, pas en ligne');return;}
   setSync('wait','Connexion…');
@@ -2138,12 +2292,29 @@ async function cloudStart(){
     await auth.signInAnonymously(auth.getAuth(a));
     const db=fs.getFirestore(a);Object.assign(cloud,{fs,db,on:true});
     const unreadIds=()=>new Set(unread().map(n=>String(n.id)));
-    /* Stock : écrit par l'entrepôt. La première fois, l'entrepôt envoie ce qu'il a déjà sur l'appareil. */
+    /* passage à l'ancien format (tout le stock dans cfg/stock) → un document par article, une seule fois */
+    let cfgArts=null,artsSeen=false,migrating=false;
+    const tryMigrate=async()=>{if(migrating||!artsSeen||!cfgArts||!cfgArts.length||(cloud.sent.arts&&cloud.sent.arts.size))return;migrating=true;
+      try{for(let i=0;i<cfgArts.length;i+=400){const B=fs.writeBatch(db);cfgArts.slice(i,i+400).forEach(x=>B.set(fs.doc(db,C('arts'),artDocId(x.id)),{json:JSON.stringify(x),at:Date.now()}));await B.commit();}
+        const j=cfgJson();cloud.sent.stock=j;await fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,v:2,at:Date.now()});}
+      catch(e){console.warn('Migration',e);migrating=false;}};
+    /* réglages (listes, mesures, mot de passe) */
     fs.onSnapshot(fs.doc(db,C('cfg'),'stock'),snap=>{
       if(!snap.exists()){cloud.empty=true;softRender();return;}
       cloud.empty=false;
-      const j=snap.data().json;if(j===cloud.sent.stock)return;
-      cloud.sent.stock=j;Object.assign(S,JSON.parse(j));saveLocal();softRender();setSync('on','En ligne');
+      const o=JSON.parse(snap.data().json);
+      if(Array.isArray(o.articles)&&o.articles.length&&!(cloud.sent.arts&&cloud.sent.arts.size)){cfgArts=o.articles;S.articles=o.articles;tryMigrate();}
+      else if(o.articles&&cloud.sent.arts&&cloud.sent.arts.size&&role==='entrepot')setTimeout(()=>{cloud.sent.stock='';cloudPush();},1500); /* migration coupée en route, ou ancienne version de l'appli : on retire les articles de cfg */
+      CFG_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k];});cloud.sent.stock=cfgJson();
+      saveLocal();softRender();setSync('on','En ligne');
+    },cloudErr);
+    /* articles : un document chacun */
+    fs.onSnapshot(fs.collection(db,C('arts')),qs=>{
+      const m=new Map();qs.forEach(d=>m.set(d.id,d.data().json));artsSeen=true;
+      const first=!cloud.sent.arts;
+      if(!m.size){if(cfgArts&&cfgArts.length){tryMigrate();return;}if(first&&S.articles.length)return; /* base vide : on attend le bouton « Envoyer » */}
+      cloud.sent.arts=m;S.articles=[...m.values()].map(x=>JSON.parse(x));
+      saveLocal();softRender();setSync('on','En ligne');dailyBackup();
     },cloudErr);
     [['orders','orders'],['notifs','notifs']].forEach(([col,key])=>{
       fs.onSnapshot(fs.collection(db,C(col)),qs=>{
@@ -2158,6 +2329,9 @@ async function cloudStart(){
         if(key==='notifs'&&!first){const fresh=unread().filter(n=>!before.has(String(n.id)));
           if(fresh.length){toast(`🔔 <b>${esc(fresh[fresh.length-1].text)}</b>`,true);try{navigator.vibrate&&navigator.vibrate([200,100,200]);}catch(e){}}}
       },cloudErr);});
+    /* historique : les 20 dernières modifications du stock */
+    if(role==='entrepot')fs.onSnapshot(fs.query(fs.collection(db,C('journal')),fs.orderBy('at','desc'),fs.limit(20)),qs=>{
+      cloud.journal=qs.docs.map(d=>({id:d.id,...d.data()}));if(st.tab==='settings'||st.tab==='move')softRender();},e=>console.warn('Historique',e));
   }catch(e){console.warn('Synchro indisponible',e);cloud.on=false;setSync('off','Hors ligne');}
 }
 window.addEventListener('offline',()=>setSync('off','Hors ligne'));
