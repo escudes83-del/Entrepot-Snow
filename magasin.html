@@ -1292,6 +1292,10 @@ function placeSuggest(t,marque,modele,genre,n){
   /* 1. avec le même modèle, s'il y a la place (et si l'emplacement est permis) */
   const fit=sameLocs.find(([e])=>ok(t,e,big)&&X.free(e,t)>=n);
   if(fit)res.push({emp:fit[0],why:`avec ${fit[1]} ${modele} déjà là · place pour ≈ ${X.free(fit[0],t)}`,moves:[]});
+  /* 1 bis. sinon : un emplacement libre dans le même rack, juste à côté du même modèle (ex. MG5.2 sous MG5.3), sans rien déplacer */
+  const rackOf=e=>(/^([A-Z]+\d+)\./.exec(e)||[])[1],racks=new Map(sameLocs.map(([e,q])=>[rackOf(e),e]));
+  const near=fit?null:managed.filter(e=>!here.has(e)&&racks.has(rackOf(e))&&X.free(e,t)>=n).sort((a,b)=>tierOrder(t,a,big)-tierOrder(t,b,big)||X.free(a,t)-X.free(b,t))[0];
+  if(near){const by=racks.get(rackOf(near));res.push({emp:near,near:true,why:`juste à côté des ${here.get(by)} ${modele} (${by}), sans rien déplacer · place pour ≈ ${X.free(near,t)}`,moves:[]});}
   /* 2. sinon : libérer de la place à côté du même modèle en déplaçant de petits restes */
   const main=sameLocs.find(([e])=>ok(t,e,big));
   if(!fit&&main){const L=main[0],occ2=JSON.parse(JSON.stringify(occ)),Y=capCtx(occ2,BX);
@@ -1388,7 +1392,7 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
       let c=r.res[0]||null;const bigG=g.type==='botte'&&nRest>=bigLot();
       /* optimisation : si pas de place d'un seul tenant, ou seulement en dernier recours, ou loin du même modèle.
          Jamais quand le conseil est déjà avec le même modèle : le regrouper passe avant la règle « bottes au milieu ». */
-      const withSame=c&&r.here.some(([e])=>e===c.emp);
+      const withSame=c&&(c.near||r.here.some(([e])=>e===c.emp));
       if(A.opt!==false&&!withSame&&(!c||locTier(g.type,c.emp,bigG)===2||(r.here.length&&!r.here.some(([e])=>e===c.emp)))){const o=optimizeFor(g.type,g.marque,g.modele,g.genre,nRest);
         if(o&&(!c||o.why.startsWith('avec le même')||locTier(g.type,c.emp,bigG)===2)){c=o;step.opt=true;}}
       if(c){if(c.moves.length){applyMoves(c.moves);step.moves=c.moves;}put(c.emp,all);step.why=c.why;}
