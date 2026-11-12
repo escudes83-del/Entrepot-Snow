@@ -713,12 +713,14 @@ function locFree(code,b){const c=slotCap(code,b);return c?Math.max(0,Math.floor(
 const sameArt=(x,a)=>x.type===a.type&&x.marque===a.marque&&x.modele===a.modele&&x.genre===a.genre&&x.taille===a.taille&&norm(x.couleur)===norm(a.couleur);
 function relinkOrders(from,to){S.orders.forEach(o=>{if(o.status!=='demandee'&&o.status!=='prep')return;o.lines.forEach(l=>{if(l.aid===from)l.aid=to;});});(S.cart||[]).forEach(l=>{if(l.aid===from)l.aid=to;});}
 let lastMove=null;
-function moveArticles(pairs,to){const before=JSON.stringify(S.articles),stamp=Date.now().toString(36);let n=0;
+/* cote : 'G' ou 'D' = ranger à gauche ou à droite du niveau (vu depuis l'allée) ; absent = garder */
+function moveArticles(pairs,to,cote){const before=JSON.stringify(S.articles),stamp=Date.now().toString(36);let n=0;
   pairs.forEach(([a,k0],i)=>{if(!a||a.emp===to||!qOf(a))return;const k=Math.min(qOf(a),Math.max(1,k0||qOf(a)));n+=k;
     const ex=S.articles.find(x=>x!==a&&x.emp===to&&sameArt(x,a));
-    if(k>=qOf(a)){if(ex){ex.qty=qOf(ex)+k;S.articles=S.articles.filter(y=>y!==a);relinkOrders(a.id,ex.id);}else a.emp=to;}
-    else{a.qty=qOf(a)-k;if(ex)ex.qty=qOf(ex)+k;else S.articles.push({...a,id:'a'+stamp+'m'+i,emp:to,qty:k});}});
-  if(n){pushMeta={kind:'move',label:`Déplacement vers ${to}`};save();lastMove={before,after:JSON.stringify(S.articles),n,to};}return n;}
+    const side=x=>{if(cote==='G')delete x.cote;else if(cote==='D')x.cote='D';};
+    if(k>=qOf(a)){if(ex){ex.qty=qOf(ex)+k;side(ex);S.articles=S.articles.filter(y=>y!==a);relinkOrders(a.id,ex.id);}else{a.emp=to;side(a);}}
+    else{a.qty=qOf(a)-k;if(ex){ex.qty=qOf(ex)+k;side(ex);}else{const x={...a,id:'a'+stamp+'m'+i,emp:to,qty:k};side(x);S.articles.push(x);}}});
+  if(n){pushMeta={kind:'move',label:`Déplacement vers ${to}${cote==='D'?' (à droite)':cote==='G'?' (à gauche)':''}`};save();lastMove={before,after:JSON.stringify(S.articles),n,to};}return n;}
 function undoLastMove(){if(!lastMove)return;
   if(JSON.stringify(S.articles)!==lastMove.after){lastMove=null;render();toast('Le stock a changé depuis : passez par Réglages › Historique.');return;}
   S.articles=JSON.parse(lastMove.before);lastMove=null;pushMeta={kind:'undo',label:'Annulation d\'un déplacement'};save();render();toast('Déplacement annulé');}
@@ -726,7 +728,7 @@ function undoLastMove(){if(!lastMove)return;
 function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const a=art(id);if(!a||!qOf(a))delete sel[id];else sel[id]=Math.min(qOf(a),Math.max(1,sel[id]||1));});
   const list=sortArts(S.articles.filter(a=>matches(a)&&qOf(a)>0)),show=filtering(),MAX=80;
   const chosen=Object.keys(sel).map(art).filter(Boolean),nb=chosen.reduce((t,a)=>t+sel[a.id],0);
-  const row=a=>{const on=sel[a.id]!=null;return `<div class="row mvrow${on?' on':''}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(artDesc(a))} · <b>${qOf(a)} en stock</b></div></div>
+  const row=a=>{const on=sel[a.id]!=null;return `<div class="row mvrow${on?' on':''}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(artDesc(a))} · <b>${qOf(a)} en stock</b>${a.cote==='D'?' · rangé à droite':''}</div></div>
     <div class="acts">${on?`<span class="mvq"><input type="number" min="1" max="${qOf(a)}" value="${sel[a.id]}" data-mvq="${a.id}" inputmode="numeric" aria-label="Nombre de boîtes à déplacer"><small>/ ${qOf(a)}</small></span>`:''}<button type="button" class="btn sm${on?' primary':''}" data-act="mvpick" data-id="${a.id}" aria-pressed="${on}">${on?'✓ Choisi':'Choisir'}</button></div></div>`;};
   let dest='';
   if(chosen.length){const fq=new Map();chosen.forEach(a=>{const b=boxOf(a);fq.set(b,(fq.get(b)||0)+sel[a.id]);});const ref=[...fq.entries()].sort((x,y)=>y[1]-x[1])[0][0];
@@ -740,6 +742,7 @@ function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const
         <button type="button" class="btn sm ghost" data-act="mvclear">Tout retirer</button></div>
       <div class="field"><label for="mvTo">Où les mettre ? <small class="opt">★ = le même modèle y est déjà · place calculée d'après les mesures</small></label>
         <select id="mvTo"><option value="">Choisir l'emplacement…</option>${fits.length?`<optgroup label="Assez de place pour ${nb}">${fits.map(o).join('')}</optgroup>`:''}${small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(o).join('')}</optgroup>`:''}${unk.length?`<optgroup label="Pas encore mesurés">${unk.map(o).join('')}</optgroup>`:''}</select></div>
+      <div class="field"><span class="lbl-s">De quel côté du niveau ? <small class="opt">vu depuis l'allée</small></span><div class="seg" role="group" aria-label="Côté du niveau">${[['G','⬅ À gauche'],['D','À droite ➡']].map(([k,l])=>`<button type="button" data-act="mvside" data-v="${k}" aria-pressed="${(st.mvSide||'G')===k}">${l}</button>`).join('')}</div></div>
       <button type="button" class="btn primary block" data-act="mvgo">Déplacer ${nb} boîte${nb>1?'s':''}</button></div>`;}
   const done=lastMove&&JSON.stringify(S.articles)===lastMove.after?`<div class="info mvdone"><span>✓ <b>${lastMove.n} boîte${lastMove.n>1?'s':''}</b> déplacée${lastMove.n>1?'s':''} vers <b>${esc(lastMove.to)}</b></span><button type="button" class="btn sm" data-act="mvundo">↶ Annuler ce déplacement</button></div>`:'';
   return `<div><h2>Déplacer des boîtes</h2><p class="sub">1. Trouvez les boîtes avec la recherche · 2. touchez « Choisir » (et le nombre si vous n'en déplacez qu'une partie) · 3. choisissez où les mettre. Le stock est mis à jour pour tout le monde.</p></div>
@@ -799,8 +802,10 @@ const P3D=(()=>{
     if(bg){x.fillStyle=bg;const r=18;x.beginPath();x.moveTo(r,0);x.arcTo(w,0,w,92,r);x.arcTo(w,92,0,92,r);x.arcTo(0,92,0,0,r);x.arcTo(0,0,w,0,r);x.fill();}x.fillStyle=fg;x.textBaseline='middle';x.fillText(text,22,48);return c;}
   function sprite(text,x,y,z,h,dim){const c=textCanvas(text,dim?'rgba(255,255,255,.75)':'#fff',dim?'rgba(20,27,36,.4)':'rgba(20,27,36,.82)'),sp=new T3.Sprite(new T3.SpriteMaterial({map:new T3.CanvasTexture(c),depthWrite:false}));sp.scale.set(h*c.width/c.height,h,1);sp.position.set(x,y,z);gR.add(sp);}
   function floorText(text,x,z,h,rot){const c=textCanvas(text,'rgba(255,255,255,.9)','rgba(20,27,36,.45)'),m=new T3.Mesh(new T3.PlaneGeometry(h*c.width/c.height,h),new T3.MeshBasicMaterial({map:new T3.CanvasTexture(c),transparent:true,depthWrite:false}));m.rotation.set(-Math.PI/2,0,rot||0);m.position.set(x,1,z);gR.add(m);}
-  function slot(code,F,len,dep,y,h){const hm=new T3.Mesh(new T3.BoxGeometry(...F.s(len-2,dep-2,h-1)),new T3.MeshBasicMaterial({color:0xff7a33,transparent:true,opacity:0,depthWrite:false}));
-    hm.position.set(...F.c(len/2,dep/2,y+h/2));hm.userData={code,F,len,dep,y,h};gR.add(hm);hitsL.push(hm);}
+  /* flip : le début du rack (u = 0) est à droite quand on le regarde depuis l'allée */
+  const isFlip=(ax,fd)=>ax==='z'?fd<0:fd>0;
+  function slot(code,F,len,dep,y,h,M){const hm=new T3.Mesh(new T3.BoxGeometry(...F.s(len-2,dep-2,h-1)),new T3.MeshBasicMaterial({color:0xff7a33,transparent:true,opacity:0,depthWrite:false}));
+    hm.position.set(...F.c(len/2,dep/2,y+h/2));hm.userData={code,F,len,dep,y,h,...M};gR.add(hm);hitsL.push(hm);}
   /* un rack : niveaux empilés à leurs hauteurs mesurées, pas de dessus */
   function rack(o){const F=frame(o.ax,o.ox,o.oz,o.fd),hs=[1,2,3].map(l=>dimOf(o.code(l,'G')).H||LVD),ds=[1,2,3].map(l=>{const P=dimOf(o.code(l,'G')).P;return P?(o.split?P*2:P):o.dep;});
     const dep=Math.max(o.dep,...ds),ys=[BASE];for(let i=1;i<3;i++)ys[i]=ys[i-1]+SH+hs[i-1];const top=ys[2]+SH+hs[2];
@@ -809,8 +814,9 @@ const P3D=(()=>{
     o.levels.forEach(l=>cub(F,0,0,ys[l-1],o.len,ds[l-1],SH,mShelf));
     if(o.split)cub(F,5,dep/2-.75,BASE,o.len-10,1.5,top-BASE,mWall);
     if(!o.noSlot)o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];
-      if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h);slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h);}
-      else slot(o.code(l),F,o.len,ds[l-1],y,h);});
+      const M=fd=>({ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
+      if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h,M(o.fd));slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h,M(-o.fd));}
+      else slot(o.code(l),F,o.len,ds[l-1],y,h,M(o.fd));});
     return top;}
   /* une planche de snow debout : spatules arrondies, taille cintrée (sidecut), nose et tail relevés, carres sombres */
   function boardGeo(){const L=150,Wn=29.5,Ww=25,E=13,h=L/2,cx=Ww-Wn/2,sh=new T3.Shape();
@@ -836,6 +842,16 @@ const P3D=(()=>{
     sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
     floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
+  /* boîtes « à gauche » depuis le bout gauche, « à droite » depuis le bout droit (vu depuis l'allée) ; si les deux se chevauchent, tout à la suite */
+  function packSides(bxs,Lc,Hc,LN,flip){
+    const best=list=>{if(!list.length)return {res:[],over:0};const a=pack(list,Lc,Hc,LN),b=a.over?pack(list,Lc,Hc,LN,1):a;return b.over<a.over?b:a;};
+    const mir=r=>r.res.forEach(p=>{p.u=Lc-p.u-p.a;});
+    const Lb=bxs.filter(x=>x.a.cote!=='D'),Rb=bxs.filter(x=>x.a.cote==='D');
+    if(Lb.length&&Rb.length){const A=best(Lb),B=best(Rb),near=flip?B:A,far=flip?A:B;mir(far);
+      const ok=[...new Set(near.res.map(p=>p.v))].every(v=>{const e=Math.max(...near.res.filter(p=>p.v===v).map(p=>p.u+p.a)),f=far.res.filter(p=>p.v===v).map(p=>p.u);return !f.length||e<=Math.min(...f)+.5;});
+      if(ok)return {res:near.res.concat(far.res),over:A.over+B.over};
+      const r=best(Lb.concat(Rb));if(flip)mir(r);return r;}
+    const right=!!Rb.length,r=best(right?Rb:Lb);if(right!==flip)mir(r);return r;}
   function pack(bxs,Lc,Hc,LN,mix){const res=[];let li=0,u=0,w=0,cw=0,prev=null,over=0;
     for(const bx of bxs){let ok=false;
       while(li<LN.length){const [a,d,h]=ori(LN[li].o,bx.b);
@@ -850,7 +866,7 @@ const P3D=(()=>{
     if(gB){scene.remove(gB);gB.traverse(o=>o.geometry&&o.geometry.dispose());}gB=new T3.Group();scene.add(gB);inst=[];IM=null;const cells=[];
     hitsL.forEach(hm=>{const {code,F,len,y}=hm.userData,list=by[code];if(!list)return;const g=geo(hm),o=occ[code],bxs=[];
       list.slice().sort((x,z)=>gkey(x).localeCompare(gkey(z))||sizeRank(x)-sizeRank(z)).forEach(a=>{const b=boxFor(a)||DEFB[a.type]||DEFB.botte;for(let i=0;i<Math.min(qOf(a),600);i++)bxs.push({a,b,g:gkey(a)});});
-      const fq=new Map();bxs.forEach(x=>fq.set(x.b,(fq.get(x.b)||0)+1));const ref=[...fq.entries()].sort((x,y)=>y[1]-x[1])[0][0],LN=lanes(g.pose,g.Pc,ref,g.Lc,g.Hc),r0=pack(bxs,g.Lc,g.Hc,LN),r1=r0.over?pack(bxs,g.Lc,g.Hc,LN,1):r0,r=r1.over<r0.over?r1:r0,u0=(len-g.Lc)/2;
+      const fq=new Map();bxs.forEach(x=>fq.set(x.b,(fq.get(x.b)||0)+1));const ref=[...fq.entries()].sort((x,y)=>y[1]-x[1])[0][0],LN=lanes(g.pose,g.Pc,ref,g.Lc,g.Hc),r=packSides(bxs,g.Lc,g.Hc,LN,hm.userData.flip),u0=(len-g.Lc)/2;
       o.n=r.res.length;o.over=r.over;o.known=g.known;o.cap=capacity(ref,g.Lc,g.Hc,LN);
       r.res.forEach(p=>cells.push({c:F.c(u0+p.u+p.a/2,p.v+p.d/2,y+p.w+p.h/2),s:F.s(p.a*.96,p.d*.96,p.h*.93),aid:p.bx.a.id,code}));});
     if(cells.length){IM=new T3.InstancedMesh(new T3.BoxGeometry(1,1,1),new T3.MeshLambertMaterial({color:0xffffff}),cells.length);const o=new T3.Object3D();
@@ -887,7 +903,7 @@ const P3D=(()=>{
     if(g)side.append(el('p','opt',g.known?`Mesures : ${fmtD({L:g.Lc,P:g.Pc,H:g.Hc},['L','P','H'])} cm${POSE[g.pose]?' · '+POSE[g.pose].toLowerCase():''} · place pour ~${cap} boîtes ${d.p?'de ce format':'de bottes'}`:'Pas encore mesuré : taille estimée.'));
     if(d.over)side.append(el('p','p3d-warn',d.known?`${pl(d.over,'boîte ne rentre','boîtes ne rentrent')} pas avec ces mesures (non ${d.over>1?'dessinées':'dessinée'}). À vérifier : mesures, pose ou stock.`:`${pl(d.over,'boîte non dessinée','boîtes non dessinées')} : cet emplacement n'est pas encore mesuré.`));
     if(!d.p)side.append(el('p','opt','Emplacement vide.'));
-    else{const ul=el('ul','p3d-list');[...d.m.values()].sort((x,y)=>y.n-x.n).forEach(x=>{const li=el('li','click'),t=el('span'),s=el('i','p3d-sw');s.style.background=baseCol(x.a);t.append(s,document.createTextNode(gname(x.a)));li.append(t,el('span',null,String(x.n)));
+    else{const ul=el('ul','p3d-list');[...d.m.values()].sort((x,y)=>y.n-x.n).forEach(x=>{const li=el('li','click'),t=el('span'),s=el('i','p3d-sw');s.style.background=baseCol(x.a);t.append(s,document.createTextNode(gname(x.a)+(x.a.cote==='D'?' · à droite':'')));li.append(t,el('span',null,String(x.n)));
       li.title='Choisir ces boîtes';li.addEventListener('click',()=>{pick.clear();S.articles.filter(a=>a.emp===sel&&gkey(a)===gkey(x.a)&&qOf(a)>0).forEach(a=>pick.set(a.id,qOf(a)));recolor();info();});ul.append(li);});
       side.append(ul,el('p','opt','Touchez un modèle pour choisir ses boîtes.'));}
     side.append(btn('Tout l\'entrepôt','sm ghost',()=>{sel=null;paint();info();}));}
@@ -903,13 +919,18 @@ const P3D=(()=>{
     if(role==='entrepot'){side.append(el('p','opt','Glissez les boîtes jaunes vers un niveau avec la souris, ou choisissez la destination :'));
       const row=el('div','p3d-mv'),s=document.createElement('select');s.setAttribute('aria-label','Emplacement de destination');
       s.append(new Option('Emplacement…',''),...LOCS.map(c=>new Option(c,c)));row.append(s,btn('Déplacer','sm primary',()=>{if(s.value)doMove(s.value);else s.focus();}));side.append(row);
-      side.append(btn(moveMode?'Touchez maintenant le niveau de destination…':'Ou toucher le niveau dans la 3D',moveMode?'sm primary':'sm',()=>{moveMode=!moveMode;info();}));}
+      side.append(btn(moveMode?'Touchez maintenant le niveau de destination…':'Ou toucher le niveau dans la 3D',moveMode?'sm primary':'sm',()=>{moveMode=!moveMode;info();}));
+      const cur=L.every(a=>a.cote==='D')?'D':L.every(a=>a.cote!=='D')?'G':'',sr=el('div','p3d-mv');sr.setAttribute('role','group');sr.setAttribute('aria-label','Côté du niveau');
+      sr.append(btn('⬅ À gauche','sm'+(cur==='G'?' primary':''),()=>setSide(L,'G')),btn('À droite ➡','sm'+(cur==='D'?' primary':''),()=>setSide(L,'D')));
+      side.append(el('p','opt','Dans leur niveau, vu depuis l\'allée (en glissant, lâchez sur la moitié gauche ou droite) :'),sr);}
     side.append(btn('Annuler le choix','sm ghost',()=>{pick.clear();moveMode=false;recolor();info();}));}
   /* déplacement : l'article change d'emplacement ; s'il existe déjà là-bas (même modèle, taille, couleur), les quantités s'additionnent */
-  function doMove(to){const L=[...pick.keys()].map(id=>art(id)).filter(Boolean);moveMode=false;if(!L.length)return;
-    if(L.every(a=>a.emp===to)){toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);return;}
-    moveArticles(L.map(a=>[a,pick.get(a.id)]),to);
+  function doMove(to,side){const L=[...pick.keys()].map(id=>art(id)).filter(Boolean);moveMode=false;if(!L.length)return;
+    if(L.every(a=>a.emp===to)){if(side&&L.some(a=>(a.cote==='D'?'D':'G')!==side)){setSide(L,side);return;}toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);return;}
+    moveArticles(L.map(a=>[a,pick.get(a.id)]),to,side);
     pick.clear();sel=to;render();}
+  /* ranger un groupe à gauche ou à droite de son niveau (vu depuis l'allée) */
+  function setSide(L,side){L.forEach(a=>{if(side==='D')a.cote='D';else delete a.cote;});pushMeta={kind:'move',label:side==='D'?'Rangé à droite du niveau':'Rangé à gauche du niveau'};save();render();}
   function tip(e,txt){const t=document.getElementById('p3dTip'),st=document.getElementById('p3dStage');if(!t||!st)return;if(!txt){t.hidden=true;return;}const r=st.getBoundingClientRect();t.textContent=txt;t.hidden=false;t.style.left=(e.clientX-r.left)+'px';t.style.top=(e.clientY-r.top)+'px';}
   function init(){
     R=new T3.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));
@@ -924,10 +945,13 @@ const P3D=(()=>{
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
       const b=IM?ray.intersectObject(IM,false)[0]:null,l=ray.intersectObjects(hitsL,false)[0],bi=b&&inst[b.instanceId];
-      if(bi&&(!l||l.object.userData.code===bi.code||b.distance<l.distance||!occ[l.object.userData.code]))return {aid:bi.aid,code:bi.code};
-      return l?{code:l.object.userData.code}:null;};
+      if(bi&&(!l||l.object.userData.code===bi.code||b.distance<l.distance||!occ[l.object.userData.code])){const hm=hitsL.find(x=>x.userData.code===bi.code),U=hm&&hm.userData;let side='G';
+        if(U&&U.ax){const u=(U.ax==='z'?b.point.z:b.point.x)-U.o0,first=u<U.len/2;side=first!==U.flip?'G':'D';}return {aid:bi.aid,code:bi.code,side};}
+      const hit=l||b;if(!hit)return null;const code=l?l.object.userData.code:bi.code,hm=hitsL.find(x=>x.userData.code===code),U=hm&&hm.userData;
+      let side='G';if(U&&U.ax){const u=(U.ax==='z'?hit.point.z:hit.point.x)-U.o0,first=u<U.len/2;side=first!==U.flip?'G':'D';}
+      return bi&&!l?{aid:bi.aid,code,side}:{code,side};};
     const click=(e,add)=>{const h=at(e);
-      if(moveMode&&h){doMove(h.code);return;}
+      if(moveMode&&h){doMove(h.code,h.side);return;}
       if(!h){pick.clear();sel=null;}
       else if(h.aid&&role==='entrepot'){const a=art(h.aid);if(add){if(pick.has(h.aid))pick.delete(h.aid);else pick.set(h.aid,qOf(a));}else if(pick.size===1&&pick.has(h.aid))pick.clear();else{pick.clear();pick.set(h.aid,qOf(a));}sel=h.code;}
       else{pick.clear();sel=h.code===sel?null:h.code;}
@@ -936,11 +960,11 @@ const P3D=(()=>{
       if(h&&h.aid&&pick.has(h.aid)){drag={moved:false};controls.enabled=false;try{cv.setPointerCapture(e.pointerId);}catch(x){}}});
     cv.addEventListener('pointermove',e=>{
       if(drag){if(!drag.moved&&down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>6)drag.moved=true;if(!drag.moved)return;const h=at(e),c=h?h.code:null;
-        if(c!==dest){dest=c;paint();}tip(e,c?`Lâcher pour déplacer vers ${c}${occ[c]&&occ[c].cap&&occ[c].known?` · place libre ~${Math.max(0,occ[c].cap-occ[c].p)}`:''}`:'Glissez jusqu’à un niveau');cv.style.cursor='grabbing';return;}
+        drag.side=h?h.side:'G';if(c!==dest){dest=c;paint();}tip(e,c?`Lâcher pour déplacer vers ${c} · ${drag.side==='D'?'à droite ➡':'⬅ à gauche'}${occ[c]&&occ[c].cap&&occ[c].known?` · place libre ~${Math.max(0,occ[c].cap-occ[c].p)}`:''}`:'Glissez jusqu’à un niveau');cv.style.cursor='grabbing';return;}
       if(e.pointerType!=='mouse'||e.buttons)return;const h=at(e),c=h?h.code:null;if(c!==hov){hov=c;paint();}
       const a=h&&h.aid&&A(h.aid);tip(e,a?`${gname(a)} · ${szLbl(a.type,a.taille)} · ${h.code}`:c?`${c} · ${pl(occ[c]?occ[c].p:0,'boîte','boîtes')}`:'');cv.style.cursor=a&&pick.has(a.id)?'grab':h?'pointer':'default';});
     cv.addEventListener('pointerup',e=>{const d=drag;drag=null;controls.enabled=true;
-      if(d&&d.moved){const to=dest;dest=null;paint();tip(e,'');down=null;if(to)doMove(to);return;}
+      if(d&&d.moved){const to=dest;dest=null;paint();tip(e,'');down=null;if(to)doMove(to,d.side);return;}
       if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<6)click(e,down.add);down=null;});
     cv.addEventListener('pointercancel',()=>{drag=null;dest=null;controls.enabled=true;paint();});
     cv.addEventListener('pointerleave',e=>{if(!drag){tip(e,'');if(hov){hov=null;paint();}}});
@@ -952,7 +976,7 @@ const P3D=(()=>{
   /* suit le stock et les mesures : racks refaits si les mesures changent, boîtes si le stock change */
   function sync(){AM=new Map(S.articles.map(a=>[a.id,a]));const D=dims(),sr=JSON.stringify([D.locs,D.over]);if(sr!==sigR){sigR=sr;buildRacks();sigB='';}
     brandCols();for(const id of [...pick.keys()])if(!AM.has(id))pick.delete(id);
-    const sb=JSON.stringify(S.articles.map(a=>[a.id,a.emp,qOf(a),a.type,a.marque,a.modele,a.genre,a.taille]))+JSON.stringify(D.boxes);if(sb!==sigB){sigB=sb;buildBoxes();}else recolor();}
+    const sb=JSON.stringify(S.articles.map(a=>[a.id,a.emp,qOf(a),a.type,a.marque,a.modele,a.genre,a.taille,a.cote||'']))+JSON.stringify(D.boxes);if(sb!==sigB){sigB=sb;buildBoxes();}else recolor();}
   function view(k){const v=VIEWS[k];if(!v||!camera)return;const p1=new T3.Vector3(...v.p),t1=new T3.Vector3(...v.t);
     if(matchMedia('(prefers-reduced-motion: reduce)').matches){camera.position.copy(p1);controls.target.copy(t1);return;}anim={p0:camera.position.clone(),t0:controls.target.clone(),p1,t1,s:performance.now()};}
   function size(){if(!host||!R)return;const st=document.getElementById('p3dStage');if(!st)return;const w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;R.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
@@ -2133,9 +2157,10 @@ document.addEventListener('click',e=>{
       toast(`Copie téléchargée : <b>${S.articles.length} articles</b>. Elle est dans le dossier Téléchargements.`);break;}
     case'mvpick':{st.mv=st.mv||{};const a=art(t.dataset.id);if(!a)break;if(st.mv[a.id]!=null)delete st.mv[a.id];else st.mv[a.id]=qOf(a);render();break;}
     case'mvall':{st.mv=st.mv||{};S.articles.filter(a=>matches(a)&&qOf(a)>0).forEach(a=>{st.mv[a.id]=qOf(a);});render();break;}
+    case'mvside':st.mvSide=t.dataset.v;render();break;
     case'mvclear':st.mv={};render();break;
     case'mvgo':{const to=($('#mvTo')||{}).value;if(!to){toast('Choisissez d\'abord <b>où les mettre</b>');$('#mvTo')&&$('#mvTo').focus();break;}
-      const pairs=Object.entries(st.mv||{}).map(([id,k])=>[art(id),k]).filter(x=>x[0]);const n=moveArticles(pairs,to);st.mv={};st.mvTo='';render();
+      const pairs=Object.entries(st.mv||{}).map(([id,k])=>[art(id),k]).filter(x=>x[0]);const n=moveArticles(pairs,to,st.mvSide||'G');st.mv={};st.mvTo='';render();
       if(n)toast(`<b>${n} boîte${n>1?'s':''}</b> déplacée${n>1?'s':''} vers <b>${esc(to)}</b>`);else toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);break;}
     case'mvundo':undoLastMove();break;
     case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
