@@ -259,6 +259,10 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
+.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.plan-ski .pk-cols{display:grid;grid-template-columns:auto 34px minmax(0,1fr) 34px minmax(0,1fr) 34px;gap:8px;align-items:start}
+.plan-ski .pk-wall{display:flex;flex-direction:column-reverse;gap:6px}.plan-ski .zone-lbl{writing-mode:vertical-rl;align-self:stretch;text-align:center}
+@media (max-width:640px){.plan-ski .pk-cols{grid-template-columns:auto 20px minmax(0,1fr) 20px minmax(0,1fr) 0}}
 .pkrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvq{display:inline-flex;align-items:center;gap:4px}.mvq input{width:60px;text-align:center;font:inherit;padding:6px}
@@ -461,10 +465,18 @@ details.libre .inline{margin-top:10px}
 <div id="undoBar" class="undobar" role="status" hidden></div>
 
 <script>
+/* ---------- Rayon : la même appli sert au snow et au ski (fichiers fabriqués à part, données séparées) ---------- */
+const RAYON=window.RAYON||'snow',SKI=RAYON==='ski';
 /* ---------- Emplacements ---------- */
 const LV=[1,2,3];
-const ZONES={G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière'};
-const LOCS=(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
+const ZONES=SKI?{GS:'Femme · racks gauche, côté ski',GN:'Femme · racks gauche, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre'}
+  :{G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière'};
+/* ski : bottes femme sur les racks de gauche (face ski 1-3, face snow niveau 3 sauf G4, G0 niveau 3), bottes homme sur la rangée H (2 faces), fond côté ski, skis debout le long du mur et de la fenêtre */
+const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);add('GS',0,3);
+  for(let r=1;r<=5;r++){LV.forEach(l=>add('GS',r,l));if(r!==4)add('GN',r,3);}
+  for(let r=1;r<=5;r++)LV.forEach(l=>add('HD',r,l));for(let r=1;r<=5;r++)LV.forEach(l=>add('HG',r,l));
+  LV.forEach(l=>add('FS',1,l));for(let i=1;i<=6;i++)L.push('MUR'+i);for(let i=1;i<=3;i++)L.push('FEN'+i);return L;})()
+  :(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [2,3].forEach(l=>add('G',4,l));
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MD',r,l));
@@ -473,21 +485,24 @@ const LOCS=(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   LV.forEach(l=>add('E',1,l)); /* une seule étagère, 3 niveaux */
   LV.forEach(l=>add('BAV',1,l));LV.forEach(l=>add('BAR',1,l));
   return L;})();
-function locLabel(c){const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
-  let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):['F','BAV','BAR'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${r}`;
+function locLabel(c){const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
+  const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
+  let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):['F','BAV','BAR','FS'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${z==='GS'||z==='GN'?'G':z[0]==='H'?'H':''}${r}`;
   return `${s} · niveau ${l}${l==='1'?' (bas)':l==='3'?' (haut)':''}`;}
 
 /* ---------- Données ---------- */
-const TYPE={botte:'Bottes',fix:'Fixations',board:'Snowboards'};
-const sizesS=()=>{const a=[];for(let n=138;n<=166;n++)a.push(n+' cm');return a;};
+const TYPE=SKI?{botte:'Chaussures de ski',board:'Skis'}:{botte:'Bottes',fix:'Fixations',board:'Snowboards'};
+const sizesS=()=>{const a=[];for(let n=SKI?100:138;n<=(SKI?200:166);n++)a.push(n+' cm');return a;};
 const sizesOf=t=>t==='botte'?S.sizesB:t==='board'?S.sizesS:S.sizesF;
-const szLbl=(type,t)=>type==='botte'&&!/cm/.test(t)?'US '+t:t;
+const szLbl=(type,t)=>!SKI&&type==='botte'&&!/cm/.test(t)?'US '+t:t;
 const GENRE={H:'Homme',F:'Femme',U:'Unisexe'};
 const ST={demandee:'Demandée',prep:'En préparation',prete:'Prête',recue:'Reçue'};
 const SERRAGE={boa:'BOA',dboa:'Double BOA',speed:'Lacets rapides',lacets:'Lacets'};
-const KEY='entrepot-snow-v2';
-function sizesB(){const a=[];for(let s=4;s<=14;s+=.5)a.push(String(s));a.push('15');for(let s=22;s<=30;s+=.5)a.push(s+' cm');return a;}
+const KEY=SKI?'entrepot-ski-v1':'entrepot-snow-v2';
+function sizesB(){const a=[];if(SKI){for(let s=15;s<=33;s+=.5)a.push(String(s));return a;}for(let s=4;s<=14;s+=.5)a.push(String(s));a.push('15');for(let s=22;s<=30;s+=.5)a.push(s+' cm');return a;}
 function seed(){
+  if(SKI)return {v:1,demo:false,seq:1000,articles:[],brands:['Atomic','Blizzard','Dalbello','Dynastar','Fischer','Head','K2','Lange','Nordica','Rossignol','Salomon','Tecnica','Völkl'],
+    sizesB:sizesB(),sizesF:['S','M','L','XL'],sizesS:sizesS(),orders:[],notifs:[],cart:[],cartNote:''};
   const R=[],add=(emp,type,marque,modele,genre,tailles)=>tailles.forEach(t=>R.push({type,marque,modele,genre,taille:t,annee:'',emp,note:''}));
   add('D1.1','botte','Ride','Sage','F',['10','9.5','9','8.5','8','7.5','7']);
   add('D1.2','fix','Nitro','Rambler','H',['M','L']);
@@ -529,7 +544,7 @@ function seedExemples(){
 }
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1){
   /* ajoute la taille US 15 aux données déjà enregistrées sur l'appareil */
-  if(!s.sizesB.includes('15')){const i=s.sizesB.indexOf('14');s.sizesB.splice(i<0?s.sizesB.length:i+1,0,'15');}
+  if(!SKI&&!s.sizesB.includes('15')){const i=s.sizesB.indexOf('14');s.sizesB.splice(i<0?s.sizesB.length:i+1,0,'15');}
   /* « Noir » déjà saisi devient « Black » */
   (s.articles||[]).forEach(a=>{if(a.couleur)a.couleur=fixColor(a.couleur);});
   if(!s.sizesS)s.sizesS=sizesS();
@@ -539,8 +554,8 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}if(ty
 let role='magasin'; /* mini-appli magasin : pas d'accès à l'entrepôt */
 const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
 if(role==='magasin')st.tab='cmd';
-const ZONE_OF={D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B'};
-const ZONE_LBL={D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
+const ZONE_OF=SKI?{GS:'BF',GN:'BF',HG:'BH',HD:'BH',FS:'FS',MUR:'SK',FEN:'SK'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B'};
+const ZONE_LBL=SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis'}:{D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
 const zoneOf=emp=>ZONE_OF[(/^[A-Z]+/.exec(emp||'')||[''])[0]]||'';
 function sizeRankStr(t){if(/cm/.test(t))return 100+parseFloat(t);const n=parseFloat(t);if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
 
@@ -577,14 +592,14 @@ function textMatch(a,q){
   const toks=norm(q).replace(/(\d),5/g,'$1.5').split(/\s+/).filter(Boolean);if(!toks.length)return true;
   const sz=toks.filter(isSizeTok),other=toks.filter(t=>!isSizeTok(t));
   if(sz.length){const full=norm(a.taille).replace(/\s*cm$/,''),parts=full.split('/');if(!sz.some(t=>t===full||parts.includes(t)))return false;}
-  const hay=norm(`${a.marque} ${a.modele} ${TYPE[a.type]} ${a.type==='fix'?'fix fixation':a.type==='board'?'snowboard board planche':'botte boots'} ${GENRE[a.genre]} ${a.taille} ${a.annee} ${a.emp} ${ZONE_LBL[zoneOf(a.emp)]||''} ${a.couleur||''} ${serOf(a)} ${a.note}`);
+  const hay=norm(`${a.marque} ${a.modele} ${TYPE[a.type]} ${a.type==='fix'?'fix fixation':a.type==='board'?(SKI?'ski skis':'snowboard board planche'):(SKI?'chaussure chaussures botte boots':'botte boots')} ${GENRE[a.genre]} ${a.taille} ${a.annee} ${a.emp} ${ZONE_LBL[zoneOf(a.emp)]||''} ${a.couleur||''} ${serOf(a)} ${a.note}`);
   const words=new Set(hay.split(/\s+/));
   return other.every(t=>t.length<=2?words.has(t):hay.includes(t));}
 /* compte en pièces (paires), comme le total affiché et l'appli magasin */
 function facet(skip,get){const Q=role==='magasin'?availOf:qOf,m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+Q(a));});return m;}
 /* total d'une recherche : modèles et pièces (au magasin : disponibles, avec ce qui est déjà en commande) */
 function sumLine(list,o={}){const mods=new Set(list.map(a=>[a.type,a.marque,a.modele,a.genre].join('|'))).size,p=list.reduce((t,a)=>t+qOf(a),0),ty=new Set(list.map(a=>a.type));
-  const u=ty.size===1&&ty.has('board')?['planche','planches']:o.shop&&!ty.has('board')?['paire','paires']:['pièce','pièces'],w=n=>`${n.toLocaleString('fr-FR')} ${n>1?u[1]:u[0]}`;
+  const u=SKI?['paire','paires']:ty.size===1&&ty.has('board')?['planche','planches']:o.shop&&!ty.has('board')?['paire','paires']:['pièce','pièces'],w=n=>`${n.toLocaleString('fr-FR')} ${n>1?u[1]:u[0]}`;
   let t=`<b>${mods} modèle${mods>1?'s':''}</b>`;if(o.lines)t+=` · ${list.length} article${list.length>1?'s':''}`;
   if(o.shop){const av=list.reduce((x,a)=>x+availOf(a),0);t+=` · <b>${w(av)} disponible${av>1?'s':''}</b>${p>av?` <small>(${p} en stock, dont ${p-av} déjà en commande)</small>`:''}`;}else t+=` · <b>${w(p)}</b>`;
   return t;}
@@ -631,9 +646,9 @@ function filterBar(){
     return `<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Tous</option>${keys.map(k=>`<option value="${esc(k)}"${k===cur?' selected':''}>${esc(lblFn(k))} (${m.get(k)||0})</option>`).join('')}</select></div>`;};
   const alpha=(x,y)=>x.localeCompare(y);
   const tailles=facet('taille',a=>a.taille);const tk=[...new Set([...tailles.keys(),...st.fTailles])].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));
-  return `<input class="search" type="search" id="q" placeholder="${role==='magasin'?'Ex. : ride sage 7 8, nitro L…':'Ex. : ride sage 7 8, nitro L, D1.2…'}" value="${esc(st.q)}" autocomplete="off">
+  return `<input class="search" type="search" id="q" placeholder="${SKI?(role==='magasin'?'Ex. : lange 25.5, rossignol 168…':'Ex. : lange 25.5, rossignol 168, GS1.2…'):role==='magasin'?'Ex. : ride sage 7 8, nitro L…':'Ex. : ride sage 7 8, nitro L, D1.2…'}" value="${esc(st.q)}" autocomplete="off">
   <div class="filters">
-    <div class="seg">${[['','Tout'],['botte','Bottes'],['fix','Fixations'],['board','Snowboards']].map(([v,l])=>`<button type="button" data-ftype="${v}" aria-pressed="${st.fType===v}">${l}</button>`).join('')}</div>
+    <div class="seg">${[['','Tout'],...Object.entries(TYPE)].map(([v,l])=>`<button type="button" data-ftype="${v}" aria-pressed="${st.fType===v}">${l}</button>`).join('')}</div>
     <div class="seg">${[['','H/F'],['H','Homme'],['F','Femme'],['U','Unisexe']].map(([v,l])=>`<button type="button" data-fgenre="${v}" aria-pressed="${st.fGenre===v}">${l}</button>`).join('')}</div>
   </div>
   <div class="fgrid">
@@ -682,6 +697,8 @@ function chips(z,r,H,count,levels=LV){return `<div class="chips">${LV.map(l=>lev
 const BOX_DEF={botte:{L:46,l:37,H:14.5},fix:{L:40,l:32,H:16},board:{L:155,l:30,H:6}};
 /* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
 function locDims(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m)return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
+  if(SKI){g=z==='GS'||z==='GN'?d.locs['BF'+l]:z==='HG'||z==='HD'?d.locs['BH'+l]:z==='FS'?d.locs.FS:null;o=d.over[code];const x=Object.assign({},g||{},o||{});
+    return {L:x.L||0,P:x.P?(z[0]==='H'?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
   /* racks de gauche : mesures du groupe « Gauche », les mêmes pour tous ; niveau 1 sans hauteur = celle de D1.1 */
   if(z==='G'){const x=d.locs['G'+l]||{};return {L:x.L||0,P:x.P||0,H:x.H||(l==='1'?locDims('D1.1').H:0),pose:x.pose||''};}
   if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=d.over[code];}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=d.over[`M${r}.${l}`];}
@@ -775,7 +792,7 @@ function vHistory(){
 let P3D_ON=null;const p3dOn=()=>{if(P3D_ON===null){try{P3D_ON=localStorage.getItem(KEY+'-3d')==='1';}catch(e){P3D_ON=false;}}return P3D_ON;};
 let P3D_COL=null;const p3dCol=()=>{if(P3D_COL===null){try{P3D_COL=localStorage.getItem(KEY+'-3dcol')||'marque';}catch(e){P3D_COL='marque';}}return P3D_COL;};
 const p3dHost=()=>`<div class="p3d" id="p3d"><div class="p3d-stage" id="p3dStage"><div class="p3d-msg" id="p3dMsg">Chargement de la 3D…</div><div class="p3d-tip" id="p3dTip" hidden></div><div class="p3d-hint" id="p3dHint">Touchez une boîte pour la choisir, puis glissez-la vers un niveau · Glisser ailleurs : tourner · Molette ou pincer : zoom</div></div>
-  <div class="p3d-bar"><div class="p3d-views" role="group" aria-label="Vues 3D"><button type="button" class="btn sm" data-v3="all">Vue d'ensemble</button><button type="button" class="btn sm" data-v3="ent">Depuis l'entrée</button><button type="button" class="btn sm" data-v3="top">De dessus</button><button type="button" class="btn sm" data-v3="pl">Les planches</button></div>
+  <div class="p3d-bar"><div class="p3d-views" role="group" aria-label="Vues 3D"><button type="button" class="btn sm" data-v3="all">Vue d'ensemble</button><button type="button" class="btn sm" data-v3="ent">Depuis l'entrée</button><button type="button" class="btn sm" data-v3="top">De dessus</button><button type="button" class="btn sm" data-v3="pl">${SKI?'Les skis':'Les planches'}</button></div>
     <div class="seg3d sm" role="group" aria-label="Couleur des boîtes">${[['type','Type'],['marque','Marque'],['modele','Modèle']].map(([k,l])=>`<button type="button" data-c3="${k}" aria-pressed="${p3dCol()===k}">${l}</button>`).join('')}</div></div>
   <aside class="p3d-side" id="p3dSide" aria-live="polite"></aside>
   <div class="legend" id="p3dLeg"></div></div>`;
@@ -783,10 +800,11 @@ const P3D=(()=>{
   let lib=null,T3=null,R=null,scene,camera,controls,host=null,anim=null,lit=new Set();
   let gR=null,gB=null,sigR='',sigB='',hitsL=[],IM=null,inst=[],occ={},sel=null,hov=null,dest=null,drag=null,down=null,moveMode=false,AM=new Map(),BCOL=new Map();
   const pick=new Map(); /* article choisi -> nombre de boîtes à déplacer */
-  const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=230,Mw=105,Gx=0,Gw=60,Dx=455,PLx=70,DL=244,sG=T/5,LVD=51;
-  const VIEWS={all:{p:[-760,1500,T+900],t:[257,60,T/2-60]},ent:{p:[395,190,T+180],t:[395,110,T-700]},top:{p:[257,2400,T/2+1],t:[257,0,T/2]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
+  const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=230,Mw=105,Gw=135,Gx=60-Gw,Dx=455,PLx=70,DL=244,sG=T/5,LVD=51,SKA=120,SKW=60,SKX=Gx-SKA-SKW;
+  const VIEWS={all:{p:[-900,1600,T+950],t:[170,60,T/2-60]},ent:{p:[395,190,T+180],t:[395,110,T-700]},top:{p:[150,2700,T/2+1],t:[150,0,T/2]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
   const DEFB=BOX_DEF;
-  const TC={botte:'#3d7fc4',fix:'#f08a24',board:'#3fa66b'},TN={botte:'Bottes',fix:'Fixations',board:'Snowboards'};
+  if(SKI)Object.assign(VIEWS,{all:{p:[-1100,1700,T+900],t:[-80,60,T/2-60]},ent:{p:[-135,190,T+180],t:[-135,110,T-700]},top:{p:[-40,2800,T/2+1],t:[-40,0,T/2]},pl:{p:[-250,200,T*.72],t:[-410,100,T*.45]}});
+  const TC={botte:'#3d7fc4',fix:'#f08a24',board:'#3fa66b'},TN={...TYPE};
   const PAL=['#3d7fc4','#e8663d','#3fa66b','#d4a72c','#8e5cc4','#d1495b','#2bb3b1','#8a6a4b','#e377c2','#6b8e23','#1f5fa8','#9aa5b1'],SELC='#fff36b';
   const load=src=>new Promise((ok,ko)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=ko;document.head.appendChild(e);});
   function need(){if(!lib)lib=load('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').then(()=>load('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js')).then(()=>{T3=window.THREE;});return lib;}
@@ -807,16 +825,18 @@ const P3D=(()=>{
   function slot(code,F,len,dep,y,h,M){const hm=new T3.Mesh(new T3.BoxGeometry(...F.s(len-2,dep-2,h-1)),new T3.MeshBasicMaterial({color:0xff7a33,transparent:true,opacity:0,depthWrite:false}));
     hm.position.set(...F.c(len/2,dep/2,y+h/2));hm.userData={code,F,len,dep,y,h,...M};gR.add(hm);hitsL.push(hm);}
   /* un rack : niveaux empilés à leurs hauteurs mesurées, pas de dessus */
-  function rack(o){const F=frame(o.ax,o.ox,o.oz,o.fd),hs=[1,2,3].map(l=>dimOf(o.code(l,'G')).H||LVD),ds=[1,2,3].map(l=>{const P=dimOf(o.code(l,'G')).P;return P?(o.split?P*2:P):o.dep;});
+  function rack(o){const F=frame(o.ax,o.ox,o.oz,o.fd),hs=[1,2,3].map(l=>dimOf(o.code(l,'G')).H||LVD),ds=[1,2,3].map(l=>{if(o.half)return o.dep;const P=dimOf(o.code(l,'G')).P;return P?(o.split?P*2:P):o.dep;});
     const dep=Math.max(o.dep,...ds),ys=[BASE];for(let i=1;i<3;i++)ys[i]=ys[i-1]+SH+hs[i-1];const top=ys[2]+SH+hs[2];
     cub(F,4,4,0,o.len-8,dep-8,BASE-4,mPal);
     [[0,0],[o.len-5,0],[0,dep-5],[o.len-5,dep-5]].forEach(([u,v])=>cub(F,u,v,0,5,5,top,mPost));
     o.levels.forEach(l=>cub(F,0,0,ys[l-1],o.len,ds[l-1],SH,mShelf));
-    if(o.split)cub(F,5,dep/2-.75,BASE,o.len-10,1.5,top-BASE,mWall);
+    if(o.split||o.half)cub(F,5,dep/2-.75,BASE,o.len-10,1.5,top-BASE,mWall);
     if(!o.noSlot)o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];
+      if(o.slotLevels&&!o.slotLevels.includes(l))return;
       const M=fd=>({ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
       if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h,M(o.fd));slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h,M(-o.fd));}
-      else slot(o.code(l),F,o.len,ds[l-1],y,h,M(o.fd));});
+      else slot(o.code(l),F,o.len,o.half?Math.min(o.dep,dimOf(o.code(l)).P||o.dep/2):ds[l-1],y,h,M(o.fd));});
+    if(o.back)o.back.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];slot(o.back.code(l),frame(o.ax,o.ox+o.fd*dep,o.oz,-o.fd),o.len,dep/2,y,h,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,-o.fd)});});
     return top;}
   /* une planche de snow debout : spatules arrondies, taille cintrée (sidecut), nose et tail relevés, carres sombres */
   function boardGeo(){const L=150,Wn=29.5,Ww=25,E=13,h=L/2,cx=Ww-Wn/2,sh=new T3.Shape();
@@ -825,22 +845,45 @@ const P3D=(()=>{
     const g=new T3.ExtrudeGeometry(sh,{depth:1,bevelEnabled:true,bevelThickness:.3,bevelSize:.4,bevelSegments:1,curveSegments:12});g.translate(0,0,-.5);
     const p=g.attributes.position;for(let i=0;i<p.count;i++){const d=Math.abs(p.getY(i))-(h-E-6);if(d>0)p.setZ(i,p.getZ(i)+.02*d*d);}
     p.needsUpdate=true;g.computeVertexNormals();g.rotateY(Math.PI/2);return g;}
+  /* rayon ski : racks de gauche (face ski 1-3, face snow niveau 3), G0, rangée bottes homme (2 faces), fond côté ski, skis debout */
+  function skiLayout(tops){const MW=105,MX=Gx-SKA-MW,WX=MX-SKA,WZ=-18-124-SKA,FX1=Dx+62;
+    for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
+      tops.push(rack({ax:'z',ox:Gx,oz:z,fd:1,len:DL,dep:Gw,levels:[1,2,3],code:l=>`GS${r}.${l}`,half:true,back:r===4?null:{levels:[3],code:l=>`GN${r}.${l}`}}));
+      tops.push(rack({ax:'z',ox:MX,oz:z,fd:1,len:DL,dep:MW,levels:[1,2,3],split:true,code:(l,sd)=>`H${sd}${r}.${l}`}));
+      const g=new T3.Mesh(new T3.BoxGeometry(62,240,DL),mGhost);g.position.set(Dx+31,120,z+DL/2);gR.add(g);}
+    for(let r=1;r<=NM;r++){const g=new T3.Mesh(new T3.BoxGeometry(Mw,240,ML-6),mGhost);g.position.set(Mx+Mw/2,120,T-r*ML+ML/2);gR.add(g);}
+    tops.push(rack({ax:'z',ox:Gx,oz:T+10,fd:1,len:DL,dep:Gw,levels:[1,2,3],code:l=>`GS0.${l}`,half:true,slotLevels:[3]}));
+    tops.push(rack({ax:'x',ox:0,oz:-18-124,fd:1,len:FX1,dep:124,levels:[1,2,3],code:l=>`FS1.${l}`,half:true}));
+    const zw=T/6;for(let i=1;i<=6;i++)slot(`MUR${i}`,frame('z',WX+25,T-i*zw+3,-1),zw-6,25,0,200,{ax:'z',o0:T-i*zw,flip:true,skis:true});
+    const fw=(FX1-WX)/3;for(let i=1;i<=3;i++)slot(`FEN${i}`,frame('x',WX+(i-1)*fw+3,WZ+25,-1),fw-6,25,0,200,{ax:'x',o0:WX+(i-1)*fw,flip:false,skis:true});
+    const TOP=Math.max(...tops),yT=TOP+30;
+    for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`G${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,z,30);}
+    sprite('G0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('FOND côté ski',FX1/2,yT,WZ+60,28);sprite('MUR · skis',WX+12,230,T*.5,26);sprite('FENÊTRE · skis',FX1/2,230,WZ+12,26);
+    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+SKA/2,T*.55,40,Math.PI/2);floorText('RAYON SNOW · autre appli',300,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Gx-SKA/2,T+150,60);}
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
+    if(SKI){skiLayout(tops);return;}
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
       /* gauche : seul G4 est un emplacement ; les autres racks de gauche ont la même forme (hauteurs de G4), sans emplacement */
-      tops.push(rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G4.${l}`,noSlot:r!==4}));
+      tops.push(rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G4.${l}`,noSlot:r!==4,half:true}));
+      /* rayon ski (autre appli) : derrière les racks de gauche, une allée puis une rangée de racks */
+      {const g=new T3.Mesh(new T3.BoxGeometry(SKW,240,DL),mGhost);g.position.set(SKX+SKW/2,120,z+DL/2);gR.add(g);}
       tops.push(rack({ax:'z',ox:Dx,oz:z,fd:1,len:DL,dep:62,levels:[1,2,3],code:l=>`D${r}.${l}`}));}
     for(let r=1;r<=NM;r++)tops.push(rack({ax:'z',ox:Mx,oz:T-r*ML+3,fd:1,len:ML-6,dep:Mw,levels:[1,2,3],split:true,code:(l,sd)=>`M${sd}${r}.${l}`}));
-    tops.push(rack({ax:'x',ox:0,oz:-18,fd:-1,len:Dx+62,dep:62,levels:[1,2,3],code:l=>`F1.${l}`}));
+    /* fond : double profondeur ; seule la moitié côté snow est au snow, l'arrière est au rayon ski */
+    tops.push(rack({ax:'x',ox:0,oz:-18,fd:-1,len:Dx+62,dep:124,levels:[1,2,3],code:l=>`F1.${l}`,half:true}));
     [['E1',60,110],['BAV1',190,80],['BAR1',290,80]].forEach(([c,z,len])=>tops.push(rack({ax:'z',ox:Dx,oz:T+z,fd:1,len,dep:62,levels:[1,2,3],code:l=>`${c}.${l}`})));
     const TOP=Math.max(...tops),yT=TOP+30;
     {const n=34,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795,0xe8e8e8,0x7a2e8c];
       for(let i=0;i<n;i++){const k=.92+((i*7)%5)*.03;o.position.set(PLx+8+(i%3)*11,75*k+1,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.scale.set(1,k,1);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[(i*3)%pal.length]);im.setColorAt(i,c);}gR.add(im);}
-    for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw/2,yT,z,r===4?34:24,r!==4);}
+    for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw*.75,yT,z,r===4?34:24,r!==4);if(r===3){sprite('SKI · bottes homme',SKX+SKW/2,yT-40,z,26,true);sprite('SKI · bottes femme',Gx+Gw*.25,yT-40,z,22,true);}}
+    /* G0, devant G1 : bottes de ski femme (côté ski, niveau 3) ; skis debout le long du mur */
+    {const z=T+10;rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G0.${l}`,noSlot:true,half:true});sprite('G0',Gx+Gw*.5,yT,z+DL/2,24,true);}
+    {const n=40,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color();
+      for(let i=0;i<n;i++){o.position.set(SKX-SKA+8,80,60+i*34);o.rotation.set(0,0,-.1);o.scale.set(1,1.15,.4);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(0x9aa5b1);im.setColorAt(i,c);}gR.add(im);floorText('SKIS DEBOUT (mur)',SKX-SKA/2,T*.6,26,Math.PI/2);}
     for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2,34);
-    sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
-    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
+    sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('SKI (arrière du fond)',(Dx+62)/2,yT-40,-112,24,true);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
+    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('RAYON SKI · autre appli',Gx-SKA/2,T/2,34,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
   /* boîtes « à gauche » depuis le bout gauche, « à droite » depuis le bout droit (vu depuis l'allée) ; si les deux se chevauchent, tout à la suite */
   function packSides(bxs,Lc,Hc,LN,flip){
@@ -864,7 +907,9 @@ const P3D=(()=>{
   function buildBoxes(){
     occ={};const by={};S.articles.forEach(a=>{if(!a.emp||qOf(a)<=0)return;(by[a.emp]=by[a.emp]||[]).push(a);const o=occ[a.emp]=occ[a.emp]||{p:0,t:{},m:new Map(),n:0,over:0,cap:0};const n=qOf(a);o.p+=n;o.t[a.type]=(o.t[a.type]||0)+n;const k=gkey(a),x=o.m.get(k)||{a,n:0};x.n+=n;o.m.set(k,x);});
     if(gB){scene.remove(gB);gB.traverse(o=>o.geometry&&o.geometry.dispose());}gB=new T3.Group();scene.add(gB);inst=[];IM=null;const cells=[];
-    hitsL.forEach(hm=>{const {code,F,len,y}=hm.userData,list=by[code];if(!list)return;const g=geo(hm),o=occ[code],bxs=[];
+    hitsL.forEach(hm=>{const {code,F,len,y}=hm.userData,list=by[code];if(!list)return;
+      if(hm.userData.skis){let i=0;const o=occ[code];o.known=false;list.forEach(a=>{const L=parseFloat(a.taille)||165;for(let k=0;k<Math.min(qOf(a),300);k++,i++){const per=Math.floor(len/5),row=Math.floor(i/per);if(row>3){o.over++;continue;}
+        cells.push({c:F.c((i%per)*5+2.5,row*6+3,y+L/2),s:F.s(4,5,L),aid:a.id,code});o.n++;}});return;}const g=geo(hm),o=occ[code],bxs=[];
       list.slice().sort((x,z)=>gkey(x).localeCompare(gkey(z))||sizeRank(x)-sizeRank(z)).forEach(a=>{const b=boxFor(a)||DEFB[a.type]||DEFB.botte;for(let i=0;i<Math.min(qOf(a),600);i++)bxs.push({a,b,g:gkey(a)});});
       const fq=new Map();bxs.forEach(x=>fq.set(x.b,(fq.get(x.b)||0)+1));const ref=[...fq.entries()].sort((x,y)=>y[1]-x[1])[0][0],LN=lanes(g.pose,g.Pc,ref,g.Lc,g.Hc),r=packSides(bxs,g.Lc,g.Hc,LN,hm.userData.flip),u0=(len-g.Lc)/2;
       o.n=r.res.length;o.over=r.over;o.known=g.known;o.cap=capacity(ref,g.Lc,g.Hc,LN);
@@ -891,7 +936,7 @@ const P3D=(()=>{
       btn('Annuler ce déplacement','sm',undoLastMove));side.append(w);}
     if(pick.size)pickPanel(side);else if(sel)levelPanel(side);else allPanel(side);}
   function allPanel(side){const v=Object.values(occ),tot=v.reduce((a,o)=>a+o.p,0),b=v.reduce((a,o)=>a+(o.t.botte||0),0),f=v.reduce((a,o)=>a+(o.t.fix||0),0);
-    side.append(el('div','opt','Tout l\'entrepôt, en direct'));nums(side,[[tot.toLocaleString('fr-FR'),'boîtes'],[b.toLocaleString('fr-FR'),'bottes'],[f.toLocaleString('fr-FR'),'fixations']]);
+    side.append(el('div','opt','Tout l\'entrepôt, en direct'));nums(side,SKI?[[b.toLocaleString('fr-FR'),'chaussures'],[v.reduce((a,o)=>a+(o.t.board||0),0).toLocaleString('fr-FR'),'paires de skis']]:[[tot.toLocaleString('fr-FR'),'boîtes'],[b.toLocaleString('fr-FR'),'bottes'],[f.toLocaleString('fr-FR'),'fixations']]);
     side.append(el('p','opt',(lit.size?`${pl(lit.size,'emplacement','emplacements')} en orange. `:'')+'Touchez une boîte pour la choisir (Ctrl + clic pour en ajouter), ou un niveau vide pour voir son contenu.'));
     const full=Object.entries(occ).filter(([,o])=>o.over>0&&o.known).sort((x,y)=>y[1].over-x[1].over);
     if(full.length){side.append(el('p','p3d-warn',`D'après les mesures, ${pl(full.length,'niveau a','niveaux ont')} plus de boîtes que de place (non dessinées) :`));const ul=el('ul','p3d-list');
@@ -940,7 +985,7 @@ const P3D=(()=>{
     scene.add(new T3.HemisphereLight(0xffffff,0x8090a0,.75));const sun=new T3.DirectionalLight(0xffffff,.75);sun.position.set(-600,1400,900);scene.add(sun);
     mPost=new T3.MeshLambertMaterial({color:0x4b5866});mShelf=new T3.MeshLambertMaterial({color:0x9aa7b4});mPal=new T3.MeshLambertMaterial({color:0xa5784a});
     mGhost=new T3.MeshBasicMaterial({color:0x7b8794,wireframe:true,transparent:true,opacity:.35});mWall=new T3.MeshLambertMaterial({color:0x7c8b9a,transparent:true,opacity:.18});
-    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(700,T+560),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(257,-.5,T/2+90);scene.add(fl);
+    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1100:1160,SKI?T+700:T+560),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?90:SKX+420,-.5,SKI?(T+100)/2:T/2+90);scene.add(fl);
     const ray=new T3.Raycaster(),pt=new T3.Vector2(),cv=R.domElement;
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
@@ -993,6 +1038,24 @@ const P3D=(()=>{
     .catch(()=>{const m=document.getElementById('p3dMsg');if(m)m.textContent='La 3D n\'a pas pu se charger (pas de connexion internet ?). Le plan reste disponible avec le bouton Plan.';});}
   return {mount};})();
 
+/* plan 2D du rayon ski */
+function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,wall=c=>chip(c,c.replace(/^(MUR|FEN)/,''),H,count);
+  let f='',h='';
+  for(let r=5;r>=1;r--){f+=row(`G${r}`,`<div class="mrow">${chips('GS',r,H,count)}<i class="sep"></i>${r===4?'<span class="opt" style="font-size:12px;align-self:center">snow</span>':chips('GN',r,H,count,[3])}</div>`);
+    h+=row(`H${r}`,`<div class="mrow">${chips('HG',r,H,count)}<i class="sep"></i>${chips('HD',r,H,count)}</div>`);}
+  f+=row('G0',`<div class="mrow">${chips('GS',0,H,count,[3])}<i class="sep"></i><span></span></div>`);
+  return `<div class="plan-wrap"><div class="plan-ski">
+    <div class="pk-top"><div class="mface">FENÊTRE · skis debout</div><div class="chips">${['FEN1','FEN2','FEN3'].map(wall).join('')}</div>
+      <div class="mface">FOND · côté ski</div>${chips('FS',1,H,count)}</div>
+    <div class="pk-cols">
+      <div class="col"><div class="mface">MUR · skis</div><div class="pk-wall">${[1,2,3,4,5,6].map(i=>wall('MUR'+i)).join('')}</div></div>
+      <div class="zone-lbl">allée</div>
+      <div class="col"><div class="mface" style="display:flex;justify-content:space-between"><span>côté mur</span><span>côté allée</span></div><div class="mface">BOTTES HOMME</div>${h}</div>
+      <div class="zone-lbl">allée</div>
+      <div class="col"><div class="mface" style="display:flex;justify-content:space-between"><span>côté ski</span><span>côté snow (niv. 3)</span></div><div class="mface">BOTTES FEMME</div>${f}</div>
+      <div class="zone-lbl">rayon snow</div></div>
+    <div class="ent"><span>▲ Entrée</span></div></div></div>
+    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
   if(!st.focus&&!focusOrd()&&filtering()){const h=count.__hit={};S.articles.filter(a=>matches(a)).forEach(a=>{const c=h[a.emp]=h[a.emp]||{m:new Map(),p:0};const k=[a.type,a.marque,a.modele,a.genre].join('|');
@@ -1010,12 +1073,12 @@ function vPlan(){
   const lit=lightOn(),v3=p3dOn();
   return `<div class="plan-top"><div><h2>Plan de l'entrepôt</h2><p class="sub">${v3?'En 3D, avec le stock en direct. Touchez un niveau pour voir son contenu.':'Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l’entrée.'}</p></div>
       <div class="seg3d" role="group" aria-label="Affichage"><button type="button" data-act="p3d" data-v="0" aria-pressed="${!v3}">Plan</button><button type="button" data-act="p3d" data-v="1" aria-pressed="${v3}">3D</button></div>
-      ${v3?'':`<button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
+      ${v3||SKI?'':`<button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
         <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button>`}</div>
-    ${lit||v3?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
+    ${lit||v3||SKI?'':`<div class="darknote">Allée de droite <b>sans éclairage</b> : voilà ce qu'on voit des racks de droite et du côté droit du milieu.</div>`}
     ${focusOrd()?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>Commande <b>#${onum(focusOrd())}</b>${focusOrd().by?` de ${esc(focusOrd().by)}`:''} → <b>${[...H].sort((x,y)=>locRank(x)-locRank(y)).join(', ')||'aucun emplacement connu'}</b>, en orange</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:focusArt?`<div class="info" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${esc(artName(focusArt))}</b> · ${esc(artDesc(focusArt))} → <b>${esc(focusArt.emp)}</b>, ${esc(locLabel(focusArt.emp))}</span><button type="button" class="btn sm" data-act="unfocus">Fermer</button></div>`:filterBar()}
     ${!focusArt&&!focusOrd()&&filtering()?`<div class="count">${sumLine(S.articles.filter(matches),{lines:1})} dans ${H.size} emplacement${H.size>1?'s':''}, en orange sur le plan</div>`:''}
-    ${v3?p3dHost():`<div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
+    ${v3?p3dHost():SKI?planSki(H,count):`<div class="plan-wrap"><div class="plan ${lit?'lit':'dark'}${st.lightFx?' fx':''}${st.lightGlow?' glow':''}" role="group" aria-label="Plan de l'entrepôt">
       <div class="fond"><div class="rack"><span class="rk">FOND F1</span>${chips('F',1,H,count)}</div></div>
       <div class="col long" style="grid-area:g"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${g}</div>
       <div class="plz" style="grid-area:pl"><div class="pl zone-lbl" title="Planches debout">planches debout</div><div class="zone-lbl" title="Allée vers le fond et le côté gauche du milieu">allée</div></div>
@@ -1058,10 +1121,10 @@ function newNum(at){const d=new Date(at),pre=String(d.getDate()).padStart(2,'0')
   const same=S.orders.filter(x=>x.num&&x.num.startsWith(pre+'-')&&new Date(x.at).getFullYear()===d.getFullYear());
   return pre+'-'+(Math.max(0,...same.map(x=>parseInt(x.num.split('-')[1])||0))+1);}
 /* Noms proposés en boutons (modifiables ici) */
-const NOMS={magasin:['Yann','Gustave'],entrepot:['Pierre-Yves','Armel','Majel','Anas','Yiad','Aurelio']};
+const NOMS=SKI?{magasin:[],entrepot:[]}:{magasin:['Yann','Gustave'],entrepot:['Pierre-Yves','Armel','Majel','Anas','Yiad','Aurelio']};
 function nameField(lbl,list,ph){const cur=me(),other=cur&&!list.includes(cur);
   return `<div class="field"><span class="lbl-s">${lbl}</span><div class="names">${list.map(n=>`<button type="button" class="btn nm${cur===n?' on':''}" data-act="setname" data-n="${esc(n)}" aria-pressed="${cur===n}">${esc(n)}</button>`).join('')}</div>
-    <input type="text" id="myName" class="nm-other${other?' on':''}" value="${other?esc(cur):''}" placeholder="${ph}" autocomplete="off" autocapitalize="words" aria-label="Autre nom"></div>`;}
+    <input type="text" id="myName" class="nm-other${other||!list.length?' on':''}" value="${other?esc(cur):''}" placeholder="${ph}" autocomplete="off" autocapitalize="words" aria-label="Autre nom"></div>`;}
 const doneOf=l=>l.done!=null?l.done:(l.st==='rupture'?0:l.qty);
 function needName(){const n=$('#myName');if(n){n.focus();n.scrollIntoView({block:'center'});}toast('Indiquez d\'abord votre nom (qui prépare ?)');}
 /* Modifie une seule ligne : en ligne, la ligne est mise à jour dans la commande telle qu'elle est en ce moment,
@@ -1273,8 +1336,9 @@ function inventaireXlsx(){
    Droite : niveaux 1-2 = même capacité, niveau 3 à part. Milieu (MG et MD) : pareil, en plus petit.
    Fond, Gauche (fins de série), Étagère et Blocs ne sont pas gérés (rangement libre).
    Capacité par défaut = l'emplacement le plus rempli du groupe (considéré comme plein). */
-const CAP_GROUPS={D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3'};
+const CAP_GROUPS=SKI?{BF:'Bottes femme (racks gauche)',BH:'Bottes homme',FS:'Fond, côté ski'}:{D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3'};
 function capGroup(emp){const m=/^([A-Z]+)\d+\.(\d)$/.exec(emp||'');if(!m)return null;
+  if(SKI)return m[1]==='GS'||m[1]==='GN'?'BF':m[1]==='HG'||m[1]==='HD'?'BH':m[1]==='FS'?'FS':null;
   if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';return null;}
 function occMap(){const o={};S.articles.forEach(a=>{const x=o[a.emp]=o[a.emp]||{botte:0,fix:0,board:0,f:0};const q=qOf(a);x[a.type]=(x[a.type]||0)+q;const c=q&&slotCap(a.emp,boxOf(a));if(c)x.f+=q/c;});return o;}
 function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,fix:0});
@@ -1283,7 +1347,7 @@ function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,
   const rs=Object.values(c).filter(x=>x.botte&&x.fix).map(x=>x.botte/x.fix),r=rs.length?rs.reduce((a,b)=>a+b)/rs.length:1.1;
   Object.values(c).forEach(x=>{if(!x.botte&&x.fix)x.botte=Math.round(x.fix*r);if(!x.fix&&x.botte)x.fix=Math.round(x.botte/r);if(!x.botte)x.botte=20;if(!x.fix)x.fix=18;});
   return c;}
-const caps=()=>{if(!S.caps||!S.caps.D12)S.caps=capsCalc();return S.caps;};
+const caps=()=>{if(!S.caps||!S.caps[Object.keys(CAP_GROUPS)[0]])S.caps=capsCalc();return S.caps;};
 /* place d'un emplacement : d'après les mesures s'il est mesuré (bx = boîte du modèle qu'on range), sinon d'après les capacités de Réglages */
 function capCtx(occ,bx){const C=caps(),typ=t=>bx&&bx.t===t&&bx.b?bx.b:typBox(t),meas=emp=>!!slotCap(emp,BOX_DEF.botte);
   const cap=(emp,t)=>{const g=capGroup(emp);if(!g)return 0;const m=slotCap(emp,typ(t));if(m)return m;return t==='botte'?C[g].botte:C[g].fix;};
@@ -1300,12 +1364,14 @@ const plural=(n,a,b)=>n>1?b:a;
    - fixations : à droite (tous niveaux) ; milieu en dernier recours.
    locTier : 0 = interdit, 1 = conseillé, 2 = dernier recours */
 const bigLot=()=>(caps().big||40);
+let curGenre=''; /* ski : femme → racks de gauche, homme → rangée H (le genre du modèle qu'on range) */
 function locTier(t,emp,big){const g=capGroup(emp);if(!g)return 0;
+  if(SKI){if(t!=='botte')return 0;if(g==='FS')return 2;const want=curGenre==='H'?'BH':curGenre==='F'?'BF':'';return !want||g===want?1:2;}
   if(t==='botte'){if(g==='D3')return 0;if(g==='M12'||g==='M3')return 1;return big?1:2;}
   if(g==='D12'||g==='D3')return 1;return 2;}
 const tierOrder=(t,e,big)=>{const k=locTier(t,e,big);/* à rang égal : milieu avant droite pour les bottes */return k*2+(t==='botte'&&capGroup(e)[0]==='D'?1:0);};
 /* Conseils pour ranger n boîtes d'un modèle au même endroit : [{emp, why, moves:[{ids,from,to,label,n}]}] */
-function placeSuggest(t,marque,modele,genre,n){
+function placeSuggest(t,marque,modele,genre,n){curGenre=genre;
   const big=t==='botte'&&n>=bigLot();
   const occ=occMap(),BX=mBox(t,marque,modele),X=capCtx(occ,BX),ok=(ty,e,b)=>locTier(ty,e,b)>0,managed=LOCS.filter(e=>ok(t,e,big));
   const key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
@@ -1337,7 +1403,7 @@ function placeSuggest(t,marque,modele,genre,n){
     .forEach(e=>res.push({emp:e,why:(X.fill(e)<0.02?'emplacement vide':brandAt.has(e)?`avec d'autres ${marque}`:'place libre')+` · place pour ≈ ${X.free(e,t)}`+(locTier(t,e,big)===2?' · dernier recours':''),moves:[]}));
   return {res,split:null,here:sameLocs};}
 /* Trop gros pour un seul endroit : on répartit par groupes de tailles entières (une taille n'est coupée que si elle ne tient nulle part) */
-function splitLot(t,marque,modele,genre,sizes){
+function splitLot(t,marque,modele,genre,sizes){curGenre=genre;
   const n=Object.values(sizes).reduce((x,y)=>x+y,0),big=t==='botte'&&n>=bigLot();
   const occ=occMap(),X=capCtx(occ,mBox(t,marque,modele)),K=[t,norm(marque),norm(modele),genre].join('|');
   const same=new Set(S.articles.filter(a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|')===K).map(a=>a.emp));
@@ -1371,7 +1437,7 @@ const gDesc=g=>`${TYPE[g.type]} · ${GENRE[g.genre]||''}${g.couleur?' · '+g.cou
 /* Libérer un emplacement conseillé en déplaçant d'autres modèles (entiers) vers d'autres racks permis.
    Proposé seulement si c'est utile : pas de place en un seul endroit, ou seulement en dernier recours,
    ou pour rejoindre le même modèle. On déplace au maximum 4 modèles et moins de boîtes qu'on n'en range. */
-function optimizeFor(t,marque,modele,genre,n){const big=t==='botte'&&n>=bigLot();
+function optimizeFor(t,marque,modele,genre,n){curGenre=genre;const big=t==='botte'&&n>=bigLot();
   const occ=occMap(),BX=mBox(t,marque,modele),X=capCtx(occ,BX),key=a=>[a.type,norm(a.marque),norm(a.modele),a.genre].join('|'),K=[t,norm(marque),norm(modele),genre].join('|');
   const same=new Set(S.articles.filter(a=>key(a)===K).map(a=>a.emp)),brand=new Set(S.articles.filter(a=>a.type===t&&norm(a.marque)===norm(marque)).map(a=>a.emp));
   let best=null;
@@ -1409,7 +1475,9 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
       Object.entries(forced).forEach(([e,sz])=>{put(e,sz);step.chunks[step.chunks.length-1].forced=true;});
       const nRest=Object.values(all).reduce((x,y)=>x+y,0);
       if(!nRest){step.why='emplacement choisi par vous';out.push(step);return;}
-      if(g.type==='board'){const h=S.articles.find(a=>a.type==='board'&&norm(a.marque)===norm(g.marque)&&norm(a.modele)===norm(g.modele));put(h?h.emp:null,all);step.why=h?'avec le même modèle':'snowboards : choisissez l\'emplacement';out.push(step);return;}
+      if(g.type==='board'){const h=S.articles.find(a=>a.type==='board'&&norm(a.marque)===norm(g.marque)&&norm(a.modele)===norm(g.modele));let e=h?h.emp:null;
+        if(!e&&SKI){const z=LOCS.filter(c=>/^(MUR|FEN)/.test(c)).map(c=>[c,S.articles.filter(a=>a.emp===c).reduce((t,a)=>t+qOf(a),0)]).sort((x,y)=>x[1]-y[1])[0];e=z&&z[0];}
+        put(e,all);step.why=h?'avec le même modèle':e?'zone de skis la moins remplie':'snowboards : choisissez l\'emplacement';out.push(step);return;}
       const r=placeSuggest(g.type,g.marque,g.modele,g.genre,nRest);step.alts=r.res.map(x=>x.emp);
       let c=r.res[0]||null;const bigG=g.type==='botte'&&nRest>=bigLot();
       /* optimisation : si pas de place d'un seul tenant, ou seulement en dernier recours, ou loin du même modèle.
@@ -1426,7 +1494,7 @@ function planArrivage(){const A=arr(),real=S.articles,sim=JSON.parse(JSON.string
 /* répartit les tailles d'un modèle dans ses morceaux (emplacements) */
 function chunkLines(step){const res=[];step.chunks.forEach(c=>Object.entries(c.sizes||{}).forEach(([z,q])=>{if(q>0)res.push({emp:c.emp,taille:z,qty:q});}));return res;}
 /* liste des emplacements possibles pour un morceau : d'abord ceux qui ont la place, puis les autres, puis hors racks */
-function chunkOpts(g,c){const t=g.type,X=capCtx(occMap(),mBox(t,g.marque,g.modele)),big=t==='botte'&&c.n>=bigLot();
+function chunkOpts(g,c){curGenre=g.genre;const t=g.type,X=capCtx(occMap(),mBox(t,g.marque,g.modele)),big=t==='botte'&&c.n>=bigLot();
   const ok=LOCS.filter(e=>locTier(t,e,big)>0&&e!==c.emp).map(e=>[e,X.free(e,t)]);
   const fits=ok.filter(x=>x[1]>=c.n).sort((a,b)=>tierOrder(t,a[0],big)-tierOrder(t,b[0],big)||a[1]-b[1]);
   const small=ok.filter(x=>x[1]>0&&x[1]<c.n).sort((a,b)=>b[1]-a[1]);
@@ -1486,7 +1554,7 @@ function arrSheet(gid){const A=arr(),g0=gid&&A.groups.find(x=>x.id===gid);
   const sizeGrid=t=>{const list=sizesOf(t);return `<div class="agrid">${list.map(z=>`<label class="acell${g.sizes[z]?' on':''}"><span>${esc(szLbl(t,z).replace(' cm',''))}</span><input type="number" min="0" max="999" inputmode="numeric" data-az="${esc(z)}" value="${g.sizes[z]||''}" placeholder="0"></label>`).join('')}</div>`;};
   sheet(`<form id="arrForm" class="sheet-in" style="display:flex;flex-direction:column;gap:12px">
     <div class="sheet-h"><h2>${g0?'Modifier le modèle':'Ajouter un modèle'}</h2><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
-    <div class="seg" id="a-type">${['botte','fix','board'].map(t=>`<button type="button" data-at="${t}" aria-pressed="${g.type===t}">${TYPE[t]}</button>`).join('')}</div>
+    <div class="seg" id="a-type">${Object.keys(TYPE).map(t=>`<button type="button" data-at="${t}" aria-pressed="${g.type===t}">${TYPE[t]}</button>`).join('')}</div>
     <div class="grid2">
       <div class="field"><label for="a-marque">Marque</label><input type="text" id="a-marque" list="dl-amarques" value="${esc(g.marque)}" autocomplete="off" autocapitalize="words"><datalist id="dl-amarques">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
       <div class="field"><label for="a-modele">Modèle</label><input type="text" id="a-modele" list="dl-amodeles" value="${esc(g.modele)}" autocomplete="off" autocapitalize="words"><datalist id="dl-amodeles">${modelOptions(g.marque)}</datalist></div>
@@ -1545,8 +1613,9 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands,
 /* ---------- Dimensions (cm) : emplacements et boîtes ----------
    S.dims = {locs:{D12:{L,P,H,pose},...}, over:{emp:{L,P,H}}, boxes:[{id,type,marque,modele,from,to,L,l,H}]}
    Pas encore utilisé pour le calcul : on collecte d'abord les mesures. */
-const DIM_GROUPS={D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
-  G1:['Gauche · niveau 1 (tous les racks G ; hauteur vide = celle de D1.1)','Profondeur'],G2:['Gauche · niveau 2 (tous les racks G)','Profondeur'],G3:['Gauche · niveau 3 (tous les racks G, sans dessus)','Profondeur'],
+const DIM_GROUPS=SKI?{BF1:['Racks gauche (bottes femme) · niveau 1','Profondeur d\'une face'],BF2:['Racks gauche (bottes femme) · niveau 2','Profondeur d\'une face'],BF3:['Racks gauche (bottes femme) · niveau 3','Profondeur d\'une face'],
+  BH1:['Bottes homme · niveau 1 (2 faces)','Profondeur totale'],BH2:['Bottes homme · niveau 2 (2 faces)','Profondeur totale'],BH3:['Bottes homme · niveau 3 (2 faces)','Profondeur totale'],FS:['Fond, côté ski','Profondeur']}:{D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
+  G1:['Gauche · niveau 1 (tous les racks G ; hauteur vide = celle de D1.1)','Profondeur côté snow'],G2:['Gauche · niveau 2 (tous les racks G)','Profondeur côté snow'],G3:['Gauche · niveau 3 (tous les racks G, sans dessus)','Profondeur côté snow'],
   M1:['Milieu · niveau 1 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M2:['Milieu · niveau 2 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M3:['Milieu · niveau 3 (étagère double face G + D)','Profondeur totale, allée G → allée D']};
 /* Au milieu, MG et MD du même rack et du même niveau sont une seule étagère : on la note M (ex. M3.2) */
 const DIM_LOCS=[...new Set(LOCS.filter(capGroup).map(e=>e.replace(/^M[GD]/,'M')))];
@@ -1565,10 +1634,10 @@ function boxFor(a){const rk=z=>a.type==='fix'?(S.sizesF.indexOf(z)+1||99):sizeRa
 function vDims(){const d=dims();
   const inp=(attr,v,lbl)=>`<input type="text" inputmode="decimal" ${attr} value="${v!=null?String(v).replace('.',','):''}" placeholder="cm" aria-label="${lbl}" class="dim-in">`;
   const grp=Object.entries(DIM_GROUPS).map(([g,[lbl,pl]])=>{const o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}</b>
-    <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
+    <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'||g.startsWith('BH')?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
     <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;}).join('');
   const ov=Object.entries(d.over).sort((a,b)=>dimRank(a[0])-dimRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
-  const typeOpt=t=>Object.entries({botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
+  const typeOpt=t=>Object.entries(SKI?{botte:TYPE.botte}:{botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
   const bt=st.boxType||'botte',sz=sizesOf(bt);
   const boxes=d.boxes.slice().sort((x,y)=>x.type.localeCompare(y.type)||(x.marque||'').localeCompare(y.marque||'')||(x.modele||'').localeCompare(y.modele||''));
   /* couverture : modèles en stock sans dimensions de boîte */
@@ -1705,7 +1774,7 @@ function shGridPool(){const sh=st.sh,pool=shPool('taille');
   return {cols,rows,a:pool[0]};}
 function gridTot(){return Object.values(st.sh.gq||{}).reduce((x,y)=>x+(y||0),0);}
 function shGrid(){const sh=st.sh,{cols,rows,a}=shGridPool();if(!a)return '<div class="empty">Rien d\'enregistré.</div>';
-  const gq=sh.gq=sh.gq||{},tot=gridTot(),pl=a.type==='fix'?['article','articles']:a.type==='board'?['planche','planches']:['paire','paires'];
+  const gq=sh.gq=sh.gq||{},tot=gridTot(),pl=a.type==='fix'?['article','articles']:a.type==='board'&&!SKI?['planche','planches']:['paire','paires'];
   const over=rows.filter(r=>(gq[r.z]||0)>r.n);
   return `<div class="card pickd"><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div>
       <div class="d">${esc([TYPE[a.type],GENRE[sh.v.genre],serOf(a)].filter(Boolean).join(' · '))}</div></div>
@@ -1912,7 +1981,7 @@ function openArt(id,code,tplId){
   const a=id?art(id):tpl?{...tpl,taille:'',note:''}:{type:'botte',marque:'',modele:'',genre:'H',taille:'',annee:new Date().getFullYear(),emp:code||'D1.1',note:''};
   sheet(`<form id="artForm" class="sheet-in" style="display:flex;flex-direction:column;gap:12px" data-id="${id||''}">
     <div class="sheet-h"><h2>${id?'Modifier l\'article':tpl?'Ajouter des tailles':'Nouvel article'}</h2><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
-    <div class="seg" id="f-type">${['botte','fix','board'].map(t=>`<button type="button" data-ft="${t}" aria-pressed="${a.type===t}">${TYPE[t]}</button>`).join('')}</div>
+    <div class="seg" id="f-type">${Object.keys(TYPE).map(t=>`<button type="button" data-ft="${t}" aria-pressed="${a.type===t}">${TYPE[t]}</button>`).join('')}</div>
     <div class="grid2">
       <div class="field"><label for="f-marque">Marque</label><input type="text" id="f-marque" list="dl-marques" value="${esc(a.marque)}" placeholder="Tapez ou choisissez" autocomplete="off" autocapitalize="words">
         <datalist id="dl-marques">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
@@ -1945,7 +2014,7 @@ function openArt(id,code,tplId){
   function renderSizes(){if(!multi)return;readRows();const have=haveHere(),used=new Set(rows.map(r=>r.s));
     const chip=s=>{const h=have.has(s);return `<button type="button" class="sz${h?' have':''}" data-fz="${esc(s)}" aria-pressed="${used.has(s)}"${h?' title="Déjà rangée ici : la quantité sera ajoutée"':''}>${esc(s.replace(' cm',''))}${h?'<small>✓</small>':''}</button>`;};
     const row=(lbl,arr)=>`<div class="szs">${lbl?`<span class="szl">${lbl}</span>`:''}${arr.map(chip).join('')}</div>`;
-    const html=f.dataset.type==='botte'?row('US',S.sizesB.filter(s=>!/cm/.test(s)))+'<div style="height:6px"></div>'+row('cm',S.sizesB.filter(s=>/cm/.test(s))):f.dataset.type==='board'?row('cm',S.sizesS):row('',S.sizesF);
+    const html=SKI&&f.dataset.type==='botte'?row('Mondopoint',S.sizesB):f.dataset.type==='botte'?row('US',S.sizesB.filter(s=>!/cm/.test(s)))+'<div style="height:6px"></div>'+row('cm',S.sizesB.filter(s=>/cm/.test(s))):f.dataset.type==='board'?row('cm',S.sizesS):row('',S.sizesF);
     rows.sort((x,y)=>sizeRankStr(x.s)-sizeRankStr(y.s));
     const n=rows.length,tot=rows.reduce((x,r)=>x+r.q,0),ph=esc(genColor()||'Couleur');
     const qrows=rows.map(r=>`<div class="qrow m3"><select data-fs="${r.k}" aria-label="Taille" style="padding:6px 2px;font:700 13px var(--f-mono)">${sizeList().map(s=>`<option${s===r.s?' selected':''}>${esc(s)}</option>`).join('')}</select>
@@ -2292,7 +2361,7 @@ const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','
 const CFG_KEYS=STOCK_KEYS.filter(k=>k!=='articles');
 /* ?ns=test : bac à sable pour les essais, sans toucher aux vraies données */
 const NS=(()=>{try{return (new URLSearchParams(location.search).get('ns')||'').replace(/[^a-z0-9]/gi,'');}catch(e){return'';}})();
-const C=n=>NS?NS+'_'+n:n;
+const C=n=>(NS?NS+'_':'')+(SKI?'ski_':'')+n;
 const cloud={on:false,fs:null,db:null,pending:false,sent:{stock:null,arts:null,orders:null,notifs:null},journal:[],backups:null};
 const stockJson=()=>JSON.stringify(Object.fromEntries(STOCK_KEYS.map(k=>[k,S[k]])));
 const cfgJson=()=>JSON.stringify(Object.fromEntries(CFG_KEYS.map(k=>[k,S[k]])));
