@@ -5,13 +5,13 @@ Un dossier par rayon. Chaque rayon a son appli **Entrepôt** et son appli **Maga
 
 | Rayon | Entrepôt | Magasin | Dossier |
 |---|---|---|---|
-| Snow (bottes, fixations, snowboards) | `index.html` | `magasin.html` | racine du dépôt |
+| Snow (bottes, fixations, snowboards) | `snow/index.html` | `snow/magasin.html` | `snow/` |
 | Ski (chaussures de ski, skis) | `ski/index.html` | `ski/magasin.html` | `ski/` |
 
-Adresses : `https://<compte>.github.io/<dépôt>/` pour le snow, `https://<compte>.github.io/<dépôt>/ski/` pour le ski.
+Adresses : `https://<compte>.github.io/<dépôt>/snow/` pour le snow, `https://<compte>.github.io/<dépôt>/ski/` pour le ski.
 Un futur rayon aura son propre dossier, sur le même modèle que `ski/`.
 
-`magasin-snow.html` est la même appli Magasin snow, sans fiche d'installation.
+À la racine, `index.html`, `magasin.html` et `magasin-snow.html` renvoient vers `snow/` : les applis déjà installées sur les téléphones continuent de marcher.
 
 ## Ce que font les applis
 
@@ -34,5 +34,5 @@ Collections : snow = `arts`, `orders`, `notifs`, `journal`, `backups`, `cfg` ; s
 
 ## Mise en ligne avec GitHub Pages
 
-Le dossier `github` de l'ordinateur est une copie exacte du dépôt : on y dépose les fichiers changés (glisser aussi le dossier `ski` entier).
+Le dossier `github` de l'ordinateur est une copie exacte du dépôt : on y dépose les fichiers changés (glisser aussi les dossiers `snow` et `ski` entiers).
 Dans le dépôt : **Settings → Pages → Branch : main / (root)**.
