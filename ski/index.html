@@ -1159,7 +1159,7 @@ function newNum(at){const d=new Date(at),pre=String(d.getDate()).padStart(2,'0')
   return pre+'-'+(Math.max(0,...same.map(x=>parseInt(x.num.split('-')[1])||0))+1);}
 /* Noms proposés en boutons (modifiables ici) */
 const NOMS_ENT=['Pierre-Yves','Armel','Majel','Anas','Yiad','Aurelio'];
-const NOMS=SKI?{magasin:['Dimitri','Steeve','Aiman','Mohamed'],entrepot:NOMS_ENT}:{magasin:['Yann','Gustave'],entrepot:NOMS_ENT};
+const NOMS=SKI?{magasin:['Dimitri','Steeve','Aiman','Mohamed'],entrepot:NOMS_ENT}:{magasin:['Yann','Gustave','Loïc'],entrepot:NOMS_ENT};
 function nameField(lbl,list,ph){const cur=me(),other=cur&&!list.includes(cur);
   return `<div class="field"><span class="lbl-s">${lbl}</span><div class="names">${list.map(n=>`<button type="button" class="btn nm${cur===n?' on':''}" data-act="setname" data-n="${esc(n)}" aria-pressed="${cur===n}">${esc(n)}</button>`).join('')}</div>
     <input type="text" id="myName" class="nm-other${other||!list.length?' on':''}" value="${other?esc(cur):''}" placeholder="${ph}" autocomplete="off" autocapitalize="words" aria-label="Autre nom"></div>`;}
