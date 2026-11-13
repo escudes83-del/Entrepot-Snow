@@ -482,7 +482,7 @@ const RAYON='ski',SKI=true;
 /* ---------- Emplacements ---------- */
 const LV=[1,2,3];
 /* au pied de chaque face de rack, une zone au sol (niveau 0, ex. D1.0) pour poser des boîtes un moment ; et une zone d'arrivée (ARR1) */
-const withFloor=L=>{const out=[],seen=new Set();L.forEach(c=>{const m=/^([A-Z]+\d+)\.\d$/.exec(c);if(m&&!seen.has(m[1])&&!/^GN/.test(c)&&!(!SKI&&/^G\d/.test(c))){seen.add(m[1]);out.push(m[1]+'.0');}out.push(c);});out.push('ARR1');return out;};
+const withFloor=L=>[...L,'ARR1']; /* plus de « niveau 0 » au pied des racks ; seulement la zone d'arrivée */
 const isFloor=e=>/\.0$/.test(e||'');
 const ZONES=SKI?{GS:'Femme · racks gauche, côté ski',GN:'Femme · racks gauche, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'}
   :{G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'};
@@ -786,7 +786,7 @@ function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const
       <div class="field"><span class="lbl-s">De quel côté du niveau ? <small class="opt">vu depuis l'allée</small></span><div class="seg" role="group" aria-label="Côté du niveau">${[['G','⬅ À gauche'],['D','À droite ➡']].map(([k,l])=>`<button type="button" data-act="mvside" data-v="${k}" aria-pressed="${(st.mvSide||'G')===k}">${l}</button>`).join('')}</div></div>
       <button type="button" class="btn primary block" data-act="mvgo">Déplacer ${nb} boîte${nb>1?'s':''}</button></div>`;}
   const done=lastMove&&JSON.stringify(S.articles)===lastMove.after?`<div class="info mvdone"><span>✓ <b>${lastMove.n} boîte${lastMove.n>1?'s':''}</b> déplacée${lastMove.n>1?'s':''} vers <b>${esc(lastMove.to)}</b></span><button type="button" class="btn sm" data-act="mvundo">↶ Annuler ce déplacement</button></div>`:'';
-  return `${solBanner()}<div><h2>Déplacer des boîtes</h2><p class="sub">1. Trouvez les boîtes avec la recherche · 2. touchez « Choisir » (et le nombre si vous n'en déplacez qu'une partie) · 3. choisissez où les mettre. Le stock est mis à jour pour tout le monde.<br>Pour <b>échanger deux modèles</b> : posez d'abord le premier <b>au sol, au pied du rack</b> (niveau 0, ex. D1.0), mettez le second à sa place, puis rangez celui du sol.</p></div>
+  return `${solBanner()}<div><h2>Déplacer des boîtes</h2><p class="sub">1. Trouvez les boîtes avec la recherche · 2. touchez « Choisir » (et le nombre si vous n'en déplacez qu'une partie) · 3. choisissez où les mettre. Le stock est mis à jour pour tout le monde.<br>Pour <b>échanger deux modèles</b> : posez d'abord le premier en <b>zone d'arrivée</b> (devant M1), mettez le second à sa place, puis rangez celui de la zone d'arrivée.</p></div>
     ${done}${dest}
     ${only?`<div class="info solban"><span>Affichées : <b>${only==='sol'?'les boîtes au pied des racks':'la zone d\'arrivée'}</b></span><button type="button" class="btn sm" data-act="mvonly">✕ Tout voir</button></div>`:filterBar()}
     ${show?`<div class="count">${sumLine(list,{lines:1})}${list.length>1&&list.length<=MAX?` · <button type="button" class="linkbtn" data-act="mvall">tout choisir</button>`:''}</div>
@@ -1120,7 +1120,7 @@ function vPlan(){
       <div class="ent"><span><svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 17V2M2 8l6-6 6 6"/></svg>Entrée</span></div>
       <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}<div class="rack"><span class="rk">ARRIVÉE</span><div class="chips">${chip('ARR1','🚚',H,count)}</div></div></div>
     </div></div>
-    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 3 et 4 (1 et 2 derrière les planches)</span><span><span class="chip">0</span>Au sol, au pied du rack</span></div>
+    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 3 et 4 (1 et 2 derrière les planches)</span></div>
     <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`}`;}
 
 function lineRow(o,l,i){
