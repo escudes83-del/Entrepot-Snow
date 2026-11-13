@@ -272,6 +272,8 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .plan-ski .pk-wall{display:flex;flex-direction:column-reverse;gap:6px}.plan-ski .zone-lbl{writing-mode:vertical-rl;align-self:stretch;text-align:center}
 @media (max-width:640px){.plan-ski .pk-cols{grid-template-columns:auto 20px minmax(0,1fr) 20px minmax(0,1fr) 0}}
 .solban{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;border-left:4px solid #f2c230}
+.pkscan{display:flex;flex-direction:column;gap:8px}.pkscan-h{display:flex;gap:8px;flex-wrap:wrap}
+.pktxt pre{white-space:pre-wrap;margin:4px 0 0;font:13px var(--f-mono,monospace);background:var(--surface-2);padding:8px;border-radius:6px;max-height:160px;overflow:auto}.scanres{display:flex;flex-direction:column;gap:6px}
 .pkrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvq{display:inline-flex;align-items:center;gap:4px}.mvq input{width:60px;text-align:center;font:inherit;padding:6px}
@@ -1899,11 +1901,48 @@ function vShopPick(){const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{con
       <button type="button" class="btn primary block" data-act="pkgo">✓ J'ai pris ${nb} boîte${nb>1?'s':''}</button></div>`:'';
   return `<h2 class="q">Pick-up</h2>
     <p class="sub">Vous montez chercher vous-même ? Trouvez la boîte, touchez « Je prends », puis validez : le stock est mis à jour et l'entrepôt est prévenu.</p>
+    ${pkTest()?`<div class="testban">MODE TEST · essayez la lecture des étiquettes : le stock ne sera pas modifié.</div>`:''}
+    <div class="card pkscan"><div class="pkscan-h"><label class="btn primary" style="cursor:pointer;flex:1">📷 Photo de l'étiquette<input type="file" id="pkPhoto" accept="image/*"${pkTest()?'':' capture="environment"'} hidden></label>
+      <button type="button" class="btn testbtn${pkTest()?' on':''}" data-act="pktest" aria-pressed="${pkTest()}">${pkTest()?'🧪 Mode test : ON':'🧪 Mode test'}</button></div>
+      <small class="opt">${pkTest()?'En mode test, vous pouvez aussi choisir une photo déjà prise. L\'appli montre tout ce qu\'elle a lu et sa note pour chaque article.':'Photographiez l\'étiquette de la boîte (modèle, taille, couleur) : l\'appli trouve l\'article dans le stock.'}</small>${scanBox()}</div>
     ${basket}${filterBar()}
     ${show?`<div class="count">${sumLine(list,{shop:1})}</div><div class="list">${list.slice(0,MAX).map(row).join('')||'<div class="empty">Rien trouvé.</div>'}</div>${list.length>MAX?`<p class="sub">Les ${MAX} premiers sont affichés : précisez la recherche.</p>`:''}`
       :'<p class="sub">Tapez une marque, un modèle ou une taille pour trouver la boîte et son emplacement.</p>'}`;}
+/* ---------- Pick-up : lire l'étiquette sur une photo (texte) et retrouver l'article ----------
+   La lecture se fait sur le téléphone (Tesseract, chargé la première fois). Le texte lu est comparé au stock : marque, modèle, taille, couleur. */
+let ocrLib=null;
+let PK_TEST=null;const pkTest=()=>{if(PK_TEST===null){try{PK_TEST=localStorage.getItem(KEY+'-pktest')==='1';}catch(e){PK_TEST=false;}}return PK_TEST;};
+function ocrLoad(){if(!ocrLib)ocrLib=new Promise((ok,ko)=>{const e=document.createElement('script');e.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';e.onload=()=>ok(window.Tesseract);e.onerror=ko;document.head.appendChild(e);});return ocrLib;}
+/* photo réduite et en niveaux de gris, plus rapide et plus lisible */
+function ocrPrep(file){return new Promise((ok,ko)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+  const x=c.getContext('2d');x.filter='grayscale(1) contrast(1.4)';x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);ok(c);};img.onerror=ko;img.src=URL.createObjectURL(file);});}
+/* note chaque article du stock d'après le texte lu */
+function ocrMatch(text){const t=' '+norm(text).replace(/,/g,'.').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ',has=w=>w&&t.includes(' '+w+' '),hasIn=w=>w.length>2&&t.includes(w);
+  const nums=new Set(t.split(' ').filter(w=>/^\d{1,3}(\.5)?$/.test(w))); /* nombres entiers du texte (pas des morceaux de 2026) */
+  const res=S.articles.filter(a=>qOf(a)>0).map(a=>{let sc=0;
+    if(hasIn(norm(a.marque)))sc+=3;
+    const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0;mw.forEach(w=>{if(has(w)||(w.length>3&&hasIn(w)))mh++;});if(mw.length)sc+=mh/mw.length*6;
+    const z=norm(a.taille).replace(/\s*cm$/,'');if(z&&(nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
+    if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
+    if(a.genre==='F'&&/ (w|women|womens|femme|wmn|wms) /.test(t))sc+=.5;
+    return {a,sc};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
+  return res.slice(0,5);}
+async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
+  try{const T=await ocrLoad(),cv=await ocrPrep(file);const w=await T.createWorker('eng');const {data}=await w.recognize(cv);await w.terminate();
+    const text=(data&&data.text||'').trim(),m=ocrMatch(text);st.pkScan={text,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
+  catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
+  render();}
+function scanBox(){const sc=st.pkScan;if(!sc)return '';
+  if(sc.busy)return `<div class="info">Lecture de l'étiquette… <small class="opt">(la première fois, l'appli télécharge l'outil de lecture : quelques secondes)</small></div>`;
+  if(sc.err)return `<div class="alert warn">La photo n'a pas pu être lue (connexion ?). Réessayez, ou cherchez l'article ci-dessous.</div>`;
+  const L=(sc.ids||[]).map(art).filter(a=>a&&qOf(a)>0),lu=esc((sc.text||'').replace(/\s+/g,' ').slice(0,90));
+  const tok=new Set(norm(sc.text||'').replace(/,/g,'.').split(/[^a-z0-9./]+/)),sizeOk=L.some(a=>tok.has(norm(a.taille).replace(/\s*cm$/,'')));
+  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Texte lu</b> (lisibilité ${sc.conf||0} %) :<pre>${esc(sc.text||'(rien)')}</pre></div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">La taille lue sur l'étiquette n'est pas en stock (ou mal lue) : vérifiez la taille avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
+      <div class="acts"><button type="button" class="btn sm${i?'':' primary'}" data-act="pkscan" data-id="${a.id}">${(st.pk||{})[a.id]?'✓ Ajoutée':'Je prends'}</button></div></div>`).join(''):`<div class="alert warn">Article non reconnu. Reprenez la photo bien en face et nette, ou cherchez-le ci-dessous.</div>`}
+    <button type="button" class="btn sm ghost" data-act="pkscanx">Fermer</button></div>`;}
 function pickGo(){const pk=st.pk||{},L=Object.entries(pk).map(([id,k])=>[art(id),k]).filter(([a,k])=>a&&k>0);if(!L.length)return;
-  const who=me();if(!who){needName();return;}
+  const who=me();if(!who){needName();return;}st.pkScan=null;
+  if(pkTest()){const n=L.reduce((t,[a,q])=>t+Math.min(q,qOf(a)),0);st.pk={};render();toast(`🧪 <b>Essai</b> : ${n} boîte${n>1?'s auraient été retirées':' aurait été retirée'} du stock. Rien n'a changé.`);return;}
   const at=Date.now(),d=new Date(at),pre=String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0'),k=S.orders.filter(o=>o.pickup&&o.num&&o.num.startsWith('P'+pre+'-')).length+1;
   const o={id:at,num:`P${pre}-${k}`,at,by:who,status:'recue',pickup:true,deducted:true,readyAt:at,lines:[]};let n=0;
   L.forEach(([a,q])=>{q=Math.min(q,qOf(a));if(!q)return;a.qty=qOf(a)-q;n+=q;o.lines.push({aid:a.id,qty:q,st:'ok',done:q,by:who});});
@@ -2274,6 +2313,9 @@ document.addEventListener('click',e=>{
     case'tohist':st.tab='settings';render();setTimeout(()=>{const h=$('#hist');if(h)h.scrollIntoView({block:'start'});},50);break;
     case'pkadd':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();break;}
     case'pkdec':{const a=art(t.dataset.id);if(!a||!st.pk)break;st.pk[a.id]=(st.pk[a.id]||0)-1;if(st.pk[a.id]<=0)delete st.pk[a.id];render();break;}
+    case'pkscan':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();toast(`<b>${esc(artName(a))} ${esc(szLbl(a.type,a.taille))}</b> ajoutée. Une autre photo, ou « J'ai pris » pour valider.`);break;}
+    case'pktest':PK_TEST=!pkTest();try{localStorage.setItem(KEY+'-pktest',PK_TEST?'1':'0');}catch(e){}st.pkScan=null;render();break;
+    case'pkscanx':st.pkScan=null;render();break;
     case'pkclear':st.pk={};render();break;
     case'pkgo':pickGo();break;
     case'pkundo':{const id=t.dataset.o;if(st.armed!=='pku'+id){st.armed='pku'+id;render();break;}st.armed=null;pickUndo(id);break;}
@@ -2385,6 +2427,7 @@ document.addEventListener('change',e=>{const t=e.target;
     catch(err){toast("Ce fichier n'est pas une copie du stock.");}};r.readAsText(t.files[0]);t.value='';return;}
   if(t.dataset&&t.dataset.mvq){const a=art(t.dataset.mvq);if(a&&st.mv){st.mv[a.id]=Math.max(1,Math.min(qOf(a),parseInt(t.value)||1));render();}return;}
   if(t.id==='mvTo'){st.mvTo=t.value;return;}
+  if(t.id==='pkPhoto'){const f=t.files&&t.files[0];t.value='';pickPhoto(f);return;}
   const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fCouleur:'fCouleur',fSerrage:'fSerrage'};
   if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id==='freeTxt'){e.preventDefault();document.querySelector('[data-act="free"]').click();}
