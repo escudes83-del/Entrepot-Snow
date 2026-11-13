@@ -271,6 +271,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .plan-ski .pk-cols{display:grid;grid-template-columns:auto 34px minmax(0,1fr) 34px minmax(0,1fr) 34px;gap:8px;align-items:start}
 .plan-ski .pk-wall{display:flex;flex-direction:column-reverse;gap:6px}.plan-ski .zone-lbl{writing-mode:vertical-rl;align-self:stretch;text-align:center}
 @media (max-width:640px){.plan-ski .pk-cols{grid-template-columns:auto 20px minmax(0,1fr) 20px minmax(0,1fr) 0}}
+.solban{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;border-left:4px solid #f2c230}
 .pkrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvrow.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .mvq{display:inline-flex;align-items:center;gap:4px}.mvq input{width:60px;text-align:center;font:inherit;padding:6px}
@@ -480,13 +481,13 @@ details.libre .inline{margin-top:10px}
 const RAYON=window.RAYON||'snow',SKI=RAYON==='ski';
 /* ---------- Emplacements ---------- */
 const LV=[1,2,3];
-const ZONES=SKI?{GS:'Femme · racks gauche, côté ski',GN:'Femme · racks gauche, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre'}
-  :{G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière'};
+const ZONES=SKI?{GS:'Femme · racks gauche, côté ski',GN:'Femme · racks gauche, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre',SOL:'Dépôt au sol (temporaire)'}
+  :{G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière',SOL:'Dépôt au sol (temporaire)'};
 /* ski : bottes femme sur les racks de gauche (face ski 1-3, face snow niveau 3 sauf G4, G0 niveau 3), bottes homme sur la rangée H (2 faces), fond côté ski, skis debout le long du mur et de la fenêtre */
 const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);add('GS',0,3);
   for(let r=1;r<=5;r++){LV.forEach(l=>add('GS',r,l));if(r!==4)add('GN',r,3);}
   for(let r=1;r<=5;r++)LV.forEach(l=>add('HD',r,l));for(let r=1;r<=5;r++)LV.forEach(l=>add('HG',r,l));
-  LV.forEach(l=>add('FS',1,l));for(let i=1;i<=6;i++)L.push('MUR'+i);for(let i=1;i<=3;i++)L.push('FEN'+i);return L;})()
+  LV.forEach(l=>add('FS',1,l));for(let i=1;i<=6;i++)L.push('MUR'+i);for(let i=1;i<=3;i++)L.push('FEN'+i);L.push('SOL1');return L;})()
   :(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [2,3].forEach(l=>add('G',4,l));
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
@@ -494,9 +495,9 @@ const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);add('GS',0,
   for(let r=1;r<=5;r++)LV.forEach(l=>add('D',r,l));
   LV.forEach(l=>add('F',1,l));
   LV.forEach(l=>add('E',1,l)); /* une seule étagère, 3 niveaux */
-  LV.forEach(l=>add('BAV',1,l));LV.forEach(l=>add('BAR',1,l));
+  LV.forEach(l=>add('BAV',1,l));LV.forEach(l=>add('BAR',1,l));L.push('SOL1'); /* dépôt au sol, le temps d'échanger deux modèles */
   return L;})();
-function locLabel(c){const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
+function locLabel(c){if(c==='SOL1')return ZONES.SOL;const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
   const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
   let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):['F','BAV','BAR','FS'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${z==='GS'||z==='GN'?'G':z[0]==='H'?'H':''}${r}`;
   return `${s} · niveau ${l}${l==='1'?' (bas)':l==='3'?' (haut)':''}`;}
@@ -565,8 +566,8 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}if(ty
 let role='magasin'; /* mini-appli magasin : pas d'accès à l'entrepôt */
 const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
 if(role==='magasin')st.tab='cmd';
-const ZONE_OF=SKI?{GS:'BF',GN:'BF',HG:'BH',HD:'BH',FS:'FS',MUR:'SK',FEN:'SK'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B'};
-const ZONE_LBL=SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis'}:{D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
+const ZONE_OF=SKI?{GS:'BF',GN:'BF',HG:'BH',HD:'BH',FS:'FS',MUR:'SK',FEN:'SK',SOL:'SOL'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',SOL:'SOL'};
+const ZONE_LBL=SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis',SOL:'Dépôt au sol'}:{SOL:'Dépôt au sol',D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
 const zoneOf=emp=>ZONE_OF[(/^[A-Z]+/.exec(emp||'')||[''])[0]]||'';
 function sizeRankStr(t){if(/cm/.test(t))return 100+parseFloat(t);const n=parseFloat(t);if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
 
@@ -753,6 +754,10 @@ function undoLastMove(){if(!lastMove)return;
   if(JSON.stringify(S.articles)!==lastMove.after){lastMove=null;render();toast('Le stock a changé depuis : passez par Réglages › Historique.');return;}
   S.articles=JSON.parse(lastMove.before);lastMove=null;pushMeta={kind:'undo',label:'Annulation d\'un déplacement'};save();render();toast('Déplacement annulé');}
 /* ---------- Menu Déplacer : 1. trouver les boîtes, 2. combien, 3. où ---------- */
+/* boîtes laissées au dépôt au sol : un rappel, et un bouton pour les ranger */
+const solArts=()=>S.articles.filter(a=>a.emp==='SOL1'&&qOf(a)>0);
+function solBanner(){if(role!=='entrepot')return '';const L=solArts();if(!L.length)return '';const n=L.reduce((t,a)=>t+qOf(a),0),m=new Set(L.map(a=>a.marque+' '+a.modele)).size;
+  return `<div class="info solban"><span>📦 <b>${n} boîte${n>1?'s':''} posée${n>1?'s':''} au sol</b> (${m} modèle${m>1?'s':''}) : pensez à ${n>1?'les':'la'} ranger.</span><button type="button" class="btn sm primary" data-act="solshow">Ranger ${n>1?'ces boîtes':'cette boîte'}</button></div>`;}
 function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const a=art(id);if(!a||!qOf(a))delete sel[id];else sel[id]=Math.min(qOf(a),Math.max(1,sel[id]||1));});
   const list=sortArts(S.articles.filter(a=>matches(a)&&qOf(a)>0)),show=filtering(),MAX=80;
   const chosen=Object.keys(sel).map(art).filter(Boolean),nb=chosen.reduce((t,a)=>t+sel[a.id],0);
@@ -765,15 +770,15 @@ function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const
     const opts=LOCS.filter(e=>!(from.size===1&&from.has(e))).map(e=>[e,locFree(e,ref)]);
     const o=([e,f])=>`<option value="${e}"${st.mvTo===e?' selected':''}>${same.has(e)?'★ ':''}${e}${f!=null?` · place pour ≈ ${f}`:''} · ${esc(locLabel(e))}</option>`;
     const srt=(x,y)=>(same.has(y[0])-same.has(x[0]))||locRank(x[0])-locRank(y[0]);
-    const fits=opts.filter(([,f])=>f!=null&&f>=nb).sort(srt),small=opts.filter(([,f])=>f!=null&&f<nb).sort((x,y)=>y[1]-x[1]),unk=opts.filter(([,f])=>f==null).sort(srt);
+    const sol=opts.filter(([e])=>e==='SOL1'),fits=opts.filter(([,f])=>f!=null&&f>=nb).sort(srt),small=opts.filter(([,f])=>f!=null&&f<nb).sort((x,y)=>y[1]-x[1]),unk=opts.filter(([e,f])=>f==null&&e!=='SOL1').sort(srt);
     dest=`<div class="card mvbar"><div class="mvhead"><b>${nb} boîte${nb>1?'s':''} choisie${nb>1?'s':''}</b> <small class="opt">· ${chosen.length} article${chosen.length>1?'s':''}${from.size?' · depuis '+[...from].sort((x,y)=>locRank(x)-locRank(y)).join(', '):''}</small>
         <button type="button" class="btn sm ghost" data-act="mvclear">Tout retirer</button></div>
       <div class="field"><label for="mvTo">Où les mettre ? <small class="opt">★ = le même modèle y est déjà · place calculée d'après les mesures</small></label>
-        <select id="mvTo"><option value="">Choisir l'emplacement…</option>${fits.length?`<optgroup label="Assez de place pour ${nb}">${fits.map(o).join('')}</optgroup>`:''}${small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(o).join('')}</optgroup>`:''}${unk.length?`<optgroup label="Pas encore mesurés">${unk.map(o).join('')}</optgroup>`:''}</select></div>
+        <select id="mvTo"><option value="">Choisir l'emplacement…</option>${sol.length?`<optgroup label="Le temps d'échanger">${sol.map(([e])=>`<option value="${e}"${st.mvTo===e?' selected':''}>📦 Dépôt au sol (temporaire)</option>`).join('')}</optgroup>`:''}${fits.length?`<optgroup label="Assez de place pour ${nb}">${fits.map(o).join('')}</optgroup>`:''}${small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(o).join('')}</optgroup>`:''}${unk.length?`<optgroup label="Pas encore mesurés">${unk.map(o).join('')}</optgroup>`:''}</select></div>
       <div class="field"><span class="lbl-s">De quel côté du niveau ? <small class="opt">vu depuis l'allée</small></span><div class="seg" role="group" aria-label="Côté du niveau">${[['G','⬅ À gauche'],['D','À droite ➡']].map(([k,l])=>`<button type="button" data-act="mvside" data-v="${k}" aria-pressed="${(st.mvSide||'G')===k}">${l}</button>`).join('')}</div></div>
       <button type="button" class="btn primary block" data-act="mvgo">Déplacer ${nb} boîte${nb>1?'s':''}</button></div>`;}
   const done=lastMove&&JSON.stringify(S.articles)===lastMove.after?`<div class="info mvdone"><span>✓ <b>${lastMove.n} boîte${lastMove.n>1?'s':''}</b> déplacée${lastMove.n>1?'s':''} vers <b>${esc(lastMove.to)}</b></span><button type="button" class="btn sm" data-act="mvundo">↶ Annuler ce déplacement</button></div>`:'';
-  return `<div><h2>Déplacer des boîtes</h2><p class="sub">1. Trouvez les boîtes avec la recherche · 2. touchez « Choisir » (et le nombre si vous n'en déplacez qu'une partie) · 3. choisissez où les mettre. Le stock est mis à jour pour tout le monde.</p></div>
+  return `${solBanner()}<div><h2>Déplacer des boîtes</h2><p class="sub">1. Trouvez les boîtes avec la recherche · 2. touchez « Choisir » (et le nombre si vous n'en déplacez qu'une partie) · 3. choisissez où les mettre. Le stock est mis à jour pour tout le monde.<br>Pour <b>échanger deux modèles</b> : posez d'abord le premier au <b>dépôt au sol</b>, mettez le second à sa place, puis rangez celui du sol.</p></div>
     ${done}${dest}
     ${filterBar()}
     ${show?`<div class="count">${sumLine(list,{lines:1})}${list.length>1&&list.length<=MAX?` · <button type="button" class="linkbtn" data-act="mvall">tout choisir</button>`:''}</div>
@@ -857,6 +862,10 @@ const P3D=(()=>{
     const p=g.attributes.position;for(let i=0;i<p.count;i++){const d=Math.abs(p.getY(i))-(h-E-6);if(d>0)p.setZ(i,p.getZ(i)+.02*d*d);}
     p.needsUpdate=true;g.computeVertexNormals();g.rotateY(Math.PI/2);return g;}
   /* rayon ski : racks de gauche (face ski 1-3, face snow niveau 3), G0, rangée bottes homme (2 faces), fond côté ski, skis debout */
+  /* dépôt au sol : une zone marquée par terre, près de l'entrée, où l'on pose des boîtes le temps d'un échange */
+  function solZone(x,z,dep,len){const F=frame('z',x,z,1);slot('SOL1',F,len,dep,1,110,{ax:'z',o0:z,flip:false});
+    const m=new T3.Mesh(new T3.PlaneGeometry(dep,len),new T3.MeshBasicMaterial({color:0xf2c230,transparent:true,opacity:.35,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x+dep/2,.8,z+len/2);gR.add(m);
+    floorText('DÉPÔT AU SOL',x+dep/2,z+len+22,20);}
   function skiLayout(tops){const MW=105,MX=Gx-SKA-MW,WX=MX-SKA,WZ=-18-124-SKA,FX1=Dx+62;
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
       tops.push(rack({ax:'z',ox:Gx,oz:z,fd:1,len:DL,dep:Gw,levels:[1,2,3],code:l=>`GS${r}.${l}`,half:true,back:r===4?null:{levels:[3],code:l=>`GN${r}.${l}`}}));
@@ -870,7 +879,7 @@ const P3D=(()=>{
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`G${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,z,30);}
     sprite('G0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('FOND côté ski',FX1/2,yT,WZ+60,28);sprite('MUR · skis',WX+12,230,T*.5,26);sprite('FENÊTRE · skis',FX1/2,230,WZ+12,26);
-    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+SKA/2,T*.55,40,Math.PI/2);floorText('RAYON SNOW · autre appli',300,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Gx-SKA/2,T+150,60);}
+    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+SKA/2,T*.55,40,Math.PI/2);floorText('RAYON SNOW · autre appli',300,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Gx-SKA/2,T+150,60);solZone(Gx-SKA+10,T+10,SKA-20,110);}
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
     if(SKI){skiLayout(tops);return;}
@@ -891,7 +900,7 @@ const P3D=(()=>{
     /* (la rangée bottes homme et les skis du mur sont dans l'appli Ski) */
     for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2,34);
     sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('SKI (arrière du fond)',(Dx+62)/2,yT-40,-112,24,true);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
-    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
+    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);solZone(345,T+10,100,110);}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
   /* boîtes « à gauche » depuis le bout gauche, « à droite » depuis le bout droit (vu depuis l'allée) ; si les deux se chevauchent, tout à la suite */
   function packSides(bxs,Lc,Hc,LN,flip){
@@ -1062,6 +1071,7 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
       <div class="zone-lbl">allée</div>
       <div class="col"><div class="mface" style="display:flex;justify-content:space-between"><span>côté ski</span><span>côté snow (niv. 3)</span></div><div class="mface">BOTTES FEMME</div>${f}</div>
       <div class="zone-lbl">rayon snow</div></div>
+    <div class="pk-top"><div class="mface">DÉPÔT AU SOL (temporaire)</div><div class="chips">${chip('SOL1','📦',H,count)}</div></div>
     <div class="ent"><span>▲ Entrée</span></div></div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 function vPlan(){
@@ -1079,7 +1089,7 @@ function vPlan(){
   const ext=`<div class="rack"><span class="rk">E1</span>${chips('E',1,H,count)}</div>`
     +`<div class="rack"><span class="rk">BAV</span>${chips('BAV',1,H,count)}</div><div class="rack"><span class="rk">BAR</span>${chips('BAR',1,H,count)}</div>`;
   const lit=lightOn(),v3=p3dOn();
-  return `<div class="plan-top"><div><h2>Plan de l'entrepôt</h2><p class="sub">${v3?'En 3D, avec le stock en direct. Touchez un niveau pour voir son contenu.':'Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l’entrée.'}</p></div>
+  return `${solBanner()}<div class="plan-top"><div><h2>Plan de l'entrepôt</h2><p class="sub">${v3?'En 3D, avec le stock en direct. Touchez un niveau pour voir son contenu.':'Chaque case est un niveau : 1 en bas, 3 en haut. Les racks sont numérotés depuis l’entrée.'}</p></div>
       <div class="seg3d" role="group" aria-label="Affichage"><button type="button" data-act="p3d" data-v="0" aria-pressed="${!v3}">Plan</button><button type="button" data-act="p3d" data-v="1" aria-pressed="${v3}">3D</button></div>
       ${v3||SKI?'':`<button type="button" class="lightbtn${lit?' on':''}" data-act="light" aria-pressed="${lit}" title="Éclairage de l'allée de droite">
         <span class="sw"><span class="knob"></span></span><span>💡 Lumière allée : <b>${lit?'allumée':'éteinte'}</b></span></button>`}</div>
@@ -1094,7 +1104,7 @@ function vPlan(){
       <div class="zone-lbl al dz" style="grid-area:al">allée</div>
       <div class="col long dz" style="grid-area:d"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${d}</div>
       <div class="ent"><span><svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 17V2M2 8l6-6 6 6"/></svg>Entrée</span></div>
-      <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}</div>
+      <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}<div class="rack"><span class="rk">SOL</span><div class="chips">${chip('SOL1','📦',H,count)}</div></div></div>
     </div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 2 et 3</span></div>
     <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`}`;}
@@ -2235,6 +2245,7 @@ document.addEventListener('click',e=>{
       toast(`Copie téléchargée : <b>${S.articles.length} articles</b>. Elle est dans le dossier Téléchargements.`);break;}
     case'mvpick':{st.mv=st.mv||{};const a=art(t.dataset.id);if(!a)break;if(st.mv[a.id]!=null)delete st.mv[a.id];else st.mv[a.id]=qOf(a);render();break;}
     case'mvall':{st.mv=st.mv||{};S.articles.filter(a=>matches(a)&&qOf(a)>0).forEach(a=>{st.mv[a.id]=qOf(a);});render();break;}
+    case'solshow':st.tab='move';st.q='SOL1';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();window.scrollTo(0,0);break;
     case'mvside':st.mvSide=t.dataset.v;render();break;
     case'mvclear':st.mv={};render();break;
     case'mvgo':{const to=($('#mvTo')||{}).value;if(!to){toast('Choisissez d\'abord <b>où les mettre</b>');$('#mvTo')&&$('#mvTo').focus();break;}
