@@ -880,8 +880,6 @@ const P3D=(()=>{
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
       /* gauche : seul G4 est un emplacement ; les autres racks de gauche ont la même forme (hauteurs de G4), sans emplacement */
       tops.push(rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G4.${l}`,noSlot:r!==4,half:true}));
-      /* rayon ski (autre appli) : derrière les racks de gauche, une allée puis une rangée de racks */
-      {const g=new T3.Mesh(new T3.BoxGeometry(SKW,240,DL),mGhost);g.position.set(SKX+SKW/2,120,z+DL/2);gR.add(g);}
       tops.push(rack({ax:'z',ox:Dx,oz:z,fd:1,len:DL,dep:62,levels:[1,2,3],code:l=>`D${r}.${l}`}));}
     for(let r=1;r<=NM;r++)tops.push(rack({ax:'z',ox:Mx,oz:T-r*ML+3,fd:1,len:ML-6,dep:Mw,levels:[1,2,3],split:true,code:(l,sd)=>`M${sd}${r}.${l}`}));
     /* fond : double profondeur ; seule la moitié côté snow est au snow, l'arrière est au rayon ski */
@@ -890,14 +888,13 @@ const P3D=(()=>{
     const TOP=Math.max(...tops),yT=TOP+30;
     {const n=34,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795,0xe8e8e8,0x7a2e8c];
       for(let i=0;i<n;i++){const k=.92+((i*7)%5)*.03;o.position.set(PLx+8+(i%3)*11,75*k+1,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.scale.set(1,k,1);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[(i*3)%pal.length]);im.setColorAt(i,c);}gR.add(im);}
-    for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw*.75,yT,z,r===4?34:24,r!==4);if(r===3){sprite('SKI · bottes homme',SKX+SKW/2,yT-40,z,26,true);sprite('SKI · bottes femme',Gx+Gw*.25,yT-40,z,22,true);}}
+    for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw*.75,yT,z,r===4?34:24,r!==4);if(r===3)sprite('SKI · bottes femme',Gx+Gw*.25,yT-40,z,22,true);}
     /* G0, devant G1 : bottes de ski femme (côté ski, niveau 3) ; skis debout le long du mur */
     {const z=T+10;rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[2,3],code:l=>`G0.${l}`,noSlot:true,half:true});sprite('G0',Gx+Gw*.5,yT,z+DL/2,24,true);}
-    {const n=40,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color();
-      for(let i=0;i<n;i++){o.position.set(SKX-SKA+8,80,60+i*34);o.rotation.set(0,0,-.1);o.scale.set(1,1.15,.4);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(0x9aa5b1);im.setColorAt(i,c);}gR.add(im);floorText('SKIS DEBOUT (mur)',SKX-SKA/2,T*.6,26,Math.PI/2);}
+    /* (la rangée bottes homme et les skis du mur sont dans l'appli Ski) */
     for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2,34);
     sprite('FOND F1',(Dx+62)/2,yT,-50,34);sprite('SKI (arrière du fond)',(Dx+62)/2,yT-40,-112,24,true);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
-    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('RAYON SKI · autre appli',Gx-SKA/2,T/2,34,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
+    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150,70);}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
   /* boîtes « à gauche » depuis le bout gauche, « à droite » depuis le bout droit (vu depuis l'allée) ; si les deux se chevauchent, tout à la suite */
   function packSides(bxs,Lc,Hc,LN,flip){
@@ -999,7 +996,7 @@ const P3D=(()=>{
     scene.add(new T3.HemisphereLight(0xffffff,0x8090a0,.75));const sun=new T3.DirectionalLight(0xffffff,.75);sun.position.set(-600,1400,900);scene.add(sun);
     mPost=new T3.MeshLambertMaterial({color:0x4b5866});mShelf=new T3.MeshLambertMaterial({color:0x9aa7b4});mPal=new T3.MeshLambertMaterial({color:0xa5784a});
     mGhost=new T3.MeshBasicMaterial({color:0x7b8794,wireframe:true,transparent:true,opacity:.35});mWall=new T3.MeshLambertMaterial({color:0x7c8b9a,transparent:true,opacity:.18});
-    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1100:1160,SKI?T+700:T+560),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?90:SKX+420,-.5,SKI?(T+100)/2:T/2+90);scene.add(fl);
+    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1100:780,SKI?T+700:T+560),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?90:220,-.5,SKI?(T+100)/2:T/2+90);scene.add(fl);
     const ray=new T3.Raycaster(),pt=new T3.Vector2(),cv=R.domElement;
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
@@ -1135,7 +1132,8 @@ function newNum(at){const d=new Date(at),pre=String(d.getDate()).padStart(2,'0')
   const same=S.orders.filter(x=>x.num&&x.num.startsWith(pre+'-')&&new Date(x.at).getFullYear()===d.getFullYear());
   return pre+'-'+(Math.max(0,...same.map(x=>parseInt(x.num.split('-')[1])||0))+1);}
 /* Noms proposés en boutons (modifiables ici) */
-const NOMS=SKI?{magasin:[],entrepot:[]}:{magasin:['Yann','Gustave'],entrepot:['Pierre-Yves','Armel','Majel','Anas','Yiad','Aurelio']};
+const NOMS_ENT=['Pierre-Yves','Armel','Majel','Anas','Yiad','Aurelio'];
+const NOMS=SKI?{magasin:['Dimitri','Steeve','Aiman','Mohamed'],entrepot:NOMS_ENT}:{magasin:['Yann','Gustave'],entrepot:NOMS_ENT};
 function nameField(lbl,list,ph){const cur=me(),other=cur&&!list.includes(cur);
   return `<div class="field"><span class="lbl-s">${lbl}</span><div class="names">${list.map(n=>`<button type="button" class="btn nm${cur===n?' on':''}" data-act="setname" data-n="${esc(n)}" aria-pressed="${cur===n}">${esc(n)}</button>`).join('')}</div>
     <input type="text" id="myName" class="nm-other${other||!list.length?' on':''}" value="${other?esc(cur):''}" placeholder="${ph}" autocomplete="off" autocapitalize="words" aria-label="Autre nom"></div>`;}
