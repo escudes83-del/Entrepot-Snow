@@ -1372,10 +1372,10 @@ function inventaireXlsx(){
    Droite : niveaux 1-2 = même capacité, niveau 3 à part. Milieu (MG et MD) : pareil, en plus petit.
    Fond, Gauche (fins de série), Étagère et Blocs ne sont pas gérés (rangement libre).
    Capacité par défaut = l'emplacement le plus rempli du groupe (considéré comme plein). */
-const CAP_GROUPS=SKI?{BF:'Bottes femme (racks gauche)',BH:'Bottes homme',FS:'Fond, côté ski'}:{D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3'};
+const CAP_GROUPS=SKI?{BF:'Bottes femme (racks gauche)',BH:'Bottes homme',FS:'Fond, côté ski'}:{D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3',G:'Gauche G4 · niveaux 3 et 4 (côté snow)'};
 function capGroup(emp){const m=/^([A-Z]+)\d+\.(\d)$/.exec(emp||'');if(!m||m[2]==='0')return null;
   if(SKI)return m[1]==='GS'||m[1]==='GN'?'BF':m[1]==='HG'||m[1]==='HD'?'BH':m[1]==='FS'?'FS':null;
-  if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';return null;}
+  if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';if(m[1]==='G')return LOCS.includes(emp)?'G':null; /* seulement G4.3 et G4.4 */return null;}
 function occMap(){const o={};S.articles.forEach(a=>{const x=o[a.emp]=o[a.emp]||{botte:0,fix:0,board:0,f:0};const q=qOf(a);x[a.type]=(x[a.type]||0)+q;const c=q&&slotCap(a.emp,boxOf(a));if(c)x.f+=q/c;});return o;}
 function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,fix:0});
   Object.entries(occMap()).forEach(([emp,o])=>{const g=capGroup(emp);if(!g)return;
@@ -1383,7 +1383,9 @@ function capsCalc(){const c={};Object.keys(CAP_GROUPS).forEach(g=>c[g]={botte:0,
   const rs=Object.values(c).filter(x=>x.botte&&x.fix).map(x=>x.botte/x.fix),r=rs.length?rs.reduce((a,b)=>a+b)/rs.length:1.1;
   Object.values(c).forEach(x=>{if(!x.botte&&x.fix)x.botte=Math.round(x.fix*r);if(!x.fix&&x.botte)x.fix=Math.round(x.botte/r);if(!x.botte)x.botte=20;if(!x.fix)x.fix=18;});
   return c;}
-const caps=()=>{if(!S.caps||!S.caps[Object.keys(CAP_GROUPS)[0]])S.caps=capsCalc();return S.caps;};
+const caps=()=>{if(!S.caps||!S.caps[Object.keys(CAP_GROUPS)[0]])S.caps=capsCalc();
+  else if(Object.keys(CAP_GROUPS).some(g=>!S.caps[g])){const c=capsCalc();Object.keys(CAP_GROUPS).forEach(g=>{if(!S.caps[g])S.caps[g]=c[g];});} /* nouveau groupe (ex. G4) : complété sans toucher aux réglages existants */
+  return S.caps;};
 /* place d'un emplacement : d'après les mesures s'il est mesuré (bx = boîte du modèle qu'on range), sinon d'après les capacités de Réglages */
 function capCtx(occ,bx){const C=caps(),typ=t=>bx&&bx.t===t&&bx.b?bx.b:typBox(t),meas=emp=>!!slotCap(emp,BOX_DEF.botte);
   const cap=(emp,t)=>{const g=capGroup(emp);if(!g)return 0;const m=slotCap(emp,typ(t));if(m)return m;return t==='botte'?C[g].botte:C[g].fix;};
@@ -1403,6 +1405,7 @@ const bigLot=()=>(caps().big||40);
 let curGenre=''; /* ski : femme → racks de gauche, homme → rangée H (le genre du modèle qu'on range) */
 function locTier(t,emp,big){const g=capGroup(emp);if(!g)return 0;
   if(SKI){if(t!=='botte')return 0;if(g==='FS')return 2;const want=curGenre==='H'?'BH':curGenre==='F'?'BF':'';return !want||g===want?1:2;}
+  if(g==='G')return t==='board'?0:2; /* G4 : fins de série, proposé en dernier recours */
   if(t==='botte'){if(g==='D3')return 0;if(g==='M12'||g==='M3')return 1;return big?1:2;}
   if(g==='D12'||g==='D3')return 1;return 2;}
 const tierOrder=(t,e,big)=>{const k=locTier(t,e,big);/* à rang égal : milieu avant droite pour les bottes */return k*2+(t==='botte'&&capGroup(e)[0]==='D'?1:0);};
