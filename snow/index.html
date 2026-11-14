@@ -459,22 +459,66 @@ details.libre .inline{margin-top:10px}
 .lrow.ls-cours{background:color-mix(in srgb,var(--warn-bg) 55%,transparent)}
 .lrow.ls-ok{background:color-mix(in srgb,var(--ok-bg) 45%,transparent)}
 .lrow.ls-rupture{background:color-mix(in srgb,var(--bad-bg) 45%,transparent)}
-/* ===== THÈME MOCHE (demandé) : vert fluo, jaune, brun, rose pourpre — supprimer ce bloc pour revenir aux couleurs normales ===== */
-:root:root,:root:root[data-theme="dark"],:root:root[data-theme="light"]{
-  --bg:#ccff00; --surface:#fff200; --surface-2:#ff4fd8; --ink:#3b1f0b; --muted:#6b3a12;
-  --line:#8b4513; --line-strong:#5c2e0a; --head:#7b3f00; --head-ink:#ccff00;
-  --accent:#c71585; --accent-ink:#ccff00; --fill:#39ff14; --fill-line:#8b4513;
-  --ok:#3b1f0b; --ok-bg:#39ff14; --warn:#3b1f0b; --warn-bg:#ffea00; --bad:#fff200; --bad-bg:#a0136b; --info:#3b1f0b; --info-bg:#ff9ff3;
-  --hatch:#a0522d; color-scheme:light;
-  --zD:#39ff14;--zG:#c71585;--zM:#8b4513;--zF:#ffea00;--zE:#ff4fd8;--zB:#7b3f00;
-  --t1:#39ff14;--t2:#c71585;--t3:#8b4513;--t4:#ffea00;
-  --head-grad:linear-gradient(120deg,#7b3f00 0%,#c71585 50%,#39ff14 100%)}
-:root:root body{background:repeating-linear-gradient(45deg,#ccff00 0 40px,#ffea00 40px 80px,#c71585 80px 120px,#7b3f00 120px 160px) fixed!important;font-family:'Comic Sans MS','Comic Sans',cursive!important}
-:root:root body::before{background:#7b3f00}
-:root:root .top{box-shadow:0 4px 0 #39ff14,0 8px 0 #c71585}
-:root:root .btn,:root:root button{border:3px dashed #8b4513!important}
-:root:root h1,:root:root h2,:root:root h3{color:#c71585!important;text-shadow:2px 2px 0 #39ff14,4px 4px 0 #7b3f00;font-family:'Comic Sans MS',cursive!important}
-/* ===== fin du thème moche ===== */
+/* ===== THÈME MODERNE : ardoise + indigo, surfaces douces, ombres légères ===== */
+:root:root{
+  --bg:#f4f6fa; --surface:#ffffff; --surface-2:#f1f4f9; --ink:#0f172a; --muted:#64748b;
+  --line:#e2e8f0; --line-strong:#cbd5e1; --head:#0f172a; --head-ink:#f8fafc;
+  --accent:#4f46e5; --accent-ink:#ffffff; --fill:#e0e7ff; --fill-line:#a5b4fc;
+  --ok:#047857; --ok-bg:#d1fae5; --warn:#b45309; --warn-bg:#fef3c7; --bad:#dc2626; --bad-bg:#fee2e2; --info:#1d4ed8; --info-bg:#e0ecff;
+  --hatch:#dbe2ea;
+  --zD:#2563eb;--zG:#7c3aed;--zM:#0d9488;--zF:#c2410c;--zE:#16a34a;--zB:#db2777;
+  --t1:#2563eb;--t2:#0d9488;--t3:#4f46e5;--t4:#7c3aed;
+  --head-grad:linear-gradient(120deg,#0f172a 0%,#1e1b4b 60%,#312e81 100%);
+  --sh-1:0 1px 2px rgba(15,23,42,.05),0 1px 3px rgba(15,23,42,.06);
+  --sh-2:0 4px 16px rgba(15,23,42,.08),0 1px 3px rgba(15,23,42,.06);
+  --r:12px}
+@media (prefers-color-scheme: dark){:root:root:not([data-theme="light"]){
+  --bg:#0b1020; --surface:#131a2b; --surface-2:#1a2236; --ink:#e7ecf5; --muted:#94a3b8;
+  --line:#243049; --line-strong:#33415e; --head:#070b16; --head-ink:#f1f5f9;
+  --accent:#818cf8; --accent-ink:#0b1020; --fill:#1e2552; --fill-line:#4f5bd5;
+  --ok:#34d399; --ok-bg:#0f2e25; --warn:#fbbf24; --warn-bg:#33270c; --bad:#f87171; --bad-bg:#3a1618; --info:#93c5fd; --info-bg:#14254a;
+  --hatch:#2a3550; --head-grad:linear-gradient(120deg,#070b16 0%,#151a3d 60%,#232a6b 100%);
+  --sh-1:0 1px 2px rgba(0,0,0,.3); --sh-2:0 6px 20px rgba(0,0,0,.35); color-scheme:dark}}
+:root:root[data-theme="dark"]{
+  --bg:#0b1020; --surface:#131a2b; --surface-2:#1a2236; --ink:#e7ecf5; --muted:#94a3b8;
+  --line:#243049; --line-strong:#33415e; --head:#070b16; --head-ink:#f1f5f9;
+  --accent:#818cf8; --accent-ink:#0b1020; --fill:#1e2552; --fill-line:#4f5bd5;
+  --ok:#34d399; --ok-bg:#0f2e25; --warn:#fbbf24; --warn-bg:#33270c; --bad:#f87171; --bad-bg:#3a1618; --info:#93c5fd; --info-bg:#14254a;
+  --hatch:#2a3550; --head-grad:linear-gradient(120deg,#070b16 0%,#151a3d 60%,#232a6b 100%);
+  --sh-1:0 1px 2px rgba(0,0,0,.3); --sh-2:0 6px 20px rgba(0,0,0,.35); color-scheme:dark}
+:root:root body{background:radial-gradient(1200px 420px at 50% -120px,color-mix(in srgb,var(--accent) 10%,transparent),transparent 70%) no-repeat,var(--bg);-webkit-font-smoothing:antialiased}
+:root:root body::before{background:var(--head)}
+:root:root .top{background:var(--head-grad);box-shadow:0 1px 0 rgba(255,255,255,.06),0 8px 24px rgba(15,23,42,.18)}
+.brand i{border-radius:3px;background:linear-gradient(180deg,#a5b4fc,var(--accent))}
+.role .seg{border-radius:999px}
+.role .seg button[aria-pressed="true"]{background:#fff;color:#1e1b4b}
+h2{letter-spacing:.01em}
+.card,.list,.plan-wrap,.qrows{border-radius:var(--r);border-color:var(--line);box-shadow:var(--sh-1)}
+:root:root .card{border-top:1px solid var(--line)}
+.card:hover{box-shadow:var(--sh-2)}
+.info{border-radius:var(--r);border:1px solid color-mix(in srgb,var(--info) 18%,transparent)}
+.btn,.seg,.sz,input[type=text],input[type=number],input[type=search],select,textarea{border-radius:10px}
+.btn{border-color:var(--line-strong);box-shadow:var(--sh-1);transition:background .15s,box-shadow .15s,transform .05s,border-color .15s}
+.btn:hover:not(:disabled){border-color:var(--accent);box-shadow:var(--sh-2)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 88%,#fff),var(--accent));box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 35%,transparent)}
+.btn.ghost{box-shadow:none}
+input[type=text],input[type=number],input[type=search],select,textarea{border-color:var(--line-strong);transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.search{border-radius:14px!important;box-shadow:var(--sh-1)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.sz{transition:background .15s,border-color .15s}
+.sz:hover{border-color:var(--accent)}
+.code{border-radius:8px;background:linear-gradient(180deg,#1e293b,#0f172a);color:#f8fafc}
+.tabs{background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(15,23,42,.06)}
+.tabs button[aria-current="page"]::before{left:30%;right:30%;height:3px;border-radius:0 0 3px 3px}
+.tabs button[aria-current="page"] svg{background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:999px;padding:3px 14px;box-sizing:content-box}
+.rack{border-radius:8px;border-width:1px}
+.chip{border-radius:5px}
+.sheet{border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(15,23,42,.25)}
+.toast{border-radius:12px}
+@media (max-width:400px){.tabs button[aria-current="page"] svg{padding:3px 8px}}
+/* ===== fin du thème moderne ===== */
 </style>
 <style>body{margin:0}[hidden]{display:none!important}</style>
 </head>
