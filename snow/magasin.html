@@ -2204,7 +2204,7 @@ function openArt(id,code,tplId){
     const dl=e.target.closest('[data-fdel]');if(dl){readRows();rows=rows.filter(r=>r.k!==dl.dataset.fdel);renderSizes();return;}
     const qb=e.target.closest('[data-fq]');if(qb){const s=qb.dataset.fq,d=+qb.dataset.d;
       if(s==='__one'){const i=$('#f-qty');i.value=Math.max(0,Math.min(999,(parseInt(i.value)||0)+d));}
-      else{readRows();const r=rows.find(x=>x.k===s);if(r)r.q=Math.max(1,Math.min(999,r.q+d));renderSizes();}return;}
+      else{const i=f.querySelector(`[data-fqi="${s}"]`);if(i)i.value=Math.max(1,Math.min(999,(parseInt(i.value)||1)+d));renderSizes();}return;} /* renderSizes relit les cases : on change la case elle-même */
     const b=e.target.closest('[data-ft]');if(!b)return;f.dataset.type=b.dataset.ft;
     f.querySelectorAll('[data-ft]').forEach(x=>x.setAttribute('aria-pressed',x===b));
     $('#f-serrage-w').hidden=b.dataset.ft!=='botte';
