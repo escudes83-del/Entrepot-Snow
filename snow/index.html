@@ -1697,7 +1697,7 @@ function vDims(){const d=dims();
           <button type="button" class="btn sm" data-act="dimoveradd">Ajouter</button></div></details></div>
     <div class="card"><h3>Dimensions des boîtes</h3>
       <p class="sub">Longueur × largeur × hauteur de la boîte, en cm. Une ligne peut valoir pour toutes les marques, une marque, ou un seul modèle, et pour une plage de tailles. <b>Le plus précis l'emporte</b> : modèle, puis marque, puis toutes marques.</p>
-      ${boxes.map(b=>`<div class="dimrow"><span><b>${b.type==='fix'?'Fixations':'Bottes'}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
+      ${boxes.map(b=>`<div class="dimrow"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
       <div class="boxadd">
         <div class="field"><label for="bxType">Type</label><select id="bxType">${typeOpt(bt)}</select></div>
         <div class="field"><label for="bxMarque">Marque <small class="opt">vide = toutes</small></label><input type="text" id="bxMarque" list="dl-bxm" autocomplete="off"><datalist id="dl-bxm">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
@@ -2442,7 +2442,13 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='pkPhoto'){const f=t.files&&t.files[0];t.value='';pickPhoto(f);return;}
   const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fCouleur:'fCouleur',fSerrage:'fSerrage'};
   if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id==='freeTxt'){e.preventDefault();document.querySelector('[data-act="free"]').click();}
+const ENTER_NEXT=[['bxMarque','bxModele','bxFrom','bxTo','bxL','bxl','bxH','@boxadd'],['ovL','ovP','ovH','ovNote','@dimoveradd']];
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.id){for(const seq of ENTER_NEXT){const i=seq.indexOf(e.target.id);if(i<0)continue;e.preventDefault();const nx=seq[i+1];
+    if(nx&&nx[0]==='@'){const b=document.querySelector(`[data-act="${nx.slice(1)}"]`);if(b)b.click();setTimeout(()=>{const f=$(nx==='@boxadd'?'#bxL':'#ovL');if(f)f.focus();},60);}
+    else if(nx){const f=$('#'+nx);if(f){f.focus();if(f.select&&f.tagName==='INPUT')f.select();}}
+    return;}}
+  if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id==='freeTxt'){e.preventDefault();document.querySelector('[data-act="free"]').click();}
   if(e.key==='Enter'&&e.target.id&&e.target.id.startsWith('add-')){e.preventDefault();e.target.nextElementSibling;document.querySelector(`[data-act="addtag"][data-k="${e.target.id.slice(4)}"]`).click();}});
 /* ---------- Synchro en ligne (Firebase) : le stock, les commandes et les avis passent d'un téléphone à l'autre ---------- */
 const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"entrepotsnow.firebaseapp.com",projectId:"entrepotsnow",
