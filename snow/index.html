@@ -459,6 +459,22 @@ details.libre .inline{margin-top:10px}
 .lrow.ls-cours{background:color-mix(in srgb,var(--warn-bg) 55%,transparent)}
 .lrow.ls-ok{background:color-mix(in srgb,var(--ok-bg) 45%,transparent)}
 .lrow.ls-rupture{background:color-mix(in srgb,var(--bad-bg) 45%,transparent)}
+/* ===== THÈME MOCHE (demandé) : vert fluo, jaune, brun, rose pourpre — supprimer ce bloc pour revenir aux couleurs normales ===== */
+:root:root,:root:root[data-theme="dark"],:root:root[data-theme="light"]{
+  --bg:#ccff00; --surface:#fff200; --surface-2:#ff4fd8; --ink:#3b1f0b; --muted:#6b3a12;
+  --line:#8b4513; --line-strong:#5c2e0a; --head:#7b3f00; --head-ink:#ccff00;
+  --accent:#c71585; --accent-ink:#ccff00; --fill:#39ff14; --fill-line:#8b4513;
+  --ok:#3b1f0b; --ok-bg:#39ff14; --warn:#3b1f0b; --warn-bg:#ffea00; --bad:#fff200; --bad-bg:#a0136b; --info:#3b1f0b; --info-bg:#ff9ff3;
+  --hatch:#a0522d; color-scheme:light;
+  --zD:#39ff14;--zG:#c71585;--zM:#8b4513;--zF:#ffea00;--zE:#ff4fd8;--zB:#7b3f00;
+  --t1:#39ff14;--t2:#c71585;--t3:#8b4513;--t4:#ffea00;
+  --head-grad:linear-gradient(120deg,#7b3f00 0%,#c71585 50%,#39ff14 100%)}
+:root:root body{background:repeating-linear-gradient(45deg,#ccff00 0 40px,#ffea00 40px 80px,#c71585 80px 120px,#7b3f00 120px 160px) fixed!important;font-family:'Comic Sans MS','Comic Sans',cursive!important}
+:root:root body::before{background:#7b3f00}
+:root:root .top{box-shadow:0 4px 0 #39ff14,0 8px 0 #c71585}
+:root:root .btn,:root:root button{border:3px dashed #8b4513!important}
+:root:root h1,:root:root h2,:root:root h3{color:#c71585!important;text-shadow:2px 2px 0 #39ff14,4px 4px 0 #7b3f00;font-family:'Comic Sans MS',cursive!important}
+/* ===== fin du thème moche ===== */
 </style>
 <style>body{margin:0}[hidden]{display:none!important}</style>
 </head>
