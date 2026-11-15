@@ -780,7 +780,7 @@ function chip(code,l,H,count){
   if(f){const ms=[...f.m.values()].sort((x,y)=>y.p-x.p),show=ms.slice(0,6);
     txt=`Recherche : ${f.p} pièce${f.p>1?'s':''} (${ms.length} modèle${ms.length>1?'s':''})&#10;${show.map(x=>`• ${esc(x.lbl)} : ${x.p}`).join('&#10;')}${ms.length>6?`&#10;+ ${ms.length-6} autre${ms.length-6>1?'s':''}`:''}&#10;Total ici : ${p} pièce${p>1?'s':''}`;}
   return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
-function chips(z,r,H,count,levels=LV,all=LV){const f=`${z}${r}.0`;return `<div class="chips">${LOCS.includes(f)?chip(f,'0',H,count):''}${all.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
+function chips(z,r,H,count,levels=LV,all=LV){const f=`${z}${r}.0`;return `<div class="chips">${LOCS.includes(f)||S.articles.some(a=>a.emp===f&&qOf(a)>0)?chip(f,'0',H,count):''}${all.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
 
 /* ---------- Place dans un emplacement, d'après les mesures (Réglages › Dimensions) ----------
    Sert à la 3D, au conseil de rangement de l'arrivage et au menu Déplacer. */
@@ -850,11 +850,12 @@ function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const
     const opts=LOCS.filter(e=>!(from.size===1&&from.has(e))).map(e=>[e,locFree(e,ref)]);
     const o=([e,f])=>`<option value="${e}"${st.mvTo===e?' selected':''}>${same.has(e)?'★ ':''}${e}${f!=null?` · place pour ≈ ${f}`:''} · ${esc(locLabel(e))}</option>`;
     const srt=(x,y)=>(same.has(y[0])-same.has(x[0]))||locRank(x[0])-locRank(y[0]);
+    const pied=[...new Set([...from].map(e=>/^([A-Z]+\d+)\.[1-9]$/.exec(e||'')).filter(Boolean).map(m=>m[1]+'.0'))].sort((x,y)=>locRank(x)-locRank(y)); /* le sol au pied du rack d'où viennent les boîtes */
     const arrZ=opts.filter(([e])=>e==='ARR1'),sol=opts.filter(([e])=>isFloor(e)).sort((x,y)=>(same.has(y[0])-same.has(x[0]))||locRank(x[0])-locRank(y[0])),fits=opts.filter(([,f])=>f!=null&&f>=nb).sort(srt),small=opts.filter(([,f])=>f!=null&&f<nb).sort((x,y)=>y[1]-x[1]),unk=opts.filter(([e,f])=>f==null&&e!=='ARR1'&&!isFloor(e)).sort(srt);
     dest=`<div class="card mvbar"><div class="mvhead"><b>${nb} boîte${nb>1?'s':''} choisie${nb>1?'s':''}</b> <small class="opt">· ${chosen.length} article${chosen.length>1?'s':''}${from.size?' · depuis '+[...from].sort((x,y)=>locRank(x)-locRank(y)).join(', '):''}</small>
         <button type="button" class="btn sm ghost" data-act="mvclear">Tout retirer</button></div>
       <div class="field"><label for="mvTo">Où les mettre ? <small class="opt">★ = le même modèle y est déjà · place calculée d'après les mesures</small></label>
-        <select id="mvTo"><option value="">Choisir l'emplacement…</option>${sol.length?`<optgroup label="Au sol, au pied du rack (le temps d'échanger)">${sol.map(([e])=>`<option value="${e}"${st.mvTo===e?' selected':''}>📦 ${e} · ${esc(locLabel(e))}</option>`).join('')}</optgroup>`:''}${arrZ.length?`<optgroup label="Zone d'arrivée">${arrZ.map(([e])=>`<option value="${e}"${st.mvTo===e?' selected':''}>🚚 Zone d'arrivée</option>`).join('')}</optgroup>`:''}${fits.length?`<optgroup label="Assez de place pour ${nb}">${fits.map(o).join('')}</optgroup>`:''}${small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(o).join('')}</optgroup>`:''}${unk.length?`<optgroup label="Pas encore mesurés">${unk.map(o).join('')}</optgroup>`:''}</select></div>
+        <select id="mvTo"><option value="">Choisir l'emplacement…</option>${arrZ.length?`<optgroup label="Zone d'arrivée">${arrZ.map(([e])=>`<option value="${e}"${st.mvTo===e?' selected':''}>🚚 Zone d'arrivée</option>`).join('')}</optgroup>`:''}${pied.length?`<optgroup label="Au pied du rack d'origine (au sol)">${pied.map(e=>`<option value="${e}"${st.mvTo===e?' selected':''}>📦 ${e} · ${esc(locLabel(e))}</option>`).join('')}</optgroup>`:''}${sol.length?`<optgroup label="Au sol, au pied du rack (le temps d'échanger)">${sol.map(([e])=>`<option value="${e}"${st.mvTo===e?' selected':''}>📦 ${e} · ${esc(locLabel(e))}</option>`).join('')}</optgroup>`:''}${fits.length?`<optgroup label="Assez de place pour ${nb}">${fits.map(o).join('')}</optgroup>`:''}${small.length?`<optgroup label="Pas assez de place (il faudra tasser)">${small.map(o).join('')}</optgroup>`:''}${unk.length?`<optgroup label="Pas encore mesurés">${unk.map(o).join('')}</optgroup>`:''}</select></div>
       <div class="field"><span class="lbl-s">De quel côté du niveau ? <small class="opt">vu depuis l'allée</small></span><div class="seg" role="group" aria-label="Côté du niveau">${[['G','⬅ À gauche'],['D','À droite ➡']].map(([k,l])=>`<button type="button" data-act="mvside" data-v="${k}" aria-pressed="${(st.mvSide||'G')===k}">${l}</button>`).join('')}</div></div>
       <button type="button" class="btn primary block" data-act="mvgo">Déplacer ${nb} boîte${nb>1?'s':''}</button></div>`;}
   const done=lastMove&&JSON.stringify(S.articles)===lastMove.after?`<div class="info mvdone"><span>✓ <b>${lastMove.n} boîte${lastMove.n>1?'s':''}</b> déplacée${lastMove.n>1?'s':''} vers <b>${esc(lastMove.to)}</b></span><button type="button" class="btn sm" data-act="mvundo">↶ Annuler ce déplacement</button></div>`:'';
@@ -933,7 +934,7 @@ const P3D=(()=>{
       if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h,M(o.fd));slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h,M(-o.fd));}
       else slot(o.code(l),F,o.len,o.half?Math.min(o.dep,dimOf(o.code(l)).P||o.dep/2):ds[l-1],y,h,M(o.fd));});
     if(!o.noSlot){const FD=40,sh=(d,fd)=>o.ax==='z'?frame('z',o.ox+d,o.oz,fd):frame('x',o.ox,o.oz+d,fd);
-      const fl=(code,fd,F2)=>{if(!LOCS.includes(code))return;slot(code,F2,o.len,FD,1,60,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
+      const fl=(code,fd,F2)=>{if(!LOCS.includes(code)&&!S.articles.some(a=>a.emp===code&&qOf(a)>0))return;slot(code,F2,o.len,FD,1,60,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
         const m=new T3.Mesh(new T3.BoxGeometry(...F2.s(o.len-10,FD-6,.6)),mFloorZ());m.position.set(...F2.c(o.len/2,FD/2,.4));gR.add(m);};
       fl(o.code(0,'G'),o.fd,sh(-o.fd*FD,o.fd));if(o.split)fl(o.code(0,'D'),-o.fd,sh(o.fd*(dep+FD),-o.fd));}
     if(o.back)o.back.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];slot(o.back.code(l),frame(o.ax,o.ox+o.fd*dep,o.oz,-o.fd),o.len,dep/2,y,h,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,-o.fd)});});
@@ -1126,7 +1127,7 @@ const P3D=(()=>{
       if(anim){const k=Math.min(1,(now-anim.s)/800),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;camera.position.lerpVectors(anim.p0,anim.p1,e);controls.target.lerpVectors(anim.t0,anim.t1,e);if(k>=1)anim=null;}
       controls.update();R.render(scene,camera);});}
   /* suit le stock et les mesures : racks refaits si les mesures changent, boîtes si le stock change */
-  function sync(){AM=new Map(S.articles.map(a=>[a.id,a]));const D=dims(),sr=JSON.stringify([D.locs,D.over]);if(sr!==sigR){sigR=sr;buildRacks();sigB='';}
+  function sync(){AM=new Map(S.articles.map(a=>[a.id,a]));const D=dims(),sr=JSON.stringify([D.locs,D.over,[...new Set(S.articles.filter(a=>/\.0$/.test(a.emp||'')&&qOf(a)>0).map(a=>a.emp))].sort()]); /* zones au sol occupées : à dessiner */if(sr!==sigR){sigR=sr;buildRacks();sigB='';}
     brandCols();for(const id of [...pick.keys()])if(!AM.has(id))pick.delete(id);
     const sb=JSON.stringify(S.articles.map(a=>[a.id,a.emp,qOf(a),a.type,a.marque,a.modele,a.genre,a.taille,a.cote||'']))+JSON.stringify(D.boxes);if(sb!==sigB){sigB=sb;buildBoxes();}else recolor();}
   function view(k){const v=VIEWS[k];if(!v||!camera)return;const p1=new T3.Vector3(...v.p),t1=new T3.Vector3(...v.t);
