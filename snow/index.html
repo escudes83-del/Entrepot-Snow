@@ -937,13 +937,15 @@ const P3D=(()=>{
     cub(F,4,4,0,o.len-8,dep-8,BASE-4,mPal);
     [[0,0],[o.len-5,0],[0,dep-5],[o.len-5,dep-5]].forEach(([u,v])=>cub(F,u,v,0,5,5,top,mPost));
     o.levels.forEach(l=>cub(F,0,0,ys[l-1],o.len,ds[l-1],SH,mShelf));
-    if(o.split||o.half)cub(F,5,dep/2-.75,BASE,o.len-10,1.5,top-BASE,mWall);
-    if(!o.noSlot)o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];
+    if(o.split||o.half){const wf=o.wallFrom||0;cub(F,5+wf,dep/2-.75,BASE,o.len-10-wf,1.5,top-BASE,mWall);}
+    if(o.segs)o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];o.segs.forEach(g=>{if(g.noSlot)return;const c=g.code(l),o0=o.ox+g.u;
+      slot(c,frame(o.ax,o.ax==='x'?o0:o.ox,o.ax==='z'?o.oz+g.u:o.oz,o.fd),g.len,g.full?(dimOf(c).P||o.dep):Math.min(o.dep,dimOf(c).P||o.dep/2),y,h,{ax:o.ax,o0:o.ax==='z'?o.oz+g.u:o0,flip:isFlip(o.ax,o.fd)});});});
+    if(!o.noSlot&&!o.segs)o.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];
       if(o.slotLevels&&!o.slotLevels.includes(l))return;
       const M=fd=>({ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
       if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h,M(o.fd));slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h,M(-o.fd));}
       else slot(o.code(l),F,o.len,o.half?Math.min(o.dep,dimOf(o.code(l)).P||o.dep/2):ds[l-1],y,h,M(o.fd));});
-    if(!o.noSlot){const FD=40,sh=(d,fd)=>o.ax==='z'?frame('z',o.ox+d,o.oz,fd):frame('x',o.ox,o.oz+d,fd);
+    if(!o.noSlot&&!o.segs){const FD=40,sh=(d,fd)=>o.ax==='z'?frame('z',o.ox+d,o.oz,fd):frame('x',o.ox,o.oz+d,fd);
       const fl=(code,fd,F2)=>{if(!LOCS.includes(code)&&!S.articles.some(a=>a.emp===code&&qOf(a)>0))return;slot(code,F2,o.len,FD,1,60,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
         const m=new T3.Mesh(new T3.BoxGeometry(...F2.s(o.len-10,FD-6,.6)),mFloorZ());m.position.set(...F2.c(o.len/2,FD/2,.4));gR.add(m);};
       fl(o.code(0,'G'),o.fd,sh(-o.fd*FD,o.fd));if(o.split)fl(o.code(0,'D'),-o.fd,sh(o.fd*(dep+FD),-o.fd));}
@@ -970,8 +972,8 @@ const P3D=(()=>{
     for(let r=1;r<=NM;r++){const g=new T3.Mesh(new T3.BoxGeometry(Mw,240,ML-6),mGhost);g.position.set(Mx+Mw/2,120,T-r*ML+ML/2+MSH);gR.add(g);}
     tops.push(rack({ax:'z',ox:Gx,oz:T+10,fd:1,len:DL,dep:Gw,levels:[1,2,3,4],nlev:4,code:l=>`WS0.${l}`,half:true,back:{levels:[3,4],code:l=>`WN0.${l}`}}));
     tops.push(rack({ax:'z',ox:MX,oz:T+10,fd:1,len:DL,dep:MW,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`H${sd}0.${l}`}));
-    tops.push(rack({ax:'x',ox:Gx+Gw,oz:FZ0-124,fd:1,len:FX1-Gx-Gw,dep:124,levels:[1,2,3],code:l=>`FS1.${l}`,half:true}));
-    tops.push(rack({ax:'x',ox:Gx,oz:FZ0-124,fd:1,len:Gw,dep:124,levels:[1,2,3],code:l=>`FS2.${l}`})); /* bout derrière W5 : tout au ski */
+    tops.push(rack({ax:'x',ox:Gx,oz:FZ0-124,fd:1,len:FX1-Gx,dep:124,levels:[1,2,3],code:l=>`FS1.${l}`,half:true,wallFrom:Gw,
+      segs:[{u:0,len:Gw,code:l=>`FS2.${l}`,full:true},{u:Gw,len:FX1-Gx-Gw,code:l=>`FS1.${l}`}]})); /* un seul rack ; le bout derrière W5 (FS2) est tout au ski */
     {const o={ax:'x',ox:ENX,oz:ENZ,fd:1,len:DL,dep:76,levels:[1,2,3],slotLevels:[2,3],code:l=>`EN1.${l}`};tops.push(rack(o)); /* rack de l'entrée, contre le mur */
       slot('EN1.1',frame('x',ENX,ENZ,1),DL,76,o.ys[0]+SH,o.hs[0],{ax:'x',o0:ENX,flip:isFlip('x',1),skis:true});}
     [1,2].forEach(r=>{const x=EDX+(r-1)*EDL,o={ax:'x',ox:x,oz:EDZ,fd:1,len:EDL-4,dep:EDP,levels:[1,2],nlev:2,slotLevels:[2],code:l=>`ED${r}.${l}`};tops.push(rack(o)); /* ED1, ED2 : contre le mur de l'entrée, à droite */
@@ -991,8 +993,8 @@ const P3D=(()=>{
       tops.push(rack({ax:'z',ox:Dx,oz:z,fd:1,len:DL,dep:62,levels:[1,2,3],code:l=>`D${r}.${l}`}));}
     for(let r=1;r<=NM;r++)tops.push(rack({ax:'z',ox:Mx,oz:T-r*ML+3+MSH,fd:1,len:ML-6,dep:Mw,levels:[1,2,3],split:true,code:(l,sd)=>`M${sd}${r}.${l}`}));
     /* fond : double profondeur ; seule la moitié côté snow est au snow, l'arrière est au rayon ski */
-    tops.push(rack({ax:'x',ox:Gx+Gw,oz:FZ0,fd:-1,len:Dx+62-Gx-Gw,dep:124,levels:[1,2,3],code:l=>`F1.${l}`,half:true}));
-    rack({ax:'x',ox:Gx,oz:FZ0,fd:-1,len:Gw,dep:124,levels:[1,2,3],code:l=>`FS2.${l}`,noSlot:true}); /* bout derrière G5 : tout au ski */
+    tops.push(rack({ax:'x',ox:Gx,oz:FZ0,fd:-1,len:Dx+62-Gx,dep:124,levels:[1,2,3],code:l=>`F1.${l}`,half:true,wallFrom:Gw,
+      segs:[{u:0,len:Gw,noSlot:true},{u:Gw,len:Dx+62-Gx-Gw,code:l=>`F1.${l}`}]})); /* un seul rack ; le bout derrière G5 est tout au ski */
     [['E1',60,110],['BAV1',190,80],['BAR1',290,80]].forEach(([c,z,len])=>tops.push(rack({ax:'z',ox:Dx,oz:T+z,fd:1,len,dep:62,levels:[1,2,3],code:l=>`${c}.${l}`})));
     const TOP=Math.max(...tops),yT=TOP+30;
     {const n=34,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795,0xe8e8e8,0x7a2e8c];
