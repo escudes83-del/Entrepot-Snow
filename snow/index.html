@@ -1112,7 +1112,8 @@ const P3D=(()=>{
     const ray=new T3.Raycaster(),pt=new T3.Vector2(),cv=R.domElement;
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
-      const b=IM?ray.intersectObject(IM,false)[0]:null,l=ray.intersectObjects(hitsL,false)[0],bi=b&&inst[b.instanceId];
+      const kind=(drag&&drag.moved)||moveMode?(()=>{const k=new Set([...pick.keys()].map(id=>{const a=A(id);return a&&a.type==='board'?1:0;}));return k.size===1?[...k][0]:null;})():null;
+      const b=IM?ray.intersectObject(IM,false)[0]:null,l=ray.intersectObjects(hitsL,false).find(x=>kind===null||!!x.object.userData.skis===!!kind),bi=b&&inst[b.instanceId];
       if(bi&&(!l||l.object.userData.code===bi.code||b.distance<l.distance||!occ[l.object.userData.code])){const hm=hitsL.find(x=>x.userData.code===bi.code),U=hm&&hm.userData;let side='G';
         if(U&&U.ax){const u=(U.ax==='z'?b.point.z:b.point.x)-U.o0,first=u<U.len/2;side=first!==U.flip?'G':'D';}return {aid:bi.aid,code:bi.code,side};}
       const hit=l||b;if(!hit)return null;const code=l?l.object.userData.code:bi.code,hm=hitsL.find(x=>x.userData.code===code),U=hm&&hm.userData;
