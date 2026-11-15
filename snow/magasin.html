@@ -2618,7 +2618,7 @@ async function doRestore(id){if(!cloud.on)return;const {fs,db}=cloud;
     toast(`Stock remis comme le <b>${esc(id)}</b> : ${S.articles.length} articles. L'état d'avant est gardé dans les sauvegardes.`);}
   catch(e){console.warn(e);toast('Le retour à la sauvegarde a échoué (connexion ?)');}}
 async function cloudStart(){
-  if(location.protocol==='file:'){setSync('off','Fichier local, pas en ligne');return;}
+  if(location.protocol==='file:'||location.protocol==='data:'){setSync('off','Fichier local, pas en ligne');return;}
   setSync('wait','Connexion…');
   const late=setTimeout(()=>{if(!cloud.on)setSync('off','Hors ligne');},15000);
   try{
@@ -2633,14 +2633,21 @@ async function cloudStart(){
       try{for(let i=0;i<cfgArts.length;i+=400){const B=fs.writeBatch(db);cfgArts.slice(i,i+400).forEach(x=>B.set(fs.doc(db,C('arts'),artDocId(x.id)),{json:JSON.stringify(x),at:Date.now()}));await B.commit();}
         const j=cfgJson();cloud.sent.stock=j;await fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,v:2,at:Date.now()});}
       catch(e){console.warn('Migration',e);migrating=false;}};
+    /* le stock est en ligne mais pas les réglages (mesures, boîtes, listes) : on les envoie depuis cet appareil */
+    const cfgBoot=()=>{if(!cloud.noCfg||role!=='entrepot'||!cloud.sent.arts||!cloud.sent.arts.size)return;
+      cloud.noCfg=false;cloud.empty=false;cloud.sent.stock='';cloudPush();softRender();};
     /* réglages (listes, mesures, mot de passe) */
     fs.onSnapshot(fs.doc(db,C('cfg'),'stock'),snap=>{
-      if(!snap.exists()){cloud.empty=true;softRender();return;}
-      cloud.empty=false;
+      if(!snap.exists()){cloud.empty=true;cloud.noCfg=true;cfgBoot();softRender();return;}
+      cloud.empty=false;cloud.noCfg=false;
       const o=JSON.parse(snap.data().json);
+      /* première réception : les boîtes mesurées sur cet appareil et pas encore en ligne sont ajoutées (rien n'est perdu) */
+      const mine=!cloud.cfgSeen&&S.dims&&Array.isArray(S.dims.boxes)?S.dims.boxes.slice():[];cloud.cfgSeen=true;
       if(Array.isArray(o.articles)&&o.articles.length&&!(cloud.sent.arts&&cloud.sent.arts.size)){cfgArts=o.articles;S.articles=o.articles;tryMigrate();}
       else if(o.articles&&cloud.sent.arts&&cloud.sent.arts.size&&role==='entrepot')setTimeout(()=>{cloud.sent.stock='';cloudPush();},1500); /* migration coupée en route, ou ancienne version de l'appli : on retire les articles de cfg */
       CFG_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k];});cloud.sent.stock=cfgJson();
+      if(mine.length){const cur=dims().boxes,ids=new Set(cur.map(b=>b.id)),add=mine.filter(b=>b&&b.id&&!ids.has(b.id));
+        if(add.length){cur.push(...add);cloud.sent.stock='';if(role==='entrepot')cloudPush();toast(`${add.length} taille${add.length>1?'s':''} de boîte de cet appareil envoyée${add.length>1?'s':''} en ligne`);}}
       saveLocal();softRender();setSync('on','En ligne');
     },cloudErr);
     /* articles : un document chacun */
@@ -2649,7 +2656,7 @@ async function cloudStart(){
       const first=!cloud.sent.arts;
       if(!m.size){if(cfgArts&&cfgArts.length){tryMigrate();return;}if(first&&S.articles.length)return; /* base vide : on attend le bouton « Envoyer » */}
       cloud.sent.arts=m;S.articles=[...m.values()].map(x=>JSON.parse(x));
-      saveLocal();softRender();setSync('on','En ligne');dailyBackup();
+      saveLocal();softRender();setSync('on','En ligne');dailyBackup();cfgBoot();
     },cloudErr);
     [['orders','orders'],['notifs','notifs']].forEach(([col,key])=>{
       fs.onSnapshot(fs.collection(db,C(col)),qs=>{
