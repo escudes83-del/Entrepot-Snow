@@ -896,10 +896,10 @@ const P3D=(()=>{
   let lib=null,T3=null,R=null,scene,camera,controls,host=null,anim=null,lit=new Set();
   let gR=null,gB=null,sigR='',sigB='',hitsL=[],IM=null,inst=[],occ={},sel=null,hov=null,dest=null,drag=null,down=null,moveMode=false,AM=new Map(),BCOL=new Map();
   const pick=new Map(); /* article choisi -> nombre de boîtes à déplacer */
-  const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=230,Mw=105,Gw=135,Gx=60-Gw,Dx=455,PLx=70,DL=244,sG=T/5,LVD=51,SKA=120,SKW=60,SKX=Gx-SKA-SKW,ENX=Gx+Gw-DL,ENZ=T+10+DL+120,FZ0=T-5*sG+(sG-DL)/2,BMZ=FZ0+100,MSH=BMZ+60-3; /* FZ0 : face avant du fond, collé au bout de G5/W5 et D5 ; 100 cm de passage ; BMZ : zone au bout de M6 ; MSH : la rangée du milieu avancée vers l'entrée */
-  const VIEWS={all:{p:[-900,1600,T+950],t:[170,60,T/2-60]},ent:{p:[395,190,T+180],t:[395,110,T-700]},top:{p:[150,2700,T/2+1],t:[150,0,T/2]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
+  const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=260,Mw=105,Gw=135,Gx=60-Gw,Dx=515,PLx=70,DL=244,sG=T/5,LVD=51,SKA=150,SKM=210,SKW=60,SKX=Gx-SKA-SKW,ENX=Gx+Gw-DL,ENZ=T+10+DL+120,FZ0=T-5*sG+(sG-DL)/2,BMZ=FZ0+100,MSH=BMZ+60-3; /* FZ0 : face avant du fond, collé au bout de G5/W5 et D5 ; 100 cm de passage ; BMZ : zone au bout de M6 ; MSH : la rangée du milieu avancée vers l'entrée */
+  const VIEWS={all:{p:[-900,1600,T+950],t:[200,60,T/2-60]},ent:{p:[(Mx+Mw+Dx)/2,190,T+180],t:[(Mx+Mw+Dx)/2,110,T-700]},top:{p:[200,2800,T/2+1],t:[200,0,T/2]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
   const DEFB=BOX_DEF;
-  if(SKI)Object.assign(VIEWS,{all:{p:[-1100,1700,T+900],t:[-80,60,T/2-60]},ent:{p:[-135,190,T+180],t:[-135,110,T-700]},top:{p:[-40,2800,T/2+1],t:[-40,0,T/2]},pl:{p:[-250,200,T*.72],t:[-410,100,T*.45]}});
+  if(SKI)Object.assign(VIEWS,{all:{p:[-1200,1750,T+950],t:[-100,60,T/2-60]},ent:{p:[Gx-SKA/2,190,T+180],t:[Gx-SKA/2,110,T-700]},top:{p:[-60,2950,T/2+1],t:[-60,0,T/2]},pl:{p:[-340,200,T*.72],t:[-530,100,T*.45]}});
   const TC={botte:'#3d7fc4',fix:'#f08a24',board:'#3fa66b'},TN={...TYPE};
   const PAL=['#3d7fc4','#e8663d','#3fa66b','#d4a72c','#8e5cc4','#d1495b','#2bb3b1','#8a6a4b','#e377c2','#6b8e23','#1f5fa8','#9aa5b1'],SELC='#fff36b';
   const load=src=>new Promise((ok,ko)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=ko;document.head.appendChild(e);});
@@ -951,7 +951,7 @@ const P3D=(()=>{
   function solZone(x,z,dep,len,code='BM1',txt){const F=frame('z',x,z,1);slot(code,F,len,dep,1,110,{ax:'z',o0:z,flip:false});
     const m=new T3.Mesh(new T3.PlaneGeometry(dep,len),new T3.MeshBasicMaterial({color:0xf2c230,transparent:true,opacity:.35,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x+dep/2,.8,z+len/2);gR.add(m);
     if(txt)floorText(txt,x+dep/2,z+len+22,20);}
-  function skiLayout(tops){const MW=105,MX=Gx-SKA-MW,WX=MX-SKA,WZ=FZ0-124-SKA,FX1=Dx+62;
+  function skiLayout(tops){const MW=105,MX=Gx-SKA-MW,WX=MX-SKM,WZ=FZ0-124-SKA,FX1=Dx+62;
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;
       tops.push(rack({ax:'z',ox:Gx,oz:z,fd:1,len:DL,dep:Gw,levels:[1,2,3,4],nlev:4,code:l=>`WS${r}.${l}`,half:true,back:r===4?null:{levels:[3,4],code:l=>`WN${r}.${l}`}}));
       tops.push(rack({ax:'z',ox:MX,oz:z,fd:1,len:DL,dep:MW,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`H${sd}${r}.${l}`}));
@@ -967,7 +967,7 @@ const P3D=(()=>{
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`W${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,z,30);}
     sprite('W0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('H0',MX+MW/2,yT,T+10+DL/2,26);sprite('FOND côté ski',FX1/2,yT,WZ+60,28);sprite('EN1 · entrée',ENX+DL/2,yT,ENZ+38,26);sprite('MUR · skis',WX+12,230,T*.5,26);sprite('FENÊTRE · skis',FX1/2,230,WZ+12,26);
-    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+SKA/2,T*.55,40,Math.PI/2);floorText('RAYON SNOW · autre appli',300,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Gx-SKA/2,T+150,60);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE (snow et ski)');} /* la même zone que le snow, devant M1 */
+    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+SKM/2,T*.55,40,Math.PI/2);floorText('RAYON SNOW · autre appli',300,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Gx-SKA/2,T+150,60);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE (snow et ski)');} /* la même zone que le snow, devant M1 */
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
     if(SKI){skiLayout(tops);return;}
@@ -990,7 +990,7 @@ const P3D=(()=>{
     /* (la rangée bottes homme et les skis du mur sont dans l'appli Ski) */
     for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2+MSH,34);
     sprite('FOND F1',(Dx+62)/2,yT,FZ0-32,34);sprite('SKI (arrière du fond)',(Dx+62)/2,yT-40,FZ0-94,24,true);solZone(Mx,BMZ,Mw,60);sprite('BOUT M6',Mx+Mw/2,70,BMZ+30,20);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
-    floorText('ALLÉE',395,T/2,60,Math.PI/2);floorText('ALLÉE',170,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',260,T+150+MSH,70);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE');}
+    floorText('ALLÉE',(Mx+Mw+Dx)/2,T/2,60,Math.PI/2);floorText('ALLÉE',(Gx+Gw+Mx)/2,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',Mx+30,T+150+MSH,70);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE');}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
   /* boîtes « à gauche » depuis le bout gauche, « à droite » depuis le bout droit (vu depuis l'allée) ; si les deux se chevauchent, tout à la suite */
   function packSides(bxs,Lc,Hc,LN,flip){
@@ -1092,7 +1092,7 @@ const P3D=(()=>{
     scene.add(new T3.HemisphereLight(0xffffff,0x8090a0,.75));const sun=new T3.DirectionalLight(0xffffff,.75);sun.position.set(-600,1400,900);scene.add(sun);
     mPost=new T3.MeshLambertMaterial({color:0x4b5866});mShelf=new T3.MeshLambertMaterial({color:0x9aa7b4});mPal=new T3.MeshLambertMaterial({color:0xa5784a});
     mGhost=new T3.MeshBasicMaterial({color:0x7b8794,wireframe:true,transparent:true,opacity:.35});mWall=new T3.MeshLambertMaterial({color:0x7c8b9a,transparent:true,opacity:.18});
-    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1100:810,SKI?T+720:T+610),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?90:205,-.5,SKI?(T+240)/2:(T+370)/2);scene.add(fl);
+    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1240:870,SKI?T+720:T+610),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?20:235,-.5,SKI?(T+240)/2:(T+370)/2);scene.add(fl);
     const ray=new T3.Raycaster(),pt=new T3.Vector2(),cv=R.domElement;
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
