@@ -562,7 +562,7 @@ const LV4=[1,2,3,4];
 const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);LV4.forEach(l=>add('WS',0,l));[3,4].forEach(l=>add('WN',0,l));
   for(let r=1;r<=5;r++){LV4.forEach(l=>add('WS',r,l));if(r!==4)[3,4].forEach(l=>add('WN',r,l));}
   for(let r=0;r<=5;r++)LV4.forEach(l=>add('HD',r,l));for(let r=0;r<=5;r++)LV4.forEach(l=>add('HG',r,l)); /* H0 : devant H1, côté entrée */
-  LV.forEach(l=>add('FS',1,l));LV.forEach(l=>add('FS',2,l)); /* FS2 : bout du fond derrière W5, tout au ski */for(let i=1;i<=6;i++)L.push('MUR'+i);LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2].forEach(l=>add('ED',r,l)));return withFloor(L);})()
+  LV.forEach(l=>add('FS',1,l));LV.forEach(l=>add('FS',2,l)); /* FS2 : bout du fond derrière W5, tout au ski */L.push('FS1.0'); /* au sol devant le fond, côté ski */for(let i=1;i<=6;i++)L.push('MUR'+i);LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2].forEach(l=>add('ED',r,l)));return withFloor(L);})()
   :(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [3,4].forEach(l=>add('G',4,l));[1,2].forEach(l=>add('G',0,l)); /* G0 (W0 au ski) : côté snow, niveaux 1 et 2 au snow */ /* racks de gauche : 4 niveaux ; le snow n'utilise que G4 niveaux 3 et 4, côté snow */
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
@@ -857,7 +857,7 @@ function vMove(){const sel=st.mv||(st.mv={});Object.keys(sel).forEach(id=>{const
     const opts=LOCS.filter(e=>!(from.size===1&&from.has(e))).map(e=>[e,locFree(e,ref)]);
     const o=([e,f])=>`<option value="${e}"${st.mvTo===e?' selected':''}>${same.has(e)?'★ ':''}${e}${f!=null?` · place pour ≈ ${f}`:''} · ${esc(locLabel(e))}</option>`;
     const srt=(x,y)=>(same.has(y[0])-same.has(x[0]))||locRank(x[0])-locRank(y[0]);
-    const pied=[...new Set([...from].map(e=>/^([A-Z]+\d+)\.[1-9]$/.exec(e||'')).filter(Boolean).map(m=>m[1]+'.0'))].sort((x,y)=>locRank(x)-locRank(y)); /* le sol au pied du rack d'où viennent les boîtes */
+    const pied=[...new Set([...from].map(e=>/^([A-Z]+\d+)\.[1-9]$/.exec(e||'')).filter(Boolean).map(m=>(m[1]==='FS2'?'FS1':m[1])+'.0'))].sort((x,y)=>locRank(x)-locRank(y)); /* le sol au pied du rack d'où viennent les boîtes */
     const arrZ=opts.filter(([e])=>e==='ARR1'),sol=opts.filter(([e])=>isFloor(e)).sort((x,y)=>(same.has(y[0])-same.has(x[0]))||locRank(x[0])-locRank(y[0])),fits=opts.filter(([,f])=>f!=null&&f>=nb).sort(srt),small=opts.filter(([,f])=>f!=null&&f<nb).sort((x,y)=>y[1]-x[1]),unk=opts.filter(([e,f])=>f==null&&e!=='ARR1'&&!isFloor(e)).sort(srt);
     dest=`<div class="card mvbar"><div class="mvhead"><b>${nb} boîte${nb>1?'s':''} choisie${nb>1?'s':''}</b> <small class="opt">· ${chosen.length} article${chosen.length>1?'s':''}${from.size?' · depuis '+[...from].sort((x,y)=>locRank(x)-locRank(y)).join(', '):''}</small>
         <button type="button" class="btn sm ghost" data-act="mvclear">Tout retirer</button></div>
@@ -942,10 +942,11 @@ const P3D=(()=>{
       const M=fd=>({ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
       if(o.split){const half=ds[l-1]/2;slot(o.code(l,'G'),F,o.len,half,y,h,M(o.fd));slot(o.code(l,'D'),frame(o.ax,o.ox+o.fd*ds[l-1],o.oz,-o.fd),o.len,half,y,h,M(-o.fd));}
       else slot(o.code(l),F,o.len,o.half?Math.min(o.dep,dimOf(o.code(l)).P||o.dep/2):ds[l-1],y,h,M(o.fd));});
-    if(!o.noSlot&&!o.segs){const FD=40,sh=(d,fd)=>o.ax==='z'?frame('z',o.ox+d,o.oz,fd):frame('x',o.ox,o.oz+d,fd);
-      const fl=(code,fd,F2)=>{if(!LOCS.includes(code)&&!S.articles.some(a=>a.emp===code&&qOf(a)>0))return;slot(code,F2,o.len,FD,1,60,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,fd)});
-        const m=new T3.Mesh(new T3.BoxGeometry(...F2.s(o.len-10,FD-6,.6)),mFloorZ());m.position.set(...F2.c(o.len/2,FD/2,.4));gR.add(m);};
-      fl(o.code(0,'G'),o.fd,sh(-o.fd*FD,o.fd));if(o.split)fl(o.code(0,'D'),-o.fd,sh(o.fd*(dep+FD),-o.fd));}
+    if(!o.noSlot||o.segs){const FD=40,sg=o.segs?o.segs.filter(g=>!g.noSlot):null,u0=sg&&sg.length?sg[0].u:0,FL=sg&&sg.length?sg[sg.length-1].u+sg[sg.length-1].len-u0:o.len,
+        sh=(d,fd)=>o.ax==='z'?frame('z',o.ox+d,o.oz+u0,fd):frame('x',o.ox+u0,o.oz+d,fd);
+      const fl=(code,fd,F2)=>{const show=LOCS.includes(code)||S.articles.some(a=>a.emp===code&&qOf(a)>0);slot(code,F2,FL,FD,1,60,{ax:o.ax,o0:(o.ax==='z'?o.oz:o.ox)+u0,flip:isFlip(o.ax,fd),floor:true});
+        if(!show)return;const m=new T3.Mesh(new T3.BoxGeometry(...F2.s(FL-10,FD-6,.6)),mFloorZ());m.position.set(...F2.c(FL/2,FD/2,.4));gR.add(m);};
+      if(!sg||sg.length){fl(o.floorCode||o.code(0,'G'),o.fd,sh(-o.fd*FD,o.fd));if(o.split)fl(o.code(0,'D'),-o.fd,sh(o.fd*(dep+FD),-o.fd));}}
     if(o.back)o.back.levels.forEach(l=>{const y=ys[l-1]+SH,h=hs[l-1];slot(o.back.code(l),frame(o.ax,o.ox+o.fd*dep,o.oz,-o.fd),o.len,dep/2,y,h,{ax:o.ax,o0:o.ax==='z'?o.oz:o.ox,flip:isFlip(o.ax,-o.fd)});});
     return top;}
   /* une planche de snow debout : spatules arrondies, taille cintrée (sidecut), nose et tail relevés, carres sombres */
@@ -1111,7 +1112,9 @@ const P3D=(()=>{
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
       const kind=(drag&&drag.moved)||moveMode?(()=>{const k=new Set([...pick.keys()].map(id=>{const a=A(id);return a&&a.type==='board'?1:0;}));return k.size===1?[...k][0]:null;})():null;
-      const b=IM?ray.intersectObject(IM,false)[0]:null,l=ray.intersectObjects(hitsL,false).find(x=>kind===null||!!x.object.userData.skis===!!kind),bi=b&&inst[b.instanceId];
+      const mv=(drag&&drag.moved)||moveMode,orig=mv?new Set([...pick.keys()].map(id=>{const a=A(id),m=a&&/^([A-Z]+\d+)\.[1-9]$/.exec(a.emp||'');return m?(m[1]==='FS2'?'FS1':m[1])+'.0':'';})):null;
+      const okL=x=>{const U=x.object.userData;if(!U.floor)return kind===null||!!U.skis===!!kind;return LOCS.includes(U.code)||(occ[U.code]&&occ[U.code].p>0)||(mv&&orig.has(U.code));};
+      const b=IM?ray.intersectObject(IM,false)[0]:null,l=ray.intersectObjects(hitsL,false).find(okL),bi=b&&inst[b.instanceId];
       if(bi&&(!l||l.object.userData.code===bi.code||b.distance<l.distance||(!(drag&&drag.moved)&&!moveMode&&!occ[l.object.userData.code]))){const hm=hitsL.find(x=>x.userData.code===bi.code),U=hm&&hm.userData;let side='G';
         if(U&&U.ax){const u=(U.ax==='z'?b.point.z:b.point.x)-U.o0,first=u<U.len/2;side=first!==U.flip?'G':'D';}return {aid:bi.aid,code:bi.code,side};}
       const hit=l||b;if(!hit)return null;const code=l?l.object.userData.code:bi.code,hm=hitsL.find(x=>x.userData.code===code),U=hm&&hm.userData;
