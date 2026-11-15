@@ -164,7 +164,9 @@ textarea{resize:vertical;min-height:60px}
 .plan-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
 .plan{display:grid;min-width:280px;gap:5px;
   grid-template-columns:minmax(46px,.8fr) minmax(30px,.5fr) minmax(126px,1.6fr) minmax(12px,.35fr) minmax(66px,1fr);
-  grid-template-areas:"fond fond fond fond fond" "g pl m al d" "ent ent ent ent ext"}
+  grid-template-areas:"fond fond fond fond fond" "g pl m al d" "g0 . arr . ext" "ent ent ent ent ent"}
+.g0z{grid-area:g0;align-self:start;padding-top:8px;display:flex;flex-direction:column;gap:5px}
+.arrz{grid-area:arr;align-self:start;padding-top:8px;display:flex;flex-direction:column;gap:5px}.arrz .rack{border-style:dashed;border-color:#d9a400;background:rgba(242,194,48,.14)}
 .col{display:flex;flex-direction:column;gap:5px}
 /* gauche et droite : 5 racks plus longs sur la même longueur que les 6 du milieu, D1 aligné avec M1 */
 .col.long .rack{flex:1}
@@ -565,7 +567,7 @@ const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);LV4.forEach
   for(let r=0;r<=5;r++)LV4.forEach(l=>add('HD',r,l));for(let r=0;r<=5;r++)LV4.forEach(l=>add('HG',r,l)); /* H0 : devant H1, côté entrée */
   LV.forEach(l=>add('FS',1,l));for(let i=1;i<=6;i++)L.push('MUR'+i);for(let i=1;i<=3;i++)L.push('FEN'+i);LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2].forEach(l=>add('ED',r,l)));return withFloor(L);})()
   :(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
-  [3,4].forEach(l=>add('G',4,l)); /* racks de gauche : 4 niveaux ; le snow n'utilise que G4 niveaux 3 et 4, côté snow */
+  [3,4].forEach(l=>add('G',4,l));[1,2].forEach(l=>add('G',0,l)); /* G0 (W0 au ski) : côté snow, niveaux 1 et 2 au snow */ /* racks de gauche : 4 niveaux ; le snow n'utilise que G4 niveaux 3 et 4, côté snow */
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MD',r,l));
   for(let r=1;r<=5;r++)LV.forEach(l=>add('D',r,l));
@@ -678,13 +680,21 @@ function matches(a,skip){
   if(skip!=='serrage'&&st.fSerrage&&serOf(a)!==st.fSerrage)return false;
   if(skip!=='taille'&&st.fTailles.length&&!st.fTailles.includes(a.taille))return false;
   return textMatch(a,st.q);}
+const COLOR_SYN=(()=>{const m=new Map();[
+  ['noir','noire','black'],['blanc','blanche','white','ivory','ivoire'],['rouge','red'],['bleu','bleue','blue','navy','marine'],['vert','verte','green','olive'],
+  ['jaune','yellow'],['rose','pink'],['violet','violette','purple','mauve','lilas','lilac','lavande','lavender'],['orange'],['gris','grise','grey','gray','anthracite'],
+  ['marron','brun','brune','brown','chocolat','chocolate'],['beige','sand','sable','cream','creme'],['or','dore','doree','gold'],['argent','argente','silver'],
+  ['turquoise','teal','cyan'],['menthe','mint'],['kaki','khaki'],['bordeaux','burgundy','wine'],['corail','coral'],['camouflage','camo']
+].forEach(g=>g.forEach(w=>m.set(w,g)));return m;})();
+/* un mot de couleur : cherché au début des mots de la fiche (Black/Pink → black, pink), dans les deux langues */
+const colorHit=(t,hay)=>{const g=COLOR_SYN.get(t);if(!g)return false;const ws=hay.split(/[^a-z0-9]+/);return g.some(c=>ws.some(w=>w===c||(c.length>3&&w.startsWith(c))));};
 function textMatch(a,q){
   const toks=norm(q).replace(/(\d),5/g,'$1.5').split(/\s+/).filter(Boolean);if(!toks.length)return true;
   const sz=toks.filter(isSizeTok),other=toks.filter(t=>!isSizeTok(t));
   if(sz.length){const full=norm(a.taille).replace(/\s*cm$/,''),parts=full.split('/');if(!sz.some(t=>t===full||parts.includes(t)))return false;}
   const hay=norm(`${a.marque} ${a.modele} ${TYPE[a.type]} ${a.type==='fix'?'fix fixation':a.type==='board'?(SKI?'ski skis':'snowboard board planche'):(SKI?'chaussure chaussures botte boots':'botte boots')} ${GENRE[a.genre]} ${a.taille} ${a.annee} ${a.emp} ${ZONE_LBL[zoneOf(a.emp)]||''} ${a.couleur||''} ${serOf(a)} ${a.note}`);
   const words=new Set(hay.split(/\s+/));
-  return other.every(t=>t.length<=2?words.has(t):hay.includes(t));}
+  return other.every(t=>(t.length<=2?words.has(t):hay.includes(t))||colorHit(t,hay));}
 /* compte en pièces (paires), comme le total affiché et l'appli magasin */
 function facet(skip,get){const Q=role==='magasin'?availOf:qOf,m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+Q(a));});return m;}
 /* total d'une recherche : modèles et pièces (au magasin : disponibles, avec ce qui est déjà en commande) */
@@ -988,7 +998,7 @@ const P3D=(()=>{
       for(let i=0;i<n;i++){const k=(.88+((i*7)%5)*.03)*K;o.position.set(PLx+8+(i%3)*11,75*k+1,120+i*38);o.rotation.set(0,0,(i%2?1:-1)*.12);o.scale.set(1,k,1);o.updateMatrix();im.setMatrixAt(i,o.matrix);c.setHex(pal[(i*3)%pal.length]);im.setColorAt(i,c);}gR.add(im);}
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`D${r}`,Dx+31,yT,z,34);sprite(`G${r}`,Gx+Gw*.75,yT,z,r===4?34:24,r!==4);if(r===3)sprite('SKI · bottes femme',Gx+Gw*.25,yT-40,z,22,true);}
     /* G0, devant G1 : bottes de ski femme (côté ski, niveau 3) ; skis debout le long du mur */
-    {const z=T+10;rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[1,2,3,4],nlev:4,code:l=>`G4.${l}`,noSlot:true,half:true});sprite('G0',Gx+Gw*.5,yT,z+DL/2,24,true);}
+    {const z=T+10;tops.push(rack({ax:'z',ox:Gx+Gw,oz:z,fd:-1,len:DL,dep:Gw,levels:[1,2,3,4],nlev:4,slotLevels:[1,2],code:l=>`G0.${l}`,half:true}));sprite('G0',Gx+Gw*.5,yT,z+DL/2,30);sprite('ski : niv. 3-4 et face allée ski',Gx+Gw*.5,yT-40,z+DL/2,20,true);}
     {rack({ax:'x',ox:ENX,oz:ENZ,fd:1,len:DL,dep:76,levels:[1,2,3],code:l=>`EN1.${l}`,noSlot:true});sprite('EN1 · ski',ENX+DL/2,yT,ENZ+38,24,true);}
     [1,2].forEach(r=>{rack({ax:'x',ox:EDX+(r-1)*EDL,oz:EDZ,fd:1,len:EDL-4,dep:EDP,levels:[1,2],nlev:2,H:[188,80],code:l=>`ED${r}.${l}`,noSlot:true});sprite(`ED${r} · ski`,EDX+EDL*(r-.5),yT,EDZ+58,24,true);}); /* racks ED : appli Ski */ /* rack de l'entrée : appli Ski */
     /* (la rangée bottes homme et les skis du mur sont dans l'appli Ski) */
@@ -1200,7 +1210,9 @@ function vPlan(){
       <div class="zone-lbl al dz" style="grid-area:al">allée</div>
       <div class="col long dz" style="grid-area:d"><div class="mface" aria-hidden="true" style="visibility:hidden"><span>·</span></div>${d}</div>
       <div class="ent"><span><svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 17V2M2 8l6-6 6 6"/></svg>Entrée</span></div>
-      <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}<div class="rack"><span class="rk">ARRIVÉE</span><div class="chips">${chip('ARR1','🚚',H,count)}</div></div></div>
+      <div class="g0z"><div class="mface">G0 · devant G1 (W0 au ski)</div><div class="rack"><span class="rk">G0</span><div class="chips">${[1,2].map(l=>chip(`G0.${l}`,l,H,count)).join('')}</div><span class="mface">3-4 : ski</span></div></div>
+      <div class="arrz"><div class="mface">ZONE D'ARRIVÉE · au sol, devant M1</div><div class="rack"><span class="rk">ARRIVÉE</span><div class="chips">${chip('ARR1','🚚',H,count)}</div></div></div>
+      <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}</div>
     </div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 3 et 4 (1 et 2 derrière les planches)</span></div>
     <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`}`;}
@@ -1451,7 +1463,7 @@ function inventaireXlsx(){
    Droite : niveaux 1-2 = même capacité, niveau 3 à part. Milieu (MG et MD) : pareil, en plus petit.
    Fond, Gauche (fins de série), Étagère et Blocs ne sont pas gérés (rangement libre).
    Capacité par défaut = l'emplacement le plus rempli du groupe (considéré comme plein). */
-const CAP_GROUPS=SKI?{BF:'Bottes femme (racks W)',BH:'Bottes homme',FS:'Fond, côté ski',EN:'Rack de l\'entrée (niveaux 2 et 3)',ED:'Racks ED1-ED2 (niveau 2)'}:{D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3',G:'Gauche G4 · niveaux 3 et 4 (côté snow)'};
+const CAP_GROUPS=SKI?{BF:'Bottes femme (racks W)',BH:'Bottes homme',FS:'Fond, côté ski',EN:'Rack de l\'entrée (niveaux 2 et 3)',ED:'Racks ED1-ED2 (niveau 2)'}:{D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3',G:'Gauche (G4 niveaux 3-4, G0 niveaux 1-2) · côté snow'};
 function capGroup(emp){const m=/^([A-Z]+)\d+\.(\d)$/.exec(emp||'');if(!m||m[2]==='0')return null;
   if(SKI)return m[1]==='WS'||m[1]==='WN'?'BF':m[1]==='HG'||m[1]==='HD'?'BH':m[1]==='FS'?'FS':m[1]==='EN'?(m[2]==='1'?null:'EN'):m[1]==='ED'?(m[2]==='1'?null:'ED'):null;
   if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';if(m[1]==='G')return LOCS.includes(emp)?'G':null; /* seulement G4.3 et G4.4 */return null;}
