@@ -644,7 +644,7 @@ function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1)
 let S=load();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}if(typeof cloudPush==='function')cloudPush();}
 let role='magasin'; /* mini-appli magasin : pas d'accès à l'entrepôt */
-const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fRack:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
+const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fRack:'',fNiv:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
 if(role==='magasin')st.tab='cmd';
 const ZONE_OF=SKI?{WS:'BF',WN:'BF',HG:'BH',HD:'BH',BH:'BH',FS:'FS',MUR:'SK',FEN:'SK',EN:'EN',ED:'ED',ARR:'ARR'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',BM:'M',ARR:'ARR'};
 const ZONE_LBL=SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis',EN:'Rack de l\'entrée',ED:'Racks à droite de l\'entrée',ARR:'Zone d\'arrivée'}:{ARR:'Zone d\'arrivée',D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
@@ -666,10 +666,11 @@ const locRank=c=>{const i=LOCS.indexOf(c);return i<0?999:i;};
 function sizeRank(a){if(a.type!=='fix')return parseFloat(a.taille)||0;const i=S.sizesF.indexOf(a.taille);return i<0?99:i;}
 function sortArts(list){return list.slice().sort((x,y)=>x.type.localeCompare(y.type)||x.marque.localeCompare(y.marque)||x.modele.localeCompare(y.modele)||sizeRank(x)-sizeRank(y));}
 function ago(t){const m=Math.round((Date.now()-t)/60000);if(m<1)return"à l'instant";if(m<60)return`il y a ${m} min`;const h=Math.round(m/60);if(h<24)return`il y a ${h} h`;return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}
-const filtering=()=>!!(st.q.trim()||st.fType||st.fGenre||st.fMarque||st.fModele||st.fAnnee||st.fZone||st.fRack||st.fCouleur||st.fSerrage||st.fTailles.length);
+const filtering=()=>!!(st.q.trim()||st.fType||st.fGenre||st.fMarque||st.fModele||st.fAnnee||st.fZone||st.fRack||st.fNiv||st.fCouleur||st.fSerrage||st.fTailles.length);
 const isSizeTok=t=>/^\d{1,2}(\.5)?$/.test(t)||/^(xs|s|m|l|xl|xxl|s\/m|m\/l|l\/xl)$/.test(t);
 /* skip : nom du filtre à ignorer, pour calculer les choix encore possibles dans ce filtre */
 const rackOf=emp=>{const m=/^([A-Z]+)(\d+)/.exec(emp||'');if(!m)return '';const z=m[1],k=SKI?({WS:'W',WN:'W',HG:'H',HD:'H'}[z]||z):({MG:'M',MD:'M'}[z]||z);return k+m[2];};
+const nivOf=emp=>(/\.(\d)$/.exec(emp||'')||[])[1]||'';
 const rackSort=(x,y)=>{const a=/^([A-Z]+)(\d+)/.exec(x)||[,x,0],b=/^([A-Z]+)(\d+)/.exec(y)||[,y,0];return a[1].localeCompare(b[1])||a[2]-b[2];};
 function matches(a,skip){
   if(skip!=='type'&&st.fType&&a.type!==st.fType)return false;
@@ -679,6 +680,7 @@ function matches(a,skip){
   if(skip!=='annee'&&st.fAnnee&&String(a.annee)!==st.fAnnee)return false;
   if(skip!=='zone'&&st.fZone&&role!=='magasin'&&zoneOf(a.emp)!==st.fZone)return false;
   if(skip!=='rack'&&st.fRack&&role!=='magasin'&&rackOf(a.emp)!==st.fRack)return false;
+  if(skip!=='niv'&&st.fNiv&&role!=='magasin'&&nivOf(a.emp)!==st.fNiv)return false;
   if(skip!=='couleur'&&st.fCouleur&&(a.couleur||'')!==st.fCouleur)return false;
   if(skip!=='serrage'&&st.fSerrage&&serOf(a)!==st.fSerrage)return false;
   if(skip!=='taille'&&st.fTailles.length&&!st.fTailles.includes(a.taille))return false;
@@ -760,6 +762,7 @@ function filterBar(){
     ${sel('fAnnee','Année',st.fAnnee,facet('annee',a=>a.annee),(x,y)=>y-x)}
     ${role==='magasin'?'':sel('fZone','Zone',st.fZone,facet('zone',a=>zoneOf(a.emp)),alpha,z=>ZONE_LBL[z]||z)}
     ${role==='magasin'?'':sel('fRack','Rack',st.fRack,facet('rack',a=>rackOf(a.emp)),rackSort)}
+    ${role==='magasin'?'':sel('fNiv','Niveau',st.fNiv,facet('niv',a=>nivOf(a.emp)),(x,y)=>x-y,n=>n==='0'?'Au sol':'Niveau '+n)}
     ${sel('fCouleur','Couleur',st.fCouleur,facet('couleur',a=>a.couleur),alpha)}
     ${sel('fSerrage','Serrage bottes',st.fSerrage,facet('serrage',a=>serOf(a)),alpha)}
   </div>
@@ -2499,7 +2502,7 @@ document.addEventListener('click',e=>{
       if(!L||!l||!H){toast('Indiquez les <b>3 mesures</b> de la boîte');break;}
       dims().boxes.push({id:'b'+Date.now().toString(36),type:g.type,marque:g.marque,modele:g.modele,from:'',to:'',L,l,H});save();render();toast(`Boîte ${esc(g.modele)} enregistrée : ${L} × ${l} × ${H} cm`);break;}
     case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.arts=cloud.sent.arts||new Map();cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
-    case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fRack=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
+    case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fRack=st.fNiv=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
     case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
     case'light':{const on=!lightOn();LIGHT=on;try{localStorage.setItem(KEY+'-light',on?'1':'0');}catch(e){}
       st.lightFx=on;st.lightGlow=on;render();clearTimeout(window._lfx);clearTimeout(window._lgl);
@@ -2597,7 +2600,7 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset&&t.dataset.mvq){const a=art(t.dataset.mvq);if(a&&st.mv){st.mv[a.id]=Math.max(1,Math.min(qOf(a),parseInt(t.value)||1));render();}return;}
   if(t.id==='mvTo'){st.mvTo=t.value;return;}
   if(t.id==='pkPhoto'){const f=t.files&&t.files[0];t.value='';pickPhoto(f);return;}
-  const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fRack:'fRack',fCouleur:'fCouleur',fSerrage:'fSerrage'};
+  const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fRack:'fRack',fNiv:'fNiv',fCouleur:'fCouleur',fSerrage:'fSerrage'};
   if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
 const ENTER_NEXT=[['bxMarque','bxModele','bxFrom','bxTo','bxL','bxl','bxH','@boxadd'],['ovL','ovP','ovH','ovNote','@dimoveradd']];
 document.addEventListener('keydown',e=>{
