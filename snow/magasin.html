@@ -269,7 +269,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
-.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plan-ski .pk-fond{padding:6px 10px}.plan-ski .pk-fond .mrow{gap:8px;flex-wrap:wrap;justify-content:center}.plan-ski .pk-bot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}.plan-ski .pk-bot .ent{padding:0 28px}
+.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plan-ski .pk-fond{padding:6px 10px;grid-column:5/7;grid-row:1}.pk-cols>*{grid-row:2}.pk-cols>.pk-fond{grid-row:1}.plan-ski .pk-fond .mrow{gap:6px;flex-wrap:nowrap;justify-content:center}.plan-ski .pk-bot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}.plan-ski .pk-bot .ent{padding:0 28px}
 .plan-ski .pk-cols{display:grid;grid-template-columns:auto 34px minmax(0,1fr) 34px minmax(0,1fr) 34px;gap:8px;align-items:start}
 .plan-ski .pk-wall{display:flex;flex-direction:column-reverse;gap:6px}.plan-ski .zone-lbl{writing-mode:vertical-rl;align-self:stretch;text-align:center}
 @media (max-width:640px){.plan-ski .pk-cols{grid-template-columns:auto 20px minmax(0,1fr) 20px minmax(0,1fr) 0}}
@@ -1171,8 +1171,8 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
   h+=row('H0',`<div class="mrow">${chips('HG',0,H,count,LV4,LV4)}<i class="sep"></i>${chips('HD',0,H,count,LV4,LV4)}</div>`);
   f+=row('W0',`<div class="mrow">${chips('WS',0,H,count,LV4,LV4)}<i class="sep"></i>${chips('WN',0,H,count,[3,4],LV4)}</div>`);
   return `<div class="plan-wrap"><div class="plan-ski">
-    <div class="rack pk-fond"><span class="rk">FOND</span><div class="mrow"><span class="mface">FS1 · côté ski</span>${chips('FS',1,H,count)}<i class="sep"></i><span class="mface">FS2 · derrière W5, tout au ski</span>${chips('FS',2,H,count)}</div></div>
     <div class="pk-cols">
+      <div class="rack pk-fond"><span class="rk">FOND</span><div class="mrow"><span class="mface" title="Derrière W5 : tout au ski">FS2</span>${chips('FS',2,H,count)}<i class="sep"></i><span class="mface" title="Partagé avec le snow">FS1 ➡</span>${chips('FS',1,H,count)}</div></div>
       <div class="col"><div class="mface">MUR · skis</div><div class="pk-wall">${[1,2,3,4,5,6].map(i=>wall('MUR'+i)).join('')}</div></div>
       <div class="zone-lbl">allée</div>
       <div class="col"><div class="mface" style="display:flex;justify-content:space-between"><span>côté mur</span><span>côté allée</span></div><div class="mface">BOTTES HOMME</div>${h}</div>
