@@ -1023,12 +1023,18 @@ const P3D=(()=>{
       if(ok)return {res:near.res.concat(far.res),over:A.over+B.over};
       const r=best(Lb.concat(Rb));if(flip)mir(r);return r;}
     const right=!!Rb.length,r=best(right?Rb:Lb);if(right!==flip)mir(r);return r;}
+  /* une colonne par taille : on empile, puis on recule d'une file (vers le fond du niveau), et seulement ensuite on avance le long du rack ;
+     ainsi chaque taille a sa colonne visible depuis l'allée (les 22.5 les unes derrière les autres, les 23.5 à côté) */
   function pack(bxs,Lc,Hc,LN,mix){const res=[];let li=0,u=0,w=0,cw=0,prev=null,over=0;
-    for(const bx of bxs){let ok=false;
-      while(li<LN.length){const [a,d,h]=ori(LN[li].o,bx.b);
-        if(w>0&&(w+h>Hc+.5||(!mix&&bx.g!==prev))){u+=cw;w=0;cw=0;}
-        if(u+a>Lc+.5||h>Hc+.5){li++;u=0;w=0;cw=0;continue;}
-        res.push({bx,u,v:LN[li].v,w,a,d,h});w+=h;cw=Math.max(cw,a);prev=bx.g;ok=true;break;}
+    const next=()=>{u+=cw;li=0;w=0;cw=0;};
+    for(const bx of bxs){let ok=false;const g=bx.g+'|'+(bx.a.taille||'');
+      if(prev!==null&&g!==prev&&!mix&&cw>0)next();
+      while(true){
+        if(li>=LN.length){if(!cw)break;next();continue;}
+        const [a,d,h]=ori(LN[li].o,bx.b);
+        if(h>Hc+.5||w+h>Hc+.5){li++;w=0;continue;}
+        if(u+a>Lc+.5){if(!cw)break;next();continue;}
+        res.push({bx,u,v:LN[li].v,w,a,d,h});w+=h;cw=Math.max(cw,a);prev=g;ok=true;break;}
       if(!ok)over++;}
     return {res,over};}
   function geo(hm){const {len,dep,h}=hm.userData,d=dimOf(hm.userData.code);return {Lc:d.L||len,Pc:d.P||dep,Hc:d.H||h,pose:d.pose||'plat',known:!!(d.L&&d.P&&d.H)};}
