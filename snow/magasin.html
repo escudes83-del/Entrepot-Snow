@@ -1060,7 +1060,8 @@ const P3D=(()=>{
   const hueCol=s=>{let h=7;for(const ch of s)h=(h*31+ch.charCodeAt(0))>>>0;return `hsl(${h%360},${55+h%25}%,${44+(h>>9)%16}%)`;};
   function brandCols(){const n=new Map();S.articles.forEach(a=>n.set(a.marque,(n.get(a.marque)||0)+qOf(a)));BCOL=new Map([...n.entries()].sort((x,y)=>y[1]-x[1]||x[0].localeCompare(y[0])).map(([b],i)=>[b,i<PAL.length?PAL[i]:hueCol(b)]));}
   const baseCol=a=>{const m=p3dCol();return m==='type'?TC[a.type]||TC.botte:m==='marque'?BCOL.get(a.marque)||'#9aa5b1':hueCol(gkey(a));};
-  function recolor(){if(IM){const c=new T3.Color();inst.forEach((x,i)=>{const a=A(x.aid);if(pick.has(x.aid))c.set(SELC);else{c.set(a?baseCol(a):'#888888');c.offsetHSL(0,0,((i*37)%7-3)/100);}IM.setColorAt(i,c);});IM.instanceColor.needsUpdate=true;}legend();}
+  function hitIds(){const fo=focusOrd();if(fo)return new Set(fo.lines.map(l=>l.aid).filter(Boolean));if(st.focus)return new Set([st.focus]);if(!filtering())return null;return new Set(S.articles.filter(a=>matches(a)).map(a=>a.id));}
+  function recolor(){if(IM){const c=new T3.Color(),HI=hitIds();inst.forEach((x,i)=>{const a=A(x.aid);if(pick.has(x.aid))c.set(SELC);else if(HI&&!HI.has(x.aid)){c.set('#d3d7dd');c.offsetHSL(0,0,((i*37)%5-2)/100);}else{c.set(a?baseCol(a):'#888888');c.offsetHSL(0,0,((i*37)%7-3)/100);}IM.setColorAt(i,c);});IM.instanceColor.needsUpdate=true;}legend();}
   function legend(){const L=document.getElementById('p3dLeg');if(!L)return;const sw=(c,t)=>`<span><i style="width:12px;height:12px;border-radius:3px;background:${c}"></i>${t}</span>`,m=p3dCol();
     let h=m==='type'?Object.keys(TC).map(k=>sw(TC[k],TN[k])).join(''):m==='marque'?[...BCOL.entries()].map(([b,c])=>sw(c,esc(b))).join(''):'<span>Une couleur par modèle : survolez ou touchez une boîte pour voir lequel.</span>';
     L.innerHTML=h+sw(SELC,'Boîtes choisies')+'<span>Chaque boîte est dessinée à sa taille, rangée selon les mesures de Réglages.</span>';}
