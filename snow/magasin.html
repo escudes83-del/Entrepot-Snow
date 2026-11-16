@@ -1034,8 +1034,8 @@ const P3D=(()=>{
     const next=()=>{u+=cw;li=0;w=0;cw=0;nc=true;};
     for(let i=0;i<bxs.length;i++){const bx=bxs[i];let ok=false;const g=bx.a.on&&prev!==null?prev:bx.g+'|'+(bx.a.taille||''); /* posé par-dessus : continue la pile d'à côté */
       if(prev!==null&&g!==prev&&!mix&&cw>0)next();
-      if(nc){const h=ori(LN0[0].o,bx.b)[2],per=Math.max(1,Math.floor((Hc+.5)/h)),k=Math.min(LN0.length,Math.ceil(rem[i]/per));LN=[...LN0.slice(0,k).reverse(),...LN0.slice(k)];nc=false;}
       while(true){
+        if(nc){const h=ori(LN0[0].o,bx.b)[2],per=Math.max(1,Math.floor((Hc+.5)/h)),k=Math.min(LN0.length,Math.ceil(rem[i]/per));LN=[...LN0.slice(0,k).reverse(),...LN0.slice(k)];nc=false;} /* nouvelle colonne : ordre des files recalculé avant de poser */
         if(li>=LN.length){if(!cw)break;next();continue;}
         const [a,d,h]=ori(LN[li].o,bx.b);
         if(h>Hc+.5||w+h>Hc+.5){li++;w=0;continue;}
