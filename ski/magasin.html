@@ -368,6 +368,10 @@ main h2{padding-left:10px;border-left:4px solid var(--accent)}
 .code[data-z]{color:#fff}
 .code[data-z="D"]{background:var(--zD)}.code[data-z="G"]{background:var(--zG)}.code[data-z="M"]{background:var(--zM)}
 .code[data-z="F"]{background:var(--zF)}.code[data-z="E"]{background:var(--zE)}.code[data-z="B"]{background:var(--zB)}
+/* zones du ski et zone d'arrivée : sinon fond clair + texte blanc en mode sombre (illisible) */
+.code[data-z="BF"]{background:var(--zG)}.code[data-z="BH"]{background:var(--zD)}.code[data-z="FS"]{background:var(--zF)}.code[data-z="SK"]{background:var(--zE)}.code[data-z="EN"]{background:var(--zM)}.code[data-z="ED"]{background:var(--zB)}.code[data-z="ARR"]{background:#9a6b00}
+/* niveau côté snow (WN) : couleur à part et un flocon */
+.code[data-z="WN"]{background:#0b6e99;box-shadow:inset 0 0 0 2px #9fd8ff}.code[data-z="WN"]::after{content:" ❄";font-size:.85em}
 .rack[data-z]{border-width:1.5px 1.5px 1.5px 4px}
 .rack[data-z="D"]{border-color:var(--zD)}.rack[data-z="G"]{border-color:var(--zG)}.rack[data-z="M"]{border-color:var(--zM)}
 .rack[data-z="F"]{border-color:var(--zF)}.rack[data-z="E"]{border-color:var(--zE)}.rack[data-z="B"]{border-color:var(--zB)}
@@ -744,7 +748,7 @@ function render(){SLOTC.clear();updUndo();
 }
 /* Colore les codes d'emplacement et les racks du plan selon leur zone */
 function tint(root){
-  root.querySelectorAll('.code').forEach(c=>{const z=zoneOf(c.textContent.trim());if(z)c.dataset.z=z;});
+  root.querySelectorAll('.code').forEach(c=>{const t=c.textContent.trim(),z=zoneOf(t);if(z)c.dataset.z=SKI&&/^WN/.test(t)?'WN':z;if(SKI&&/^WN/.test(t))c.title='Côté snow du rack W';});
   root.querySelectorAll('.rack:not(.off)').forEach(r=>{const k=r.querySelector('.rk');const m=k&&/([A-Z]+)\d*$/.exec(k.textContent.trim());const z=m&&ZONE_OF[m[1]==='M'?'MG':m[1]];if(z)r.dataset.z=z;});}
 function filterBar(){
   const sel=(id,label,cur,m,sortFn,lblFn=v=>v)=>{const keys=[...m.keys()];if(cur&&!keys.includes(cur))keys.push(cur);keys.sort(sortFn);
