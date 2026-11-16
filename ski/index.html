@@ -1802,6 +1802,12 @@ const fmtD=(o,keys)=>keys.map(k=>o&&o[k]!=null?String(o[k]).replace('.',','):'?'
 function boxFor(a){const rk=z=>a.type==='fix'?(S.sizesF.indexOf(z)+1||99):sizeRankStr(z);const r=rk(a.taille);
   const c=dims().boxes.filter(b=>b.type===a.type&&(!b.marque||norm(b.marque)===norm(a.marque))&&(!b.modele||norm(b.modele)===norm(a.modele))&&(!b.from||rk(b.from)<=r)&&(!b.to||r<=rk(b.to)));
   return c.sort((x,y)=>(!!y.modele-!!x.modele)||(!!y.marque-!!x.marque)||((x.to?rk(x.to):999)-(x.from?rk(x.from):0))-((y.to?rk(y.to):999)-(y.from?rk(y.from):0)))[0]||null;}
+/* modifier une ligne de boîte : tailles de / à, et les 3 mesures */
+function boxEditRow(b){const sz=sizesOf(b.type),v=x=>x!=null?String(x).replace('.',','):'',o=cur=>sz.map(z=>`<option value="${esc(z)}"${z===cur?' selected':''}>${esc(szLbl(b.type,z))}</option>`).join('');
+  return `<div class="dimrow on" style="flex-wrap:wrap;gap:8px"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'}</span>
+    <div class="inline" style="flex-wrap:wrap;gap:6px;width:100%"><label class="opt">Tailles de <select id="bxeFrom"><option value="">la plus petite</option>${o(b.from)}</select></label><label class="opt">à <select id="bxeTo"><option value="">la plus grande</option>${o(b.to)}</select></label></div>
+    <div style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;width:100%"><input type="text" inputmode="decimal" id="bxeL" class="dim-in" style="width:76px;flex:none" value="${v(b.L)}" aria-label="Longueur" placeholder="L">×<input type="text" inputmode="decimal" id="bxel" class="dim-in" style="width:76px;flex:none" value="${v(b.l)}" aria-label="Largeur" placeholder="l">×<input type="text" inputmode="decimal" id="bxeH" class="dim-in" style="width:76px;flex:none" value="${v(b.H)}" aria-label="Hauteur" placeholder="H"> cm</div>
+    <div class="inline" style="gap:6px"><button type="button" class="btn sm primary" data-act="boxsave" data-id="${b.id}">Enregistrer</button><button type="button" class="btn sm ghost" data-act="boxcancel">Annuler</button></div></div>`;}
 function vDims(){const d=dims();
   const inp=(attr,v,lbl)=>`<input type="text" inputmode="decimal" ${attr} value="${v!=null?String(v).replace('.',','):''}" placeholder="cm" aria-label="${lbl}" class="dim-in">`;
   const grp=Object.entries(DIM_GROUPS).map(([g,[lbl,pl]])=>{const o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}</b>
@@ -1840,7 +1846,7 @@ function vDims(){const d=dims();
     <div class="card"><h3>Dimensions des boîtes</h3>
       <p class="sub">Longueur × largeur × hauteur de la boîte, en cm. Une ligne peut valoir pour toutes les marques, une marque, ou un seul modèle, et pour une plage de tailles. <b>Le plus précis l'emporte</b> : modèle, puis marque, puis toutes marques.</p>
       ${pick}
-      ${bm?shown.map(b=>`<div class="dimrow${win&&win.id===b.id?' on':''}"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune ligne pour ce choix.</p>':boxes.length?'':'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
+      ${bm?shown.map(b=>st.bxEdit===b.id?boxEditRow(b):`<div class="dimrow${win&&win.id===b.id?' on':''}"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm" data-act="boxedit" data-id="${b.id}">Modifier</button> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune ligne pour ce choix.</p>':boxes.length?'':'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
       <div class="boxadd">
         <div class="field"><label for="bxType">Type</label><select id="bxType">${typeOpt(bt)}</select></div>
         <div class="field"><label for="bxMarque">Marque <small class="opt">vide = toutes</small></label><input type="text" id="bxMarque" list="dl-bxm" autocomplete="off"><datalist id="dl-bxm">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
@@ -2440,6 +2446,13 @@ document.addEventListener('click',e=>{
       if(!b.L||!b.l||!b.H){toast('Indiquez longueur, largeur et hauteur');return;}
       if(b.modele){const ms=[...new Set(S.articles.filter(a=>!b.marque||a.marque===b.marque).map(a=>a.modele))];b.modele=sameAs(b.modele,ms);}
       dims().boxes.push(b);save();render();toast('Boîte ajoutée');break;}
+    case'boxedit':st.bxEdit=t.dataset.id;render();break;
+    case'boxcancel':st.bxEdit=null;render();break;
+    case'boxsave':{const b=dims().boxes.find(x=>x.id===t.dataset.id);if(!b){st.bxEdit=null;render();break;}
+      const L=num($('#bxeL').value),l=num($('#bxel').value),H=num($('#bxeH').value),from=$('#bxeFrom').value,to=$('#bxeTo').value;
+      if(!L||!l||!H){toast('Indiquez longueur, largeur et hauteur');return;}
+      if(from&&to&&sizeRankStr(from)>sizeRankStr(to)&&b.type!=='fix'){toast('La première taille doit être plus petite que la seconde');return;}
+      Object.assign(b,{L,l,H,from,to});st.bxEdit=null;save();render();toast(`Boîte modifiée : <b>${fmtD(b,['L','l','H'])} cm</b>`);break;}
     case'bxpick':{const k=t.dataset.k,v=t.dataset.v;if(k==='m'){st.bxM=v;st.bxMo='';st.bxSz='';}else if(k==='mo'){st.bxMo=v;st.bxSz='';}else st.bxSz=v===st.bxSz?'':v;render();break;}
     case'boxdel':dims().boxes=dims().boxes.filter(b=>b.id!==t.dataset.id);save();render();break;
     case'arradd':arrSheet(null);break;
