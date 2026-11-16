@@ -907,7 +907,7 @@ const P3D=(()=>{
   let lib=null,T3=null,R=null,scene,camera,controls,host=null,anim=null,lit=new Set();
   let gR=null,gB=null,sigR='',sigB='',hitsL=[],IM=null,inst=[],occ={},sel=null,hov=null,dest=null,drag=null,down=null,moveMode=false,AM=new Map(),BCOL=new Map();
   const pick=new Map(); /* article choisi -> nombre de boîtes à déplacer */
-  const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=260,Mw=105,Gw=135,Gx=60-Gw,Dx=515,PLx=70,DL=244,sG=T/5,LVD=51,SKA=150,SKM=210,SKW=60,SKX=Gx-SKA-SKW,ENX=Gx+Gw-DL,ENZ=T+10+DL+120,FZ0=T-5*sG+(sG-DL)/2,BMZ=FZ0+100,MSH=BMZ+60-3,EDX=Dx+62,EDZ=ENZ+76-117,EDL=362,EDP=117; /* ED1-ED2 (ski) : contre le mur de l'entrée, après le rack de droite du snow */ /* FZ0 : face avant du fond, collé au bout de G5/W5 et D5 ; 100 cm de passage ; BMZ : zone au bout de M6 ; MSH : la rangée du milieu avancée vers l'entrée */
+  const BASE=15,SH=3,ML=248,NM=6,T=ML*NM,Mx=260,Mw=105,Gw=135,Gx=60-Gw,Dx=515,PLx=70,DL=244,sG=T/5,LVD=51,SKA=150,SKM=210,SKW=60,SKX=Gx-SKA-SKW,ENX=Gx+Gw-DL,ENZ=T+10+DL+120,FZ0=T-5*sG+(sG-DL)/2,BMZ=FZ0+100,MSH=BMZ+60-3,FB0=Gx-62,FB1=Dx,FBS=Gx+Gw-FB0,EDX=Dx+62,EDZ=ENZ+76-117,EDL=362,EDP=117; /* ED1-ED2 (ski) : contre le mur de l'entrée, après le rack de droite du snow */ /* FZ0 : face avant du fond, collé au bout de G5/W5 et D5 ; 100 cm de passage ; BMZ : zone au bout de M6 ; MSH : la rangée du milieu avancée vers l'entrée */
   const VIEWS={all:{p:[-800,2000,T+1450],t:[450,60,T/2+100]},ent:{p:[(Mx+Mw+Dx)/2,190,T+180],t:[(Mx+Mw+Dx)/2,110,T-700]},top:{p:[560,3500,T/2+201],t:[560,0,T/2+200]},pl:{p:[195,210,T*.7],t:[PLx+10,75,T*.47]}};
   const DEFB=BOX_DEF;
   if(SKI)Object.assign(VIEWS,{all:{p:[-1150,2300,T+1550],t:[250,60,T/2+120]},ent:{p:[Gx-SKA/2,190,T+180],t:[Gx-SKA/2,110,T-700]},top:{p:[380,3900,T/2+201],t:[380,0,T/2+200]},pl:{p:[-340,200,T*.72],t:[-530,100,T*.45]}});
@@ -973,8 +973,8 @@ const P3D=(()=>{
     for(let r=1;r<=NM;r++){const g=new T3.Mesh(new T3.BoxGeometry(Mw,240,ML-6),mGhost);g.position.set(Mx+Mw/2,120,T-r*ML+ML/2+MSH);gR.add(g);}
     tops.push(rack({ax:'z',ox:Gx,oz:T+10,fd:1,len:DL,dep:Gw,levels:[1,2,3,4],nlev:4,code:l=>`WS0.${l}`,half:true,back:{levels:[3,4],code:l=>`WN0.${l}`}}));
     tops.push(rack({ax:'z',ox:MX,oz:T+10,fd:1,len:DL,dep:MW,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`H${sd}0.${l}`}));
-    tops.push(rack({ax:'x',ox:Gx,oz:FZ0-124,fd:1,len:FX1-Gx,dep:124,levels:[1,2,3],code:l=>`FS1.${l}`,half:true,wallFrom:Gw,
-      segs:[{u:0,len:Gw,code:l=>`FS2.${l}`,full:true},{u:Gw,len:FX1-Gx-Gw,code:l=>`FS1.${l}`}]})); /* un seul rack ; le bout derrière W5 (FS2) est tout au ski */
+    tops.push(rack({ax:'x',ox:FB0,oz:FZ0-124,fd:1,len:FB1-FB0,dep:124,levels:[1,2,3],code:l=>`FS1.${l}`,half:true,wallFrom:FBS,
+      segs:[{u:0,len:FBS,code:l=>`FS2.${l}`,full:true},{u:FBS,len:FB1-FB0-FBS,code:l=>`FS1.${l}`}]})); /* un seul rack ; le bout derrière W5 (FS2) est tout au ski */
     {const o={ax:'x',ox:ENX,oz:ENZ,fd:1,len:DL,dep:76,levels:[1,2,3],slotLevels:[2,3],code:l=>`EN1.${l}`};tops.push(rack(o)); /* rack de l'entrée, contre le mur */
       slot('EN1.1',frame('x',ENX,ENZ,1),DL,76,o.ys[0]+SH,o.hs[0],{ax:'x',o0:ENX,flip:isFlip('x',1),skis:true});}
     [1,2].forEach(r=>{const x=EDX+(r-1)*EDL,o={ax:'x',ox:x,oz:EDZ,fd:1,len:EDL-4,dep:EDP,levels:[1,2],nlev:2,slotLevels:[2],code:l=>`ED${r}.${l}`};tops.push(rack(o)); /* ED1, ED2 : contre le mur de l'entrée, à droite */
@@ -982,7 +982,7 @@ const P3D=(()=>{
     const zw=T/6;for(let i=1;i<=6;i++)slot(`MUR${i}`,frame('z',WX+25,T-i*zw+3,-1),zw-6,25,0,200,{ax:'z',o0:T-i*zw,flip:true,skis:true});
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`W${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,z,30);}
-    sprite('W0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('H0',MX+MW/2,yT,T+10+DL/2,26);sprite('FOND côté ski · FS1',(Gx+Gw+FX1)/2,yT,WZ+60,28);sprite('FS2',Gx+Gw/2,yT,WZ+60,28);sprite('EN1 · entrée',ENX+DL/2,yT,ENZ+38,26);sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);sprite('MUR · skis',WX+12,230,T*.5,26);
+    sprite('W0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('H0',MX+MW/2,yT,T+10+DL/2,26);sprite('FOND côté ski · FS1',(Gx+Gw+FB1)/2,yT,WZ+60,28);sprite('FS2',(FB0+Gx+Gw)/2,yT,WZ+60,28);sprite('EN1 · entrée',ENX+DL/2,yT,ENZ+38,26);sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);sprite('MUR · skis',WX+12,230,T*.5,26);
     floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+SKM/2,T*.55,40,Math.PI/2);floorText('RAYON SNOW · autre appli',300,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Gx-SKA/2,T+150,60);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE (snow et ski)');} /* la même zone que le snow, devant M1 */
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
@@ -993,8 +993,8 @@ const P3D=(()=>{
       tops.push(rack({ax:'z',ox:Dx,oz:z,fd:1,len:DL,dep:62,levels:[1,2,3],code:l=>`D${r}.${l}`}));}
     for(let r=1;r<=NM;r++)tops.push(rack({ax:'z',ox:Mx,oz:T-r*ML+3+MSH,fd:1,len:ML-6,dep:Mw,levels:[1,2,3],split:true,code:(l,sd)=>`M${sd}${r}.${l}`}));
     /* fond : double profondeur ; seule la moitié côté snow est au snow, l'arrière est au rayon ski */
-    tops.push(rack({ax:'x',ox:Gx,oz:FZ0,fd:-1,len:Dx+62-Gx,dep:124,levels:[1,2,3],code:l=>`F1.${l}`,half:true,wallFrom:Gw,
-      segs:[{u:0,len:Gw,noSlot:true},{u:Gw,len:Dx+62-Gx-Gw,code:l=>`F1.${l}`}]})); /* un seul rack ; le bout derrière G5 est tout au ski */
+    tops.push(rack({ax:'x',ox:FB0,oz:FZ0,fd:-1,len:FB1-FB0,dep:124,levels:[1,2,3],code:l=>`F1.${l}`,half:true,wallFrom:FBS,
+      segs:[{u:0,len:FBS,noSlot:true},{u:FBS,len:FB1-FB0-FBS,code:l=>`F1.${l}`}]})); /* un seul rack ; le bout derrière G5 est tout au ski */
     [['E1',60,110],['BAV1',190,80],['BAR1',290,80]].forEach(([c,z,len])=>tops.push(rack({ax:'z',ox:Dx,oz:T+z,fd:1,len,dep:62,levels:[1,2,3],code:l=>`${c}.${l}`})));
     const TOP=Math.max(...tops),yT=TOP+30;
     {const n=34,im=new T3.InstancedMesh(boardGeo(),[new T3.MeshLambertMaterial({color:0xffffff}),new T3.MeshLambertMaterial({color:0x2a2f36})],n),o=new T3.Object3D(),c=new T3.Color(),pal=[0x2b6cb0,0xc53030,0x2f855a,0xd69e2e,0x553c9a,0x1a202c,0xdd6b20,0x319795,0xe8e8e8,0x7a2e8c];
@@ -1007,7 +1007,7 @@ const P3D=(()=>{
     [1,2].forEach(r=>{rack({ax:'x',ox:EDX+(r-1)*EDL,oz:EDZ,fd:1,len:EDL-4,dep:EDP,levels:[1,2],nlev:2,H:[188,80],code:l=>`ED${r}.${l}`,noSlot:true});sprite(`ED${r} · ski`,EDX+EDL*(r-.5),yT,EDZ+58,24,true);}); /* racks ED : appli Ski */ /* rack de l'entrée : appli Ski */
     /* (la rangée bottes homme et les skis du mur sont dans l'appli Ski) */
     for(let r=1;r<=NM;r++)sprite(`M${r}`,Mx+Mw/2,yT,T-r*ML+ML/2+MSH,34);
-    sprite('FOND F1',(Gx+Gw+Dx+62)/2,yT,FZ0-32,34);sprite('SKI (arrière du fond)',(Gx+Gw+Dx+62)/2,yT-40,FZ0-94,24,true);sprite('FS2 · ski',Gx+Gw/2,yT,FZ0-62,22,true);solZone(Mx,BMZ,Mw,60);sprite('BOUT M6',Mx+Mw/2,70,BMZ+30,20);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
+    sprite('FOND F1',(Gx+Gw+FB1)/2,yT,FZ0-32,34);sprite('SKI (arrière du fond)',(Gx+Gw+FB1)/2,yT-40,FZ0-94,24,true);sprite('FS2 · ski',(FB0+Gx+Gw)/2,yT,FZ0-62,22,true);solZone(Mx,BMZ,Mw,60);sprite('BOUT M6',Mx+Mw/2,70,BMZ+30,20);sprite('ÉTAGÈRE E1',Dx+31,yT,T+115,34);sprite('BAV',Dx+31,yT,T+230,34);sprite('BAR',Dx+31,yT,T+330,34);
     floorText('ALLÉE',(Mx+Mw+Dx)/2,T/2,60,Math.PI/2);floorText('ALLÉE',(Gx+Gw+Mx)/2,T/2,60,Math.PI/2);floorText('PLANCHES DEBOUT',PLx+20,T*.18,26,Math.PI/2);floorText('▲ ENTRÉE',Mx+30,T+150+MSH,70);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE');}
   /* rangement des boîtes d'un niveau : files depuis l'allée (à plat, sur la tranche), colonnes le long du rack, un modèle par colonne (mélangés seulement si ça ne rentre pas autrement) */
   /* boîtes « à gauche » depuis le bout gauche, « à droite » depuis le bout droit (vu depuis l'allée) ; si les deux se chevauchent, tout à la suite */
@@ -1096,7 +1096,7 @@ const P3D=(()=>{
     side.append(btn('Annuler le choix','sm ghost',()=>{pick.clear();moveMode=false;recolor();info();}));}
   /* déplacement : l'article change d'emplacement ; s'il existe déjà là-bas (même modèle, taille, couleur), les quantités s'additionnent */
   function doMove(to,side){const L=[...pick.keys()].map(id=>art(id)).filter(Boolean);moveMode=false;if(!L.length)return;
-    if(L.every(a=>a.emp===to)){if(side&&L.some(a=>(a.cote==='D'?'D':'G')!==side)){setSide(L,side);return;}toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);return;}
+    if(L.every(a=>a.emp===to)){if(side){setSide(L,side);toast(`Rangé tout ${side==='D'?'à droite':'à gauche'} de <b>${esc(to)}</b>`);return;}toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);return;}
     moveArticles(L.map(a=>[a,pick.get(a.id)]),to,side);
     pick.clear();sel=to;render();}
   /* ranger un groupe à gauche ou à droite de son niveau (vu depuis l'allée) */
