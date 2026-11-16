@@ -91,6 +91,7 @@ textarea{resize:vertical;min-height:60px}
 .fgrid select{padding:7px 8px;font-size:14px}
 .szs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .pkb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.pkb .sz{font:600 14px var(--f-body);padding:8px 10px}.pkb .sz small{margin-left:4px}
+.dimrow.on{background:var(--accent-soft,#fff3c4);border-radius:6px}
 .pkpath{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 8px;font-size:14px}
 .szl{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-right:2px}
 .sz{min-width:44px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);font:700 14px var(--f-mono);cursor:pointer;display:inline-flex;align-items:baseline;gap:3px;justify-content:center}
@@ -774,27 +775,15 @@ function artRow(a,opts={}){
 /* Base en ligne encore vide : l'entrepôt choisit d'y envoyer ce qu'il a sur cet appareil */
 function cloudBanner(){if(!cloud.on||!cloud.empty||role!=='entrepot')return'';
   return `<div class="alert warn"><b>La base en ligne est vide.</b> Si cet appareil contient votre vrai stock (${S.articles.length} articles), envoyez-le pour que le magasin le voie.<div style="margin-top:8px"><button type="button" class="btn primary" data-act="cloudinit">Envoyer ces ${S.articles.length} articles en ligne</button></div></div>`;}
-/* choix guidé : d'abord la marque, puis le modèle ; la liste n'apparaît qu'ensuite (ou en tapant une recherche) */
-function pickStep(){if(st.showAll||st.q.trim()||st.fTailles.length||st.focus)return '';if(!st.fMarque)return 'marque';if(!st.fModele)return 'modele';return '';}
-function pickBar(step,list){const pl=(n,u)=>`${n.toLocaleString('fr-FR')} ${u}${n>1?'s':''}`,alpha=(x,y)=>x[0].localeCompare(y[0]);
-  const path=st.fMarque?`<div class="pkpath"><button type="button" class="btn sm ghost" data-pick="back0">↺ Toutes les marques</button><b>${esc(st.fMarque)}</b>${st.fModele?` › <button type="button" class="btn sm ghost" data-pick="back1">${esc(st.fModele)} ✕</button>`:''}</div>`:'';
-  if(step==='marque'){const m=[...facet('marque',a=>a.marque).entries()].sort(alpha);
-    return `<h3 class="sec">1. Choisissez la marque</h3><div class="pkb">${m.map(([k,n])=>`<button type="button" class="sz" data-pickm="${esc(k)}">${esc(k)}<small>${n}</small></button>`).join('')||'<span class="sub">Aucune marque.</span>'}</div>
-      <button type="button" class="btn sm ghost" data-pick="all">Voir toutes les lignes (${pl(list.length,'ligne')})</button>`;}
-  if(step==='modele'){const m=[...facet('modele',a=>a.modele).entries()].sort(alpha);
-    return `${path}<h3 class="sec">2. Choisissez le modèle</h3><div class="pkb">${m.map(([k,n])=>`<button type="button" class="sz" data-pickmod="${esc(k)}">${esc(k)}<small>${n}</small></button>`).join('')}</div>
-      <button type="button" class="btn sm ghost" data-pick="all">Voir toutes les lignes de ${esc(st.fMarque)} (${pl(list.length,'ligne')})</button>`;}
-  return path+(st.fModele&&!st.fTailles.length&&!st.q.trim()?`<p class="sub" style="margin:0 0 6px">3. Touchez une taille dans <b>Tailles</b> ci-dessus pour ne garder qu'elle.</p>`:'');}
 function vSearch(){
-  const list=sortArts(S.articles.filter(matches)),step=pickStep();
+  const list=sortArts(S.articles.filter(matches));
   return `<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
       <div><h2>Où est rangé…</h2><p class="sub">Tapez une marque, un modèle ou une taille. Touchez le code pour le voir sur le plan.</p></div>
       ${role==='entrepot'?`<button type="button" class="btn primary" data-act="new">+ Nouvel article</button>`:''}
     </div>
     ${filterBar()}
     <div class="count">${sumLine(list,{lines:1})}${filtering()&&list.length?` · emplacement${new Set(list.map(a=>a.emp)).size>1?'s':''} : <b>${[...new Set(list.map(a=>a.emp))].sort().join(', ')}</b>`:''}${S.demo?' <span class="demo">données d\'exemple</span>':''}</div>
-    ${pickBar(step,list)}
-    ${step?'':`<div class="list">${list.length?list.map(a=>artRow(a)).join(''):`<div class="empty">Aucun article ne correspond.${role==='entrepot'?' Ajoutez-le avec « Nouvel article ».':''}</div>`}</div>`}`;}
+    <div class="list">${list.length?list.map(a=>artRow(a)).join(''):`<div class="empty">Aucun article ne correspond.${role==='entrepot'?' Ajoutez-le avec « Nouvel article ».':''}</div>`}</div>`;}
 
 function chip(code,l,H,count){
   const c=count[code],n=c?c.l:0,m=c?c.m.size:0,p=c?c.p:0;const cls=['chip',n?'has':'',H.has(code)?'hit':''].join(' ');
@@ -1822,6 +1811,20 @@ function vDims(){const d=dims();
   const typeOpt=t=>Object.entries(SKI?{botte:TYPE.botte}:{botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
   const bt=st.boxType||'botte',sz=sizesOf(bt);
   const boxes=d.boxes.slice().sort((x,y)=>x.type.localeCompare(y.type)||(x.marque||'').localeCompare(y.marque||'')||(x.modele||'').localeCompare(y.modele||''));
+  /* recherche par boutons : marque, puis modèle, puis taille (st.bxM / st.bxMo / st.bxSz ; '—' = lignes « toutes », '*' = tout voir) */
+  const NONE='—',bm=st.bxM||'',bmo=st.bxMo||'',bsz=st.bxSz||'',cnt=(L,f)=>{const m=new Map();L.forEach(b=>{const k=f(b)||NONE;m.set(k,(m.get(k)||0)+1);});return [...m.entries()].sort((x,y)=>(x[0]===NONE)-(y[0]===NONE)||x[0].localeCompare(y[0]));};
+  const rkT=(t,z)=>t==='fix'?(S.sizesF.indexOf(z)+1||99):sizeRankStr(z),covers=(b,z)=>{const r=rkT(b.type,z);return (!b.from||rkT(b.type,b.from)<=r)&&(!b.to||r<=rkT(b.type,b.to));};
+  const pbtn=(k,v,lbl,n,on)=>`<button type="button" class="sz" data-act="bxpick" data-k="${k}" data-v="${esc(v)}" aria-pressed="${!!on}">${esc(lbl)}${n!=null?`<small>${n}</small>`:''}</button>`;
+  const byM=bm&&bm!=='*'?boxes.filter(b=>(b.marque?norm(b.marque)===norm(bm):bm===NONE)):boxes,byMo=bmo?byM.filter(b=>b.modele?norm(b.modele)===norm(bmo):bmo===NONE):byM;
+  const btype=(byMo[0]||{}).type||'botte',szs=bmo?sizesOf(btype).filter(z=>byMo.some(b=>covers(b,z))):[];
+  const shown=!bm?[]:bsz?byMo.filter(b=>covers(b,bsz)):byMo;
+  const win=bsz&&bm&&bm!==NONE&&bm!=='*'&&bmo&&bmo!==NONE?boxFor({type:btype,marque:bm,modele:bmo,taille:bsz}):null;
+  let pick;
+  if(!bm)pick=`<div class="szl">1. Marque</div><div class="pkb">${cnt(boxes,b=>b.marque).map(([k,n])=>pbtn('m',k,k===NONE?'Toutes marques':k,n)).join('')}${pbtn('m','*','Tout voir',boxes.length)}</div>`;
+  else{pick=`<div class="pkpath"><button type="button" class="btn sm ghost" data-act="bxpick" data-k="m" data-v="">↺ Autre marque</button><b>${bm==='*'?'Toutes les lignes':bm===NONE?'Toutes marques':esc(bm)}</b>${bmo?` › <button type="button" class="btn sm ghost" data-act="bxpick" data-k="mo" data-v="">${esc(bmo===NONE?'tous modèles':bmo)} ✕</button>`:''}${bsz?` › <button type="button" class="btn sm ghost" data-act="bxpick" data-k="sz" data-v="">${esc(szLbl(btype,bsz))} ✕</button>`:''}</div>`;
+    if(bm!=='*'&&!bmo)pick+=`<div class="szl">2. Modèle</div><div class="pkb">${cnt(byM,b=>b.modele).map(([k,n])=>pbtn('mo',k,k===NONE?'Tous modèles':k,n)).join('')}</div>`;
+    if(bmo&&szs.length)pick+=`<div class="szl">3. Taille</div><div class="pkb">${szs.map(z=>pbtn('sz',z,szLbl(btype,z),null,z===bsz)).join('')}</div>`;
+    if(win)pick+=`<p class="sub">Boîte utilisée pour <b>${esc(bm)} ${esc(bmo)} ${esc(szLbl(btype,bsz))}</b> : <b class="mono">${fmtD(win,['L','l','H'])} cm</b></p>`;}
   /* couverture : modèles en stock sans dimensions de boîte */
   const models=new Map();S.articles.filter(a=>a.type!=='board').forEach(a=>{const k=[a.type,a.marque,a.modele].join('|');const m=models.get(k)||{a,miss:new Set(),n:0};m.n++;if(!boxFor(a))m.miss.add(a.taille);models.set(k,m);});
   const miss=[...models.values()].filter(m=>m.miss.size).sort((x,y)=>x.a.type.localeCompare(y.a.type)||x.a.marque.localeCompare(y.a.marque)||x.a.modele.localeCompare(y.a.modele));
@@ -1836,7 +1839,8 @@ function vDims(){const d=dims();
           <button type="button" class="btn sm" data-act="dimoveradd">Ajouter</button></div></details></div>
     <div class="card"><h3>Dimensions des boîtes</h3>
       <p class="sub">Longueur × largeur × hauteur de la boîte, en cm. Une ligne peut valoir pour toutes les marques, une marque, ou un seul modèle, et pour une plage de tailles. <b>Le plus précis l'emporte</b> : modèle, puis marque, puis toutes marques.</p>
-      ${boxes.map(b=>`<div class="dimrow"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
+      ${pick}
+      ${bm?shown.map(b=>`<div class="dimrow${win&&win.id===b.id?' on':''}"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'} · ${b.from||b.to?`${esc(szLbl(b.type,b.from||'…'))} → ${esc(szLbl(b.type,b.to||'…'))}`:'toutes tailles'}</span> <b class="mono">${fmtD(b,['L','l','H'])} cm</b> <button type="button" class="btn sm ghost" data-act="boxdel" data-id="${b.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucune ligne pour ce choix.</p>':boxes.length?'':'<p class="sub">Aucune boîte mesurée pour l\'instant.</p>'}
       <div class="boxadd">
         <div class="field"><label for="bxType">Type</label><select id="bxType">${typeOpt(bt)}</select></div>
         <div class="field"><label for="bxMarque">Marque <small class="opt">vide = toutes</small></label><input type="text" id="bxMarque" list="dl-bxm" autocomplete="off"><datalist id="dl-bxm">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
@@ -2413,11 +2417,8 @@ function openModel(id){
 /* ---------- Actions ---------- */
 document.addEventListener('click',e=>{
   if(e.target.classList.contains('scrim')){closeSheet();return;}
-  const t=e.target.closest('[data-act],[data-tab],[data-role],[data-ftype],[data-fgenre],[data-fsize],[data-pickm],[data-pickmod],[data-pick]');if(!t)return;
+  const t=e.target.closest('[data-act],[data-tab],[data-role],[data-ftype],[data-fgenre],[data-fsize]');if(!t)return;
   if(t.dataset.fgenre!==undefined){st.fGenre=t.dataset.fgenre;st.focus=null;render();return;}
-  if(t.dataset.pickm!==undefined){st.fMarque=t.dataset.pickm;st.fModele='';st.fTailles=[];st.focus=null;render();return;}
-  if(t.dataset.pickmod!==undefined){st.fModele=t.dataset.pickmod;st.fTailles=[];st.focus=null;render();return;}
-  if(t.dataset.pick!==undefined){const k=t.dataset.pick;if(k==='all')st.showAll=true;else if(k==='back0'){st.fMarque='';st.fModele='';st.fTailles=[];st.showAll=false;}else if(k==='back1'){st.fModele='';st.fTailles=[];st.showAll=false;}st.focus=null;render();return;}
   if(t.dataset.fsize!==undefined){const v=t.dataset.fsize,i=st.fTailles.indexOf(v);if(i<0)st.fTailles.push(v);else st.fTailles.splice(i,1);st.focus=null;render();return;}
   if(t.dataset.tab){st.tab=t.dataset.tab;if(st.tab!=='plan'){st.focus=null;st.focusOrder=null;}
     if(st.tab==='orders'||st.tab==='mine'){const u=unread();u.forEach(n=>n.read=true);if(u.length)save();}
@@ -2439,6 +2440,7 @@ document.addEventListener('click',e=>{
       if(!b.L||!b.l||!b.H){toast('Indiquez longueur, largeur et hauteur');return;}
       if(b.modele){const ms=[...new Set(S.articles.filter(a=>!b.marque||a.marque===b.marque).map(a=>a.modele))];b.modele=sameAs(b.modele,ms);}
       dims().boxes.push(b);save();render();toast('Boîte ajoutée');break;}
+    case'bxpick':{const k=t.dataset.k,v=t.dataset.v;if(k==='m'){st.bxM=v;st.bxMo='';st.bxSz='';}else if(k==='mo'){st.bxMo=v;st.bxSz='';}else st.bxSz=v===st.bxSz?'':v;render();break;}
     case'boxdel':dims().boxes=dims().boxes.filter(b=>b.id!==t.dataset.id);save();render();break;
     case'arradd':arrSheet(null);break;
     case'arredit':arrSheet(t.dataset.g);break;
@@ -2484,7 +2486,7 @@ document.addEventListener('click',e=>{
       if(!L||!l||!H){toast('Indiquez les <b>3 mesures</b> de la boîte');break;}
       dims().boxes.push({id:'b'+Date.now().toString(36),type:g.type,marque:g.marque,modele:g.modele,from:'',to:'',L,l,H});save();render();toast(`Boîte ${esc(g.modele)} enregistrée : ${L} × ${l} × ${H} cm`);break;}
     case'cloudinit':if(!cloud.on)return;cloud.empty=false;cloud.sent.stock='';cloud.sent.arts=cloud.sent.arts||new Map();cloud.sent.orders=cloud.sent.orders||new Map();cloud.sent.notifs=cloud.sent.notifs||new Map();cloudPush();render();toast(`Stock envoyé en ligne : <b>${S.articles.length} articles</b>`);break;
-    case'clear':st.showAll=false;st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
+    case'clear':st.q='';st.fType=st.fGenre=st.fMarque=st.fModele=st.fAnnee=st.fZone=st.fCouleur=st.fSerrage='';st.fTailles=[];render();break;
     case'locate':closeSheet();st.focus=id;st.focusOrder=null;st.tab='plan';render();window.scrollTo(0,0);break;
     case'light':{const on=!lightOn();LIGHT=on;try{localStorage.setItem(KEY+'-light',on?'1':'0');}catch(e){}
       st.lightFx=on;st.lightGlow=on;render();clearTimeout(window._lfx);clearTimeout(window._lgl);
