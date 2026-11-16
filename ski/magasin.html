@@ -1024,9 +1024,9 @@ const P3D=(()=>{
       if(ok)return {res:near.res.concat(far.res),over:A.over+B.over};
       const r=best(Lb.concat(Rb),flip);if(flip)mir(r);return r;}
     const right=!!Rb.length,r=best(right?Rb:Lb,right!==flip);if(right!==flip)mir(r);return r;}
-  /* une colonne par taille : on empile, puis on recule d'une file (vers le fond du niveau), et seulement ensuite on avance le long du rack ;
+  /* une colonne par taille : on empile en commençant par la file du fond, puis on vient vers l'avant, et seulement ensuite on avance le long du rack ;
      ainsi chaque taille a sa colonne visible depuis l'allée (les 22.5 les unes derrière les autres, les 23.5 à côté) */
-  function pack(bxs,Lc,Hc,LN,mix,zone){const res=[];let li=0,u=0,w=0,cw=0,prev=null,over=0;
+  function pack(bxs,Lc,Hc,LN0,mix,zone){const res=[],LN=LN0.slice().reverse();let li=0,u=0,w=0,cw=0,prev=null,over=0; /* on remplit d'abord la file du fond, puis celle de devant */
     const next=()=>{u+=cw;li=0;w=0;cw=0;};
     for(const bx of bxs){let ok=false;const g=bx.a.on&&prev!==null?prev:bx.g+'|'+(bx.a.taille||''); /* posé par-dessus : continue la pile d'à côté */
       if(prev!==null&&g!==prev&&!mix&&cw>0)next();
