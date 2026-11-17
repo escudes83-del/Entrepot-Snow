@@ -169,7 +169,7 @@ textarea{resize:vertical;min-height:60px}
   grid-template-columns:minmax(46px,.8fr) minmax(30px,.5fr) minmax(126px,1.6fr) minmax(12px,.35fr) minmax(66px,1fr);
   grid-template-areas:"fond fond fond fond fond" "g pl m al d" "g0 . arr . ext" "ent ent ent ent ent"}
 .g0z{grid-area:g0;align-self:start;padding-top:8px;display:flex;flex-direction:column;gap:5px}
-.arrz{grid-area:arr;align-self:start;padding-top:8px;display:flex;flex-direction:column;gap:5px}.arrz .rack{border-style:dashed;border-color:#d9a400;background:rgba(242,194,48,.14)}
+.arrz{grid-area:arr;align-self:start;padding-top:8px;display:flex;flex-direction:column;gap:5px}.arrz .rack,.rack.zsol{border:1.5px dashed #ead27a;background:repeating-linear-gradient(45deg,rgba(250,228,140,.45) 0 5px,rgba(255,246,205,.25) 5px 10px)}.rack.zsol .rk,.arrz .rack .rk{color:#2b2200;background:#fffdf3;border:1px solid #e3c766;border-radius:3px;padding:1px 5px}.rack.zsol.bm{margin-top:26px}
 .col{display:flex;flex-direction:column;gap:5px}
 /* gauche et droite : 5 racks plus longs sur la même longueur que les 6 du milieu, D1 aligné avec M1 */
 .col.long .rack{flex:1}
@@ -1002,7 +1002,7 @@ const P3D=(()=>{
   /* dépôt au sol : une zone marquée par terre, près de l'entrée, où l'on pose des boîtes le temps d'un échange */
   let mFZ=null;const mFloorZ=()=>mFZ||(mFZ=new T3.MeshBasicMaterial({color:0xf2c230,transparent:true,opacity:.16,depthWrite:false}));
   function solZone(x,z,dep,len,code='BM1',txt){const F=frame('z',x,z,1);slot(code,F,len,dep,1,110,{ax:'z',o0:z,flip:false});
-    const m=new T3.Mesh(new T3.PlaneGeometry(dep,len),new T3.MeshBasicMaterial({color:0xf2c230,transparent:true,opacity:.35,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x+dep/2,.8,z+len/2);gR.add(m);
+    const t=hatchTex();t.repeat.set(dep/22,len/22);const m=new T3.Mesh(new T3.PlaneGeometry(dep,len),new T3.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x+dep/2,.8,z+len/2);gR.add(m);
     if(txt)floorText(txt,x+dep/2,z+len+22,20);}
   /* zone cartons au sol : hachures jaune clair ; w le long de x, d le long de z */
   let mHT=null;const hatchTex=()=>{if(!mHT){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='rgba(255,248,215,.14)';g.fillRect(0,0,64,64);g.strokeStyle='rgba(252,234,160,.5)';g.lineWidth=8;for(let i=-64;i<=128;i+=32){g.beginPath();g.moveTo(i,0);g.lineTo(i+64,64);g.stroke();}mHT=c;}const t=new T3.CanvasTexture(mHT);t.wrapS=t.wrapT=T3.RepeatWrapping;return t;};
@@ -1271,7 +1271,7 @@ function vPlan(){
     g+=r===4?`<div class="rack"><span class="rk">G4</span><div class="chips">${[3,4].map(l=>chip(`G4.${l}`,l,H,count)).join('')}</div></div>`
              :`<div class="rack off"><span class="rk">G${r}</span></div>`;
     d+=`<div class="rack"><span class="rk">D${r}</span>${chips('D',r,H,count)}</div>`;}
-  m+=`<div class="rack"><span class="rk">BOUT M6</span><div class="chips">${chip('BM1','📦',H,count)}</div></div>`;
+  m+=`<div class="rack zsol bm" title="${esc(locLabel('BM1'))}"><span class="rk">BOUT M6 · au sol</span><div class="chips">${chip('BM1','📦',H,count)}</div></div>`;
   for(let r=6;r>=1;r--)m+=`<div class="rack"><span class="rk">M${r}</span><div class="mrow">${chips('MG',r,H,count)}<i class="sep"></i>${chips('MD',r,H,count)}</div></div>`;
   const ext=`<div class="rack"><span class="rk">E1</span>${chips('E',1,H,count)}</div>`
     +`<div class="rack"><span class="rk">BAV</span>${chips('BAV',1,H,count)}</div><div class="rack"><span class="rk">BAR</span>${chips('BAR',1,H,count)}</div>`;
