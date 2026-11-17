@@ -1041,7 +1041,7 @@ const P3D=(()=>{
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`W${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,HZ(r)+DL/2,30);}
     sprite('W0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('H0',MX+MW/2,yT,HZ(0)+DL/2,26);sprite('FOND côté ski · FS1',(FB0+FB1)/2,yT,WZ+60,28);sprite('EN1 · entrée',ENX+DL/2,yT,ENZ+38,26);sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);
     floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+38,T*.55,30,Math.PI/2);floorText('RAYON SNOW · autre appli',(Mx+Dx)/2,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);
-    {const z0=WZ+60,z1=HZ(5)-10;cartonZone('Z10',MX,z0,MW,z1-z0);floorText('Z10',MX+MW/2,(z0+z1)/2,22);sprite('BOUT H5',MX+MW/2,70,(z0+z1)/2,20);} /* bout de H5 : largeur du rack, jusqu'à 60 cm de la fenêtre */
+    {const z0=FZ0-FDP,z1=HZ(5)-10;cartonZone('Z10',MX,z0,MW,z1-z0);floorText('Z10',MX+MW/2,(z0+z1)/2,22);sprite('BOUT H5',MX+MW/2,70,(z0+z1)/2,20);} /* bout de H5 : largeur du rack ; s'arrête au niveau du dos du fond FS1, le passage du fond (côté fenêtre) reste libre */
     {const m=new T3.Mesh(new T3.PlaneGeometry(8,HZ(0)+DL-(FZ0-160)),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WX-4,.9,(HZ(0)+DL+FZ0-160)/2);gR.add(m);floorText('MUR',WX+16,FZ0+40,20,Math.PI/2);}} /* dépôt au sol au bout de H5, côté fond */ /* la même zone que le snow, devant M1 */
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
