@@ -91,6 +91,11 @@ textarea{resize:vertical;min-height:60px}
 .fgrid select{padding:7px 8px;font-size:14px}
 .szs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .pkb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.pkb .sz{font:600 14px var(--f-body);padding:8px 10px}.pkb .sz small{margin-left:4px}
+.setmenu{display:flex;flex-direction:column;gap:10px}
+.setbtn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
+.setbtn:hover{border-color:var(--accent)}.setbtn .si{font-size:22px;width:32px;text-align:center;flex:none}.setbtn b{display:block;font-size:16px}.setbtn small{display:block;color:var(--muted);margin-top:2px}.setbtn .sa{margin-left:auto;font-size:22px;color:var(--muted)}
+.sethead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sethead h2{margin:0}
+.setnav{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}.setnav .sz{white-space:nowrap;flex:none}
 .dimrow.bxedit{background:var(--surface);border:2px solid var(--accent);border-radius:8px;padding:12px;color:var(--ink)}.dimrow.bxedit .dim-in,.dimrow.bxedit select{background:var(--surface-2,var(--bg));color:var(--ink);border:1.5px solid var(--line-strong,var(--line))}
 .dimrow.on{background:#fff3c4;border-radius:6px;color:#2b2200;box-shadow:inset 3px 0 0 #e0b400}.dimrow.on>span:not(.bx-a),.dimrow.on>span:not(.bx-a) *,.dimrow.on>b{color:#2b2200}.dimrow.on .btn.ghost{color:#5a4a00}
 .dimrow.bxr{display:grid;grid-template-columns:minmax(0,1fr) 120px 190px auto;gap:6px 14px;padding:12px 6px}.bxr .bx-s{white-space:nowrap}.bxr .bx-d{white-space:nowrap;text-align:right}.bxr .bx-a{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
@@ -1438,25 +1443,39 @@ function tagList(kind,arr){return `<div class="tags">${arr.map((x,i)=>`<span cla
   <div class="inline"><div class="field"><label for="add-${kind}">Ajouter</label><input type="text" id="add-${kind}"></div><button type="button" class="btn" data-act="addtag" data-k="${kind}">Ajouter</button></div>`;}
 function vSettings(){
   const arm=k=>st.armed===k;
-  return `<div><h2>Réglages</h2><p class="sub">Listes utilisées dans les fiches articles. Elles changent selon les fabricants et les saisons.</p></div>
-    ${role==='magasin'?'<div class="info">Ces réglages sont réservés à l\'entrepôt (rôle Admin dans la vraie version).</div>':`
-    <div class="card"><h3>Inventaire (Excel)</h3>
+  if(role==='magasin')return `<div><h2>Réglages</h2></div><div class="info">Ces réglages sont réservés à l'entrepôt (rôle Admin dans la vraie version).</div>`;
+  /* page courte : un bouton par thème, on n'ouvre qu'un thème à la fois (st.setSec) */
+  const SEC=[['inv','⬇',"Télécharger l'inventaire",'Fichier Excel du stock du jour'],
+    ['hist','↶','Historique et sauvegardes','Annuler une modification, revenir à une sauvegarde'],
+    ['dimloc','📏','Dimensions des emplacements','Mesures des racks et des niveaux'],
+    ['dimbox','📦',SKI?'Dimensions des boîtes de chaussures':'Dimensions des boîtes de bottes et fixations','Taille des boîtes par marque, modèle et taille'],
+    ['cap','▦','Capacité des racks','Places par groupe, gros lots, règles de rangement'],
+    ['tr','⇄','Transférer le stock',"Copie du stock d'un appareil à l'autre"],
+    ['data','⚙','Données','Marques, tailles, emplacements, remise à zéro']];
+  const cur=SEC.find(x=>x[0]===st.setSec);
+  if(!cur)return `<div><h2>Réglages</h2><p class="sub">Choisissez un thème.</p></div>
+    <div class="setmenu">${SEC.map(([k,ic,t,d])=>`<button type="button" class="setbtn" data-act="setsec" data-v="${k}"><span class="si">${ic}</span><span><b>${esc(t)}</b><small>${esc(d)}</small></span><span class="sa">›</span></button>`).join('')}</div>`;
+  const dd=()=>{const h=vDims(),k=h.indexOf('<!--BX-->');return [h.slice(0,k),h.slice(k)];};
+  let html;
+  switch(cur[0]){
+    case'inv':html=`<div class="card"><h3>Inventaire (Excel)</h3>
       <p class="sub">Un fichier Excel du stock du jour, classé par type, marque, modèle et taille. Il contient un résumé, une feuille par type (tailles en colonnes) et le détail avec les emplacements.</p>
-      <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>
-    ${vHistory()}
-    ${vDims()}
-    <div class="card"><h3>Capacité des racks</h3>
-      <p class="sub"><b>Les emplacements mesurés (Dimensions ci-dessus) utilisent leurs mesures et la taille des boîtes.</b> Les nombres ci-dessous ne servent qu'aux emplacements pas encore mesurés : boîtes qu'ils contiennent quand ils sont pleins, d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
+      <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>`;break;
+    case'hist':html=vHistory();break;
+    case'dimloc':html=dd()[0];break;
+    case'dimbox':html=dd()[1];break;
+    case'cap':html=`<div class="card"><h3>Capacité des racks</h3>
+      <p class="sub"><b>Les emplacements mesurés (thème Dimensions des emplacements) utilisent leurs mesures et la taille des boîtes.</b> Les nombres ci-dessous ne servent qu'aux emplacements pas encore mesurés : boîtes qu'ils contiennent quand ils sont pleins, d'après l'emplacement le plus rempli de chaque groupe ; corrigez si besoin. Le fond, la gauche (fins de série), l'étagère et les blocs ne sont pas comptés.</p>
       <div class="info" style="margin:8px 0">Règles de rangement : <b>bottes au milieu</b> (plus facile d'accès) ; <b>droite niveaux 1-2</b> pour les gros lots de bottes ; <b>jamais de bottes au niveau 3 de droite</b> ; <b>fixations à droite</b>. Un modèle trop gros est réparti par groupes de tailles.</div>
       <div class="field" style="max-width:320px"><label for="bigLot">Gros lot de bottes à partir de</label><div class="inline"><input type="number" id="bigLot" min="5" max="500" value="${bigLot()}" inputmode="numeric" style="width:90px" data-cap="big"> <span>boîtes d'un même modèle</span></div></div>
       <table class="capt"><tr><th></th><th>Bottes</th><th>Fixations</th></tr>${Object.entries(CAP_GROUPS).map(([g,l])=>`<tr><td>${l}</td><td><input type="number" min="1" max="999" data-cap="${g}:botte" value="${caps()[g].botte}" inputmode="numeric"${g==='D3'?' disabled title="Jamais de bottes au niveau 3 de droite"':''}>${g==='D3'?' <small class="opt">jamais</small>':''}</td><td><input type="number" min="1" max="999" data-cap="${g}:fix" value="${caps()[g].fix}" inputmode="numeric"></td></tr>`).join('')}</table>
       <div class="inline" style="margin-top:8px"><button type="button" class="btn" data-act="capcalc">Recalculer d'après le stock</button></div>
-      ${(()=>{const X=capCtx(occMap());const fr=LOCS.filter(capGroup).map(e=>[e,X.fill(e)]).sort((a,b)=>a[1]-b[1]).slice(0,8);return `<p class="sub" style="margin-top:10px">Les moins remplis : ${fr.map(([e,f])=>`<b class="mono">${e}</b> ${Math.max(0,Math.round(f*100))} %`).join(' · ')}</p>`;})()}</div>
-    <div class="card"><h3>Transférer le stock</h3>
+      ${(()=>{const X=capCtx(occMap());const fr=LOCS.filter(capGroup).map(e=>[e,X.fill(e)]).sort((a,b)=>a[1]-b[1]).slice(0,8);return `<p class="sub" style="margin-top:10px">Les moins remplis : ${fr.map(([e,f])=>`<b class="mono">${e}</b> ${Math.max(0,Math.round(f*100))} %`).join(' · ')}</p>`;})()}</div>`;break;
+    case'tr':html=`<div class="card"><h3>Transférer le stock</h3>
       <p class="sub">Pour passer le stock d'un appareil à un autre : téléchargez une copie ici, puis chargez-la dans l'appli en ligne. ${S.articles.length} articles sur cet appareil.</p>
       <div class="inline"><button type="button" class="btn" data-act="export">⬇ Télécharger une copie du stock</button>
-        <label class="btn" style="cursor:pointer">⬆ Charger une copie<input type="file" id="importFile" accept=".json,application/json" hidden></label></div></div>
-    <div class="card"><h3>Marques</h3>${tagList('brands',S.brands)}</div>
+        <label class="btn" style="cursor:pointer">⬆ Charger une copie<input type="file" id="importFile" accept=".json,application/json" hidden></label></div></div>`;break;
+    default:html=`<div class="card"><h3>Marques</h3>${tagList('brands',S.brands)}</div>
     <div class="card"><h3>Tailles bottes (US et cm)</h3>${tagList('sizesB',S.sizesB)}</div>
     <div class="card"><h3>Tailles fixations</h3>${tagList('sizesF',S.sizesF)}</div>
     <div class="card"><h3>Tailles snowboards</h3>${tagList('sizesS',S.sizesS)}</div>
@@ -1467,7 +1486,10 @@ function vSettings(){
         <button type="button" class="btn" data-act="reset">🔒 Recharger la liste importée</button>
         <button type="button" class="btn danger" data-act="wipe">🔒 Partir de zéro (tout effacer)</button>
         ${S.lock&&S.lock.h?`<button type="button" class="btn ghost" data-act="pwchange">Changer le mot de passe</button>`:''}
-      </div></div>`}`;}
+      </div></div>`;}
+  return `<div class="sethead"><button type="button" class="btn sm ghost" data-act="setsec" data-v="">‹ Réglages</button><h2>${cur[1]} ${esc(cur[2])}</h2></div>
+    <div class="setnav">${SEC.map(([k,ic,t])=>`<button type="button" class="sz" data-act="setsec" data-v="${k}" aria-pressed="${k===cur[0]}">${ic} ${esc(t)}</button>`).join('')}</div>
+    ${html}`;}
 
 
 /* ---------- Inventaire Excel (.xlsx créé sur l'appareil, sans internet) ---------- */
@@ -1889,7 +1911,7 @@ function vDims(){const d=dims();
         <div class="dimadd"><select id="ovEmp" aria-label="Emplacement">${DIM_LOCS.map(e=>`<option>${e}</option>`).join('')}</select>
           ${inp('id="ovL"',null,'Longueur')}${inp('id="ovP"',null,'Profondeur')}${inp('id="ovH"',null,'Hauteur')}
           <input type="text" id="ovNote" placeholder="Note (ex. : poteau au milieu)" aria-label="Note">
-          <button type="button" class="btn sm" data-act="dimoveradd">Ajouter</button></div></details></div>
+          <button type="button" class="btn sm" data-act="dimoveradd">Ajouter</button></div></details></div><!--BX-->
     <div class="card"><h3>Dimensions des boîtes</h3>
       <p class="sub">Longueur × largeur × hauteur de la boîte, en cm. Une ligne peut valoir pour toutes les marques, une marque, ou un seul modèle, et pour une plage de tailles. <b>Le plus précis l'emporte</b> : modèle, puis marque, puis toutes marques.</p>
       ${pick}
@@ -2477,7 +2499,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act],[data-tab],[data-role],[data-ftype],[data-fgenre],[data-fsize]');if(!t)return;
   if(t.dataset.fgenre!==undefined){st.fGenre=t.dataset.fgenre;st.focus=null;render();return;}
   if(t.dataset.fsize!==undefined){const v=t.dataset.fsize,i=st.fTailles.indexOf(v);if(i<0)st.fTailles.push(v);else st.fTailles.splice(i,1);st.focus=null;render();return;}
-  if(t.dataset.tab){st.tab=t.dataset.tab;if(st.tab!=='plan'){st.focus=null;st.focusOrder=null;}
+  if(t.dataset.tab){if(t.dataset.tab==='settings'&&st.tab==='settings')st.setSec='';st.tab=t.dataset.tab;if(st.tab!=='plan'){st.focus=null;st.focusOrder=null;}
     if(st.tab==='orders'||st.tab==='mine'){const u=unread();u.forEach(n=>n.read=true);if(u.length)save();}
     st.open=null;render();window.scrollTo(0,0);return;}
   if(t.dataset.role){if(role===t.dataset.role)return;role=t.dataset.role;st.tab=role==='magasin'?'cmd':'search';st.focus=null;st.focusOrder=null;try{localStorage.setItem(KEY+'-role',role);}catch(e){}
@@ -2530,7 +2552,8 @@ document.addEventListener('click',e=>{
       if(n)toast(`<b>${n} boîte${n>1?'s':''}</b> déplacée${n>1?'s':''} vers <b>${esc(to)}</b>`);else toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);break;}
     case'mvundo':undoLastMove();break;
     case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
-    case'tohist':st.tab='settings';render();setTimeout(()=>{const h=$('#hist');if(h)h.scrollIntoView({block:'start'});},50);break;
+    case'setsec':st.setSec=t.dataset.v||'';render();window.scrollTo(0,0);break;
+    case'tohist':st.tab='settings';st.setSec='hist';render();setTimeout(()=>{const h=$('#hist');if(h)h.scrollIntoView({block:'start'});},50);break;
     case'pkadd':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();break;}
     case'pkdec':{const a=art(t.dataset.id);if(!a||!st.pk)break;st.pk[a.id]=(st.pk[a.id]||0)-1;if(st.pk[a.id]<=0)delete st.pk[a.id];render();break;}
     case'pkscan':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();toast(`<b>${esc(artName(a))} ${esc(szLbl(a.type,a.taille))}</b> ajoutée. Une autre photo, ou « J'ai pris » pour valider.`);break;}
