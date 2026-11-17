@@ -582,7 +582,7 @@ const LV4=[1,2,3,4];
 const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);LV4.forEach(l=>add('WS',0,l));[3,4].forEach(l=>add('WN',0,l));
   for(let r=1;r<=5;r++){LV4.forEach(l=>add('WS',r,l));if(r!==4)[3,4].forEach(l=>add('WN',r,l));}
   for(let r=0;r<=5;r++)LV4.forEach(l=>add('HD',r,l));for(let r=0;r<=5;r++)LV4.forEach(l=>add('HG',r,l)); /* H0 : devant H1, côté entrée */
-  LV.forEach(l=>add('FS',1,l));/* FS2 (derrière W5) est fusionné dans FS1 : un seul niveau sur toute la longueur, pleine profondeur derrière W5 */L.push('FS1.0'); /* au sol devant le fond, côté ski */for(let r=5;r>=0;r--)L.push('CA'+r);L.push('BH1','CEN1','CED1','CED2'); /* zones cartons au sol : allée côté mur (CA0-CA5, le long de H0-H5), devant EN1, ED1, ED2 */ /* au sol, au bout de H5 (côté fond) */LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l)));return withFloor(L);})()
+  LV.forEach(l=>add('FS',1,l));/* FS2 (derrière W5) est fusionné dans FS1 : un seul niveau sur toute la longueur, pleine profondeur derrière W5 */L.push('FS1.0'); /* au sol devant le fond, côté ski */for(let i=1;i<=10;i++)L.push('Z'+i); /* zones cartons au sol : allée côté mur (CA0-CA5, le long de H0-H5), devant EN1, ED1, ED2 */ /* au sol, au bout de H5 (côté fond) */LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l)));return withFloor(L);})()
   :(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [3,4].forEach(l=>add('G',4,l));[1,2].forEach(l=>add('G',0,l)); /* G0 (W0 au ski) : côté snow, niveaux 1 et 2 au snow */ /* racks de gauche : 4 niveaux ; le snow n'utilise que G4 niveaux 3 et 4, côté snow */
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
@@ -593,7 +593,7 @@ const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);LV4.forEach
   LV.forEach(l=>add('BAV',1,l));LV.forEach(l=>add('BAR',1,l));
   L.push('BM1'); /* au sol, collée au bout de M6 (côté fond) : bottes ou fixations */
   return withFloor(L);})();
-function locLabel(c){if(c==='ARR1')return ZONES.ARR;if(c==='BM1')return 'Bout de M6, au sol (côté fond)';if(c==='BH1')return 'Bout de H5, au sol (côté fond)';if(/^CA\d$/.test(c))return `Cartons · allée côté mur, le long de H${c[2]} (au sol, 50 cm)`;if(c==='CEN1')return 'Cartons · au sol devant EN1 (40 cm)';if(/^CED\d$/.test(c))return `Cartons · au sol devant ED${c[3]} (40 cm)`;const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
+function locLabel(c){if(c==='ARR1')return ZONES.ARR;if(c==='BM1')return 'Bout de M6, au sol (côté fond)';if(SKI&&/^Z\d+$/.test(c)){const n=+c.slice(1);return n===1?'Zone cartons · au sol devant EN 1 (40 cm)':n<=3?`Zone cartons · au sol devant ED ${n-1} (40 cm)`:n<=9?`Zone cartons · allée côté mur, le long de H ${n-4} (au sol, 50 cm)`:'Zone cartons · au sol au bout de H 5 (côté fenêtre)';}const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
   const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
   let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):z==='FS'&&r==='2'?'Fond, côté ski (ancien FS2, fusionné avec FS1)':['F','BAV','BAR','FS','EN'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${z==='WS'||z==='WN'?'W':z[0]==='H'?'H':z==='ED'?'ED':''}${r}`;
   const hi=/^(G|WS|WN|HG|HD)$/.test(z)?'4':'3'; /* racks à 4 niveaux : le haut est le 4 */
@@ -651,11 +651,14 @@ function seedExemples(){
     notifs:[{id:1,to:'entrepot',text:'Nouvelle commande #1001 du magasin',at:now-12*60000,read:false}],
     cart:[],cartNote:''};
 }
+/* zones cartons renommées : anciens codes → Z1-Z10 (le stock déjà rangé suit, et la base est mise à jour au prochain enregistrement) */
+const EMP_REN=SKI?{CEN1:'Z1',CED1:'Z2',CED2:'Z3',CA0:'Z4',CA1:'Z5',CA2:'Z6',CA3:'Z7',CA4:'Z8',CA5:'Z9',BH1:'Z10'}:{};
+const fixEmps=L=>{(L||[]).forEach(a=>{if(a&&EMP_REN[a.emp])a.emp=EMP_REN[a.emp];});return L;};
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1){
   /* ajoute la taille US 15 aux données déjà enregistrées sur l'appareil */
   if(!SKI&&!s.sizesB.includes('15')){const i=s.sizesB.indexOf('14');s.sizesB.splice(i<0?s.sizesB.length:i+1,0,'15');}
   /* « Noir » déjà saisi devient « Black » */
-  (s.articles||[]).forEach(a=>{if(a.couleur)a.couleur=fixColor(a.couleur);});
+  (s.articles||[]).forEach(a=>{if(a.couleur)a.couleur=fixColor(a.couleur);});fixEmps(s.articles);
   if(!s.sizesS)s.sizesS=sizesS();
   return s;}}catch(e){}return seed();}
 let S=load();
@@ -663,7 +666,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}if(ty
 let role='magasin'; /* mini-appli magasin : pas d'accès à l'entrepôt */
 const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fRack:'',fNiv:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
 if(role==='magasin')st.tab='cmd';
-const ZONE_OF=SKI?{WS:'BF',WN:'BF',HG:'BH',HD:'BH',BH:'BH',FS:'FS',MUR:'SK',FEN:'SK',EN:'EN',ED:'ED',ARR:'ARR',CA:'CT',CEN:'CT',CED:'CT'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',BM:'M',ARR:'ARR'};
+const ZONE_OF=SKI?{WS:'BF',WN:'BF',HG:'BH',HD:'BH',BH:'BH',FS:'FS',MUR:'SK',FEN:'SK',EN:'EN',ED:'ED',ARR:'ARR',Z:'CT'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',BM:'M',ARR:'ARR'};
 const ZONE_LBL=SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis',EN:'Rack de l\'entrée',ED:'Racks à droite de l\'entrée',ARR:'Zone d\'arrivée',CT:'Zones cartons (au sol)'}:{ARR:'Zone d\'arrivée',D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
 const zoneOf=emp=>ZONE_OF[(/^[A-Z]+/.exec(emp||'')||[''])[0]]||'';
 function sizeRankStr(t){if(/cm/.test(t))return 100+parseFloat(t);const n=parseFloat(t);if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
@@ -710,7 +713,7 @@ const COLOR_SYN=(()=>{const m=new Map();[
 ].forEach(g=>g.forEach(w=>m.set(w,g)));return m;})();
 /* un mot de couleur : cherché au début des mots de la fiche (Black/Pink → black, pink), dans les deux langues */
 const colorHit=(t,hay)=>{const g=COLOR_SYN.get(t);if(!g)return false;const ws=hay.split(/[^a-z0-9]+/);return g.some(c=>ws.some(w=>w===c||(c.length>3&&w.startsWith(c))));};
-function textMatch(a,q){
+function textMatch(a,q){q=joinCodes(q);
   const toks=norm(q).replace(/(\d),5/g,'$1.5').split(/\s+/).filter(Boolean);if(!toks.length)return true;
   const sz=toks.filter(isSizeTok),other=toks.filter(t=>!isSizeTok(t));
   if(sz.length){const full=norm(a.taille).replace(/\s*cm$/,''),parts=full.split('/');if(!sz.some(t=>t===full||parts.includes(t)))return false;}
@@ -731,7 +734,7 @@ function hits(){const fo=focusOrd();if(fo)return new Set(fo.lines.map(l=>l.aid&&
 const unread=()=>S.notifs.filter(n=>n.to===role&&!n.read);
 
 let actx;function beep(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();const t=actx.currentTime;[0,.18].forEach((d,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=i?1175:880;g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.18,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.25);o.connect(g).connect(actx.destination);o.start(t+d);o.stop(t+d+.3);});}catch(e){}}
-let toastT;function toast(html,sound){const r=$('#toastRoot');r.innerHTML=`<div class="toast" role="status">${html}</div>`;if(sound)beep();clearTimeout(toastT);toastT=setTimeout(()=>r.innerHTML='',3800);}
+let toastT;function toast(html,sound){const r=$('#toastRoot');html=spc(html);r.innerHTML=`<div class="toast" role="status">${html}</div>`;if(sound)beep();clearTimeout(toastT);toastT=setTimeout(()=>r.innerHTML='',3800);}
 function notify(to,text){S.notifs.push({id:Date.now()+Math.random(),to,text,at:Date.now(),read:false});}
 
 const IC={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
@@ -756,13 +759,19 @@ function render(){SLOTC.clear();updUndo();
   const v=$('#view');
   v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='pick'?vShopPick():st.tab==='mine'?vShopMine():vShopCmd())
     :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='move'?vMove():st.tab==='orders'?vOrders():st.tab==='arr'?vArrivage():vSettings());
-  tint(v);
+  tint(v);spaceCodes(v);spaceCodes(document.querySelector('header'));
   if(role==='entrepot'&&st.tab==='plan'&&p3dOn()){const h=document.getElementById('p3d');if(h)P3D.mount(h,hits());}
 }
+/* affichage : « WS5.2 » → « WS 5.2 », « Z10 » → « Z 10 » (les codes enregistrés ne changent pas) */
+const CODE_PFX=new Set([...LOCS.map(c=>(/^[A-Z]+/.exec(c)||[''])[0]),'W','H','M','G','D','E','F','WS','WN','HG','HD','FS','EN','ED','Z','MG','MD','BAV','BAR','BM','ARR'].filter(Boolean));
+const spc=t=>String(t).replace(/\b([A-Z]{1,3})(\d{1,2}(?:\.\d)?)\b/g,(m,a,b)=>CODE_PFX.has(a)?a+' '+b:m);
+const joinCodes=q=>String(q).replace(/\b([A-Za-z]{1,3}) (\d{1,2}(?:[.,]\d)?)\b/g,(m,a,b)=>CODE_PFX.has(a.toUpperCase())?a+b:m);
+function spaceCodes(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;return !p||p.closest('script,style,textarea,.chip')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});
+  const L=[];while(w.nextNode())L.push(w.currentNode);L.forEach(n=>{const v=spc(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;});}
 /* Colore les codes d'emplacement et les racks du plan selon leur zone */
 function tint(root){
-  root.querySelectorAll('.code').forEach(c=>{const t=c.textContent.trim(),z=zoneOf(t);if(z)c.dataset.z=SKI&&/^WN/.test(t)?'WN':z;if(SKI&&/^WN/.test(t))c.title='Côté snow du rack W';});
-  root.querySelectorAll('.rack:not(.off)').forEach(r=>{const k=r.querySelector('.rk');const m=k&&/([A-Z]+)\d*$/.exec(k.textContent.trim());const z=m&&ZONE_OF[m[1]==='M'?'MG':m[1]];if(z)r.dataset.z=z;});}
+  root.querySelectorAll('.code').forEach(c=>{const t=c.textContent.trim().replace(/^([A-Z]+) (\d)/,'$1$2'),z=zoneOf(t);if(z)c.dataset.z=SKI&&/^WN/.test(t)?'WN':z;if(SKI&&/^WN/.test(t))c.title='Côté snow du rack W';});
+  root.querySelectorAll('.rack:not(.off)').forEach(r=>{const k=r.querySelector('.rk');const m=k&&/([A-Z]+) ?\d*$/.exec(k.textContent.trim());const z=m&&ZONE_OF[m[1]==='M'?'MG':m[1]];if(z)r.dataset.z=z;});}
 function filterBar(){
   const sel=(id,label,cur,m,sortFn,lblFn=v=>v)=>{const keys=[...m.keys()];if(cur&&!keys.includes(cur))keys.push(cur);keys.sort(sortFn);
     return `<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Tous</option>${keys.map(k=>`<option value="${esc(k)}"${k===cur?' selected':''}>${esc(lblFn(k))} (${m.get(k)||0})</option>`).join('')}</select></div>`;};
@@ -952,8 +961,8 @@ const P3D=(()=>{
   function cub(F,u,v,w,su,sv,sw,mat){const m=new T3.Mesh(new T3.BoxGeometry(...F.s(su,sv,sw)),mat);m.position.set(...F.c(u+su/2,v+sv/2,w+sw/2));gR.add(m);return m;}
   function textCanvas(text,fg,bg){const c=document.createElement('canvas'),x=c.getContext('2d'),f='700 64px "Barlow Condensed","Arial Narrow",sans-serif';x.font=f;const w=Math.ceil(x.measureText(text).width)+44;c.width=w;c.height=92;x.font=f;
     if(bg){x.fillStyle=bg;const r=18;x.beginPath();x.moveTo(r,0);x.arcTo(w,0,w,92,r);x.arcTo(w,92,0,92,r);x.arcTo(0,92,0,0,r);x.arcTo(0,0,w,0,r);x.fill();}x.fillStyle=fg;x.textBaseline='middle';x.fillText(text,22,48);return c;}
-  function sprite(text,x,y,z,h,dim){const c=textCanvas(text,dim?'rgba(255,255,255,.75)':'#fff',dim?'rgba(20,27,36,.4)':'rgba(20,27,36,.82)'),sp=new T3.Sprite(new T3.SpriteMaterial({map:new T3.CanvasTexture(c),depthWrite:false}));sp.scale.set(h*c.width/c.height,h,1);sp.position.set(x,y,z);gR.add(sp);}
-  function floorText(text,x,z,h,rot){const c=textCanvas(text,'rgba(255,255,255,.9)','rgba(20,27,36,.45)'),m=new T3.Mesh(new T3.PlaneGeometry(h*c.width/c.height,h),new T3.MeshBasicMaterial({map:new T3.CanvasTexture(c),transparent:true,depthWrite:false}));m.rotation.set(-Math.PI/2,0,rot||0);m.position.set(x,1,z);gR.add(m);}
+  function sprite(text,x,y,z,h,dim){text=spc(text);const c=textCanvas(text,dim?'rgba(255,255,255,.75)':'#fff',dim?'rgba(20,27,36,.4)':'rgba(20,27,36,.82)'),sp=new T3.Sprite(new T3.SpriteMaterial({map:new T3.CanvasTexture(c),depthWrite:false}));sp.scale.set(h*c.width/c.height,h,1);sp.position.set(x,y,z);gR.add(sp);}
+  function floorText(text,x,z,h,rot){text=spc(text);const c=textCanvas(text,'rgba(255,255,255,.9)','rgba(20,27,36,.45)'),m=new T3.Mesh(new T3.PlaneGeometry(h*c.width/c.height,h),new T3.MeshBasicMaterial({map:new T3.CanvasTexture(c),transparent:true,depthWrite:false}));m.rotation.set(-Math.PI/2,0,rot||0);m.position.set(x,1,z);gR.add(m);}
   /* flip : le début du rack (u = 0) est à droite quand on le regarde depuis l'allée */
   const isFlip=(ax,fd)=>ax==='z'?fd<0:fd>0;
   function slot(code,F,len,dep,y,h,M){const hm=new T3.Mesh(new T3.BoxGeometry(...F.s(len-2,dep-2,h-1)),new T3.MeshBasicMaterial({color:0xff7a33,transparent:true,opacity:0,depthWrite:false}));
@@ -1010,14 +1019,14 @@ const P3D=(()=>{
       slot('EN1.1',frame('x',ENX,ENZ,1),DL,76,o.ys[0]+SH,o.hs[0],{ax:'x',o0:ENX,flip:isFlip('x',1),skis:true});}
     [1,2].forEach(r=>{const x=EDX+(r-1)*EDL,o={ax:'x',ox:x,oz:EDZ,fd:1,len:EDL-4,dep:EDP,levels:[1,2,3],slotLevels:[2,3],code:l=>`ED${r}.${l}`};tops.push(rack(o)); /* ED1, ED2 : contre le mur de l'entrée, à droite */
       slot(`ED${r}.1`,frame('x',x,EDZ,1),EDL-4,EDP,o.ys[0]+SH,o.hs[0],{ax:'x',o0:x,flip:isFlip('x',1),skis:true});});
-    {const CX=WX+45;for(let r=0;r<=5;r++){const z0=r?Math.max(FZ0,T-r*sG):T,z1=r?T-(r-1)*sG:T+10+DL;cartonZone(`CA${r}`,CX,z0+2,50,z1-z0-4);floorText(`CA${r}`,CX+25,(z0+z1)/2,22,Math.PI/2);}} /* allée côté mur : 50 cm au milieu, le long des racks H */
-    const PAS=60;cartonZone('CEN1',ENX,ENZ-PAS-40,DL,40,'x');floorText('CEN1',ENX+DL/2,ENZ-PAS-20,22); /* 40 cm devant EN1, après un passage de 60 cm */
-    [1,2].forEach(r=>{const x=EDX+(r-1)*EDL;cartonZone(`CED${r}`,x,EDZ-PAS-40,EDL-4,40,'x');floorText(`CED${r}`,x+EDL/2,EDZ-PAS-20,22);}); /* 40 cm devant ED1, ED2 */
+    {const CX=WX+45;for(let r=0;r<=5;r++){const z0=r?Math.max(FZ0,T-r*sG):T,z1=r?T-(r-1)*sG:T+10+DL;cartonZone(`Z${r+4}`,CX,z0+2,50,z1-z0-4);floorText(`Z${r+4}`,CX+25,(z0+z1)/2,22,Math.PI/2);}} /* allée côté mur : 50 cm au milieu, le long des racks H */
+    const PAS=60;cartonZone('Z1',ENX,ENZ-PAS-40,DL,40,'x');floorText('Z1',ENX+DL/2,ENZ-PAS-20,22); /* 40 cm devant EN1, après un passage de 60 cm */
+    [1,2].forEach(r=>{const x=EDX+(r-1)*EDL;cartonZone(`Z${r+1}`,x,EDZ-PAS-40,EDL-4,40,'x');floorText(`Z${r+1}`,x+EDL/2,EDZ-PAS-20,22);}); /* 40 cm devant ED1, ED2 */
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`W${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,z,30);}
     sprite('W0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('H0',MX+MW/2,yT,T+10+DL/2,26);sprite('FOND côté ski · FS1',(FB0+FB1)/2,yT,WZ+60,28);sprite('EN1 · entrée',ENX+DL/2,yT,ENZ+38,26);sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);
     floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+38,T*.55,30,Math.PI/2);floorText('RAYON SNOW · autre appli',(Mx+Dx)/2,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE (snow et ski)');
-    {const z0=WZ+60,z1=FZ0-10;cartonZone('BH1',MX,z0,MW,z1-z0);floorText('BH1',MX+MW/2,(z0+z1)/2,22);sprite('BOUT H5',MX+MW/2,70,(z0+z1)/2,20);} /* bout de H5 : largeur du rack, jusqu'à 60 cm de la fenêtre */
+    {const z0=WZ+60,z1=FZ0-10;cartonZone('Z10',MX,z0,MW,z1-z0);floorText('Z10',MX+MW/2,(z0+z1)/2,22);sprite('BOUT H5',MX+MW/2,70,(z0+z1)/2,20);} /* bout de H5 : largeur du rack, jusqu'à 60 cm de la fenêtre */
     {const m=new T3.Mesh(new T3.PlaneGeometry(8,T+10+DL-(FZ0-160)),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WX-4,.9,(T+10+DL+FZ0-160)/2);gR.add(m);floorText('MUR',WX+16,FZ0+40,20,Math.PI/2);}} /* dépôt au sol au bout de H5, côté fond */ /* la même zone que le snow, devant M1 */
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
@@ -1106,7 +1115,7 @@ const P3D=(()=>{
     L.innerHTML=h+sw(SELC,'Boîtes choisies')+'<span>Chaque boîte est dessinée à sa taille, rangée selon les mesures de Réglages.</span>';}
   function paint(){const ac=css('--accent')||'#ff7a33';hitsL.forEach(h=>{const c=h.userData.code,m=h.material;
     if(c===dest){m.color.set('#35c46a');m.opacity=.42;}else{m.color.set(ac);m.opacity=c===sel?.28:lit.has(c)?.3:c===hov?.12:0;}});}
-  const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=spc(txt);return e;};
   const btn=(txt,cls,fn)=>{const b=el('button','btn '+cls,txt);b.type='button';b.addEventListener('click',fn);return b;};
   const pl=(n,s,p)=>`${n.toLocaleString('fr-FR')} ${n>1?p:s}`;
   const nums=(side,arr)=>{const n=el('div','p3d-nums');arr.forEach(([x,l])=>{const d=el('div');d.append(el('b',null,x),el('span',null,l));n.append(d);});side.append(n);};
@@ -1160,7 +1169,7 @@ const P3D=(()=>{
     pick.clear();sel=to;render();}
   /* ranger un groupe à gauche ou à droite de son niveau (vu depuis l'allée) */
   function setSide(L,side){const t=Date.now();L.forEach(a=>{if(side==='D')a.cote='D';else delete a.cote;a.sideAt=t;delete a.on;});pushMeta={kind:'move',label:side==='D'?'Rangé à droite du niveau':'Rangé à gauche du niveau'};save();render();}
-  function tip(e,txt){const t=document.getElementById('p3dTip'),st=document.getElementById('p3dStage');if(!t||!st)return;if(!txt){t.hidden=true;return;}const r=st.getBoundingClientRect();t.textContent=txt;t.hidden=false;t.style.left=(e.clientX-r.left)+'px';t.style.top=(e.clientY-r.top)+'px';}
+  function tip(e,txt){const t=document.getElementById('p3dTip'),st=document.getElementById('p3dStage');if(!t||!st)return;if(!txt){t.hidden=true;return;}const r=st.getBoundingClientRect();t.textContent=spc(txt);t.hidden=false;t.style.left=(e.clientX-r.left)+'px';t.style.top=(e.clientY-r.top)+'px';}
   function init(){
     R=new T3.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));
     scene=new T3.Scene();camera=new T3.PerspectiveCamera(42,1,10,30000);
@@ -1229,10 +1238,10 @@ const P3D=(()=>{
 
 /* plan 2D du rayon ski */
 function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=(c,cls='')=>`<div class="ctz ${cls}" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`,hrow=(c,rk)=>`<div class="hrow">${c?ctz(c):'<div class="ctz-sp"></div>'}${rk}</div>`;
-  let f='',h=`<div class="hrow bh"><div class="ctz-sp"></div>${ctz('BH1','h')}</div>`;
+  let f='',h=`<div class="hrow bh"><div class="ctz-sp"></div>${ctz('Z10','h')}</div>`;
   for(let r=5;r>=1;r--){f+=row(`W${r}`,`<div class="mrow">${chips('WS',r,H,count,LV4,LV4)}<i class="sep"></i>${r===4?'<span class="opt" style="font-size:12px;align-self:center">snow</span>':chips('WN',r,H,count,[3,4],LV4)}</div>`);
-    h+=hrow('CA'+r,row(`H${r}`,`<div class="mrow">${chips('HG',r,H,count,LV4,LV4)}<i class="sep"></i>${chips('HD',r,H,count,LV4,LV4)}</div>`));}
-  h+=hrow('CA0',row('H0',`<div class="mrow">${chips('HG',0,H,count,LV4,LV4)}<i class="sep"></i>${chips('HD',0,H,count,LV4,LV4)}</div>`));
+    h+=hrow('Z'+(r+4),row(`H${r}`,`<div class="mrow">${chips('HG',r,H,count,LV4,LV4)}<i class="sep"></i>${chips('HD',r,H,count,LV4,LV4)}</div>`));}
+  h+=hrow('Z4',row('H0',`<div class="mrow">${chips('HG',0,H,count,LV4,LV4)}<i class="sep"></i>${chips('HD',0,H,count,LV4,LV4)}</div>`));
   f+=row('W0',`<div class="mrow">${chips('WS',0,H,count,LV4,LV4)}<i class="sep"></i>${chips('WN',0,H,count,[3,4],LV4)}</div>`);
   return `<div class="plan-wrap"><div class="plan-ski">
     <div class="pk-cols">
@@ -1245,9 +1254,9 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
     <div class="pk-top"><div class="mface">ZONE D'ARRIVÉE · devant M1 (rayon snow)</div><div class="chips">${chip('ARR1','🚚',H,count)}</div></div>
     <div class="pk-sep"></div>
     <div class="pk-bot">
-      <div class="pk-side b-en"><div class="mface" title="contre le mur">À GAUCHE DE L'ENTRÉE</div>${ctz('CEN1','h')}<div class="pass">↕ passage</div>${row('EN1',chips('EN',1,H,count))}<div class="mface">niv. 1 : skis debout</div></div>
+      <div class="pk-side b-en"><div class="mface" title="contre le mur">À GAUCHE DE L'ENTRÉE</div>${ctz('Z1','h')}<div class="pass">↕ passage</div>${row('EN1',chips('EN',1,H,count))}<div class="mface">niv. 1 : skis debout</div></div>
       <div class="ent"><span>▲ Entrée</span></div>
-      <div class="pk-side b-ed"><div class="mface" title="contre le mur">À DROITE DE L'ENTRÉE</div><div class="pk-ed"><div class="edc">${ctz('CED1','h')}<div class="pass">↕ passage</div>${row('ED1',chips('ED',1,H,count))}</div><div class="edc">${ctz('CED2','h')}<div class="pass">↕ passage</div>${row('ED2',chips('ED',2,H,count))}</div></div><div class="mface">niv. 1 : skis debout</div></div></div></div></div></div>
+      <div class="pk-side b-ed"><div class="mface" title="contre le mur">À DROITE DE L'ENTRÉE</div><div class="pk-ed"><div class="edc">${ctz('Z2','h')}<div class="pass">↕ passage</div>${row('ED1',chips('ED',1,H,count))}</div><div class="edc">${ctz('Z3','h')}<div class="pass">↕ passage</div>${row('ED2',chips('ED',2,H,count))}</div></div><div class="mface">niv. 1 : skis debout</div></div></div></div></div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
@@ -2215,7 +2224,7 @@ function shopClick(act,t){
   render();window.scrollTo(0,0);return true;}
 
 /* ---------- Fenêtres ---------- */
-function sheet(html){$('#sheetRoot').innerHTML=`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;tint($('#sheetRoot'));}
+function sheet(html){$('#sheetRoot').innerHTML=`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;tint($('#sheetRoot'));spaceCodes($('#sheetRoot'));}
 function closeSheet(){$('#sheetRoot').innerHTML='';st.armed=null;}
 function openLoc(code){
   const list=sortArts(S.articles.filter(a=>a.emp===code));
@@ -2758,7 +2767,7 @@ async function cloudStart(){
       const o=JSON.parse(snap.data().json);
       /* première réception : les boîtes mesurées sur cet appareil et pas encore en ligne sont ajoutées (rien n'est perdu) */
       const mine=!cloud.cfgSeen&&S.dims&&Array.isArray(S.dims.boxes)?S.dims.boxes.slice():[];cloud.cfgSeen=true;
-      if(Array.isArray(o.articles)&&o.articles.length&&!(cloud.sent.arts&&cloud.sent.arts.size)){cfgArts=o.articles;S.articles=o.articles;tryMigrate();}
+      if(Array.isArray(o.articles)&&o.articles.length&&!(cloud.sent.arts&&cloud.sent.arts.size)){cfgArts=fixEmps(o.articles);S.articles=o.articles;tryMigrate();}
       else if(o.articles&&cloud.sent.arts&&cloud.sent.arts.size&&role==='entrepot')setTimeout(()=>{cloud.sent.stock='';cloudPush();},1500); /* migration coupée en route, ou ancienne version de l'appli : on retire les articles de cfg */
       CFG_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k];});cloud.sent.stock=cfgJson();
       if(mine.length){const cur=dims().boxes,ids=new Set(cur.map(b=>b.id)),add=mine.filter(b=>b&&b.id&&!ids.has(b.id));
@@ -2770,7 +2779,7 @@ async function cloudStart(){
       const m=new Map();qs.forEach(d=>m.set(d.id,d.data().json));artsSeen=true;
       const first=!cloud.sent.arts;
       if(!m.size){if(cfgArts&&cfgArts.length){tryMigrate();return;}if(first&&S.articles.length)return; /* base vide : on attend le bouton « Envoyer » */}
-      cloud.sent.arts=m;S.articles=[...m.values()].map(x=>JSON.parse(x));
+      cloud.sent.arts=m;S.articles=fixEmps([...m.values()].map(x=>JSON.parse(x)));
       if(SKI&&role==='entrepot'&&!cloud.fsMig){const L=S.articles.filter(a=>/^FS2\.[1-3]$/.test(a.emp||''));cloud.fsMig=1;
         if(L.length){L.forEach(a=>{a.emp='FS1.'+a.emp.slice(4);});pushMeta={kind:'move',label:'Fond : FS2 fusionné avec FS1'};setTimeout(()=>{save();render();},0);}}
       saveLocal();softRender();setSync('on','En ligne');dailyBackup();cfgBoot();
