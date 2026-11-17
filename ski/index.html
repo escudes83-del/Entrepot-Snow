@@ -272,10 +272,10 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
-.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plan-ski .pk-fond{padding:6px 10px;grid-column:5/7;grid-row:1}.pk-cols>*{grid-row:2}.pk-cols>.pk-fond{grid-row:1}.plan-ski .pk-fond .mrow{gap:6px;flex-wrap:nowrap;justify-content:center}.plan-ski .pk-bot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}.plan-ski .pk-bot .ent{padding:0 28px}
+.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plan-ski .pk-fond{padding:6px 10px;grid-column:5/7;grid-row:1}.pk-cols>*{grid-row:2}.pk-cols>.pk-fond{grid-row:1}.plan-ski .pk-fond .mrow{gap:6px;flex-wrap:nowrap;justify-content:center}.plan-ski .pk-bot{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;border-top:2px dashed var(--line-strong);padding-top:10px}.plan-ski .pk-bot .ent{grid-area:auto;padding:0 6px 8px}.pk-side{display:flex;flex-direction:column;gap:4px;min-width:0}.pk-side .rack{padding:6px}.pk-ed{display:flex;gap:6px}.pk-ed .rack{flex:1;min-width:0}
 .plan-ski .pk-cols{display:grid;grid-template-columns:auto 34px minmax(0,1fr) 34px minmax(0,1fr) 34px;gap:8px;align-items:start}
 .plan-ski .pk-wall{display:flex;flex-direction:column-reverse;gap:6px}.plan-ski .zone-lbl{writing-mode:vertical-rl;align-self:stretch;text-align:center}
-@media (max-width:640px){.plan-ski .pk-cols{grid-template-columns:auto 20px minmax(0,1fr) 20px minmax(0,1fr) 0}}
+@media (max-width:640px){.plan-ski .pk-cols{grid-template-columns:auto 20px minmax(0,1fr) 20px minmax(0,1fr) 0}.plan-ski .pk-cols .col .mrow{flex-direction:column;gap:3px}.plan-ski .pk-cols .col .mrow .sep{width:70%;height:1px;align-self:center}.plan-ski .pk-cols .col .chips{flex-wrap:wrap;justify-content:center}.plan-ski .pk-cols .col .rack{padding:4px 2px}.plan-ski .pk-fond{padding:6px 4px}.plan-ski .pk-fond .mrow{flex-wrap:wrap;text-align:center}}
 .solban{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;border-left:4px solid #f2c230}
 .pkscan{display:flex;flex-direction:column;gap:8px}.pkscan-h{display:flex;gap:8px;flex-wrap:wrap}
 .pktxt pre{white-space:pre-wrap;margin:4px 0 0;font:13px var(--f-mono,monospace);background:var(--surface-2);padding:8px;border-radius:6px;max-height:160px;overflow:auto}.scanres{display:flex;flex-direction:column;gap:6px}
@@ -1227,7 +1227,10 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
       <div class="col"><div class="mface" style="display:flex;justify-content:space-between"><span>côté ski</span><span>côté snow (niv. 3-4)</span></div><div class="mface">BOTTES FEMME</div>${f}</div>
       <div class="zone-lbl">rayon snow</div></div>
     <div class="pk-top"><div class="mface">ZONE D'ARRIVÉE · devant M1 (rayon snow)</div><div class="chips">${chip('ARR1','🚚',H,count)}</div></div>
-    <div class="pk-bot"><span class="mface">EN</span>${chips('EN',1,H,count)}<div class="ent"><span>▲ Entrée</span></div><span class="mface">ED1</span>${chips('ED',1,H,count,[1,2],[1,2])}<span class="mface">ED2</span>${chips('ED',2,H,count,[1,2],[1,2])}</div></div></div>
+    <div class="pk-bot">
+      <div class="pk-side"><div class="mface">À GAUCHE DE L'ENTRÉE · contre le mur</div>${row('EN1',chips('EN',1,H,count))}<div class="mface">niv. 1 : skis debout</div></div>
+      <div class="ent"><span>▲ Entrée</span></div>
+      <div class="pk-side"><div class="mface">À DROITE DE L'ENTRÉE · contre le mur</div><div class="pk-ed">${row('ED1',chips('ED',1,H,count,[1,2],[1,2]))}${row('ED2',chips('ED',2,H,count,[1,2],[1,2]))}</div><div class="mface">niv. 1 : skis debout</div></div></div></div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
