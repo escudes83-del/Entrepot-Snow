@@ -546,6 +546,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .rack{border-radius:8px;border-width:1px}
 .chip{border-radius:5px}
 .sheet{border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(60,5,15,.25)}
+/* fenêtre ouverte par-dessus : encadré coloré bien visible */
+.sheet{border:2.5px solid var(--accent);border-bottom-width:0;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent),0 -10px 40px rgba(0,0,0,.45)}
+@media (min-width:700px){.sheet{border-bottom-width:2.5px}}
+.scrim{background:rgba(8,12,16,.62)}
 .toast{border-radius:999px;background:var(--head);color:var(--head-ink)}
 :root:root .toast b{color:#ff6b7a}
 /* ===== fin du thème tendance ===== */
