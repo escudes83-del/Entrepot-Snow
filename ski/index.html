@@ -277,9 +277,9 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .plan-ski .rack{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 8px;min-height:38px}.plan-ski .rack .rk{min-width:36px;text-align:left}
 .plan-ski .pk-fond .mrow{justify-content:flex-start}.plan-ski .hhead{display:flex;gap:8px}.plan-ski .hhead span:first-child{width:52px;flex:none}.plan-ski .hhead span:nth-child(2){flex:1;padding-left:74px}
 .hrow{display:flex;gap:64px;align-items:stretch}.hrow.bh{margin:0 0 6px}.hrow>.ctz:not(.h),.hrow>.ctz-sp{margin-left:10px}.hrow.bh .ctz{flex:1;min-height:64px}.plan-ski .zone-lbl.wall{border-left:4px solid var(--line-strong);padding-left:4px}.pass{font:600 9px var(--f-mono);color:var(--muted);text-align:center;padding:4px 0}.hrow .rack{flex:1}.ctz-sp{flex:none;width:52px}
-.ctz{flex:none;width:52px;box-sizing:border-box;border:1.5px dashed #d9a400;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(242,194,48,.42) 0 5px,rgba(242,194,48,.12) 5px 10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px}
+.ctz{flex:none;width:52px;box-sizing:border-box;border:1.5px dashed #ead27a;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.45) 0 5px,rgba(255,246,205,.25) 5px 10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px}
 .ctz b{font:700 10px var(--f-mono);color:#6b4f00}.ctz.h{width:auto;flex-direction:row;gap:8px;padding:3px 8px;min-height:28px}
-.ctz-k{display:inline-block;width:18px;height:14px;vertical-align:middle;margin-right:4px;border:1.5px dashed #d9a400;border-radius:3px;background:repeating-linear-gradient(45deg,rgba(242,194,48,.5) 0 3px,rgba(242,194,48,.12) 3px 6px)}
+.ctz-k{display:inline-block;width:18px;height:14px;vertical-align:middle;margin-right:4px;border:1.5px dashed #ead27a;border-radius:3px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.55) 0 3px,rgba(255,246,205,.25) 3px 6px)}
 .pk-ed .edc{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ctz b{color:#f6d860}}:root[data-theme="dark"] .ctz b{color:#f6d860}
 .plan-ski .pk-wall{display:flex;flex-direction:column-reverse;gap:6px}.plan-ski .zone-lbl{writing-mode:vertical-rl;align-self:stretch;text-align:center}
@@ -377,7 +377,7 @@ main h2{padding-left:10px;border-left:4px solid var(--accent)}
 .code[data-z="D"]{background:var(--zD)}.code[data-z="G"]{background:var(--zG)}.code[data-z="M"]{background:var(--zM)}
 .code[data-z="F"]{background:var(--zF)}.code[data-z="E"]{background:var(--zE)}.code[data-z="B"]{background:var(--zB)}
 /* zones du ski et zone d'arrivée : sinon fond clair + texte blanc en mode sombre (illisible) */
-.code[data-z="BF"]{background:var(--zG)}.code[data-z="BH"]{background:var(--zD)}.code[data-z="FS"]{background:var(--zF)}.code[data-z="SK"]{background:var(--zE)}.code[data-z="EN"]{background:var(--zM)}.code[data-z="ED"]{background:var(--zB)}.code[data-z="ARR"]{background:#9a6b00}.code[data-z="CT"]{background:repeating-linear-gradient(45deg,#f2c230 0 5px,#f8dc7a 5px 10px);color:#2b2200}
+.code[data-z="BF"]{background:var(--zG)}.code[data-z="BH"]{background:var(--zD)}.code[data-z="FS"]{background:var(--zF)}.code[data-z="SK"]{background:var(--zE)}.code[data-z="EN"]{background:var(--zM)}.code[data-z="ED"]{background:var(--zB)}.code[data-z="ARR"]{background:#9a6b00}.code[data-z="CT"]{background:repeating-linear-gradient(45deg,#f6e08f 0 5px,#fcf1c4 5px 10px);color:#2b2200}
 /* niveau côté snow (WN) : couleur à part et un flocon */
 .code[data-z="WN"]{background:#0b6e99;box-shadow:inset 0 0 0 2px #9fd8ff}.code[data-z="WN"]::after{content:" ❄";font-size:.85em}
 .rack[data-z]{border-width:1.5px 1.5px 1.5px 4px}
@@ -991,7 +991,7 @@ const P3D=(()=>{
     const m=new T3.Mesh(new T3.PlaneGeometry(dep,len),new T3.MeshBasicMaterial({color:0xf2c230,transparent:true,opacity:.35,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x+dep/2,.8,z+len/2);gR.add(m);
     if(txt)floorText(txt,x+dep/2,z+len+22,20);}
   /* zone cartons au sol : hachures jaune clair ; w le long de x, d le long de z */
-  let mHT=null;const hatchTex=()=>{if(!mHT){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='rgba(250,226,140,.18)';g.fillRect(0,0,64,64);g.strokeStyle='rgba(246,214,100,.6)';g.lineWidth=8;for(let i=-64;i<=128;i+=32){g.beginPath();g.moveTo(i,0);g.lineTo(i+64,64);g.stroke();}mHT=c;}const t=new T3.CanvasTexture(mHT);t.wrapS=t.wrapT=T3.RepeatWrapping;return t;};
+  let mHT=null;const hatchTex=()=>{if(!mHT){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='rgba(255,248,215,.14)';g.fillRect(0,0,64,64);g.strokeStyle='rgba(252,234,160,.5)';g.lineWidth=8;for(let i=-64;i<=128;i+=32){g.beginPath();g.moveTo(i,0);g.lineTo(i+64,64);g.stroke();}mHT=c;}const t=new T3.CanvasTexture(mHT);t.wrapS=t.wrapT=T3.RepeatWrapping;return t;};
   function cartonZone(code,x0,z0,w,d,ax){const t=hatchTex();t.repeat.set(w/22,d/22);const m=new T3.Mesh(new T3.PlaneGeometry(w,d),new T3.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x0+w/2,.8,z0+d/2);gR.add(m);
     if(ax==='x')slot(code,frame('x',x0,z0,1),w,d,1,110,{ax:'x',o0:x0,flip:isFlip('x',1)});else slot(code,frame('z',x0,z0,1),d,w,1,110,{ax:'z',o0:z0,flip:false});}
   function skiLayout(tops){const FBS=(dimOf('FS1.1').deep||{}).len||Gw,FB0=Gx+Gw-FBS,MW=105,MX=Gx-SKA-MW,WX=MX-SKM,WZ=FZ0-FDP-SKA,FX1=Dx+62;
