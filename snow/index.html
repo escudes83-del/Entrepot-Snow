@@ -277,6 +277,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .chk{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:5px}
 .chk.t{border-left:3px solid #7c3aed}.chk-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.chk-sz{font-size:13px;color:#a78bfa;font-weight:600}
 .chk select{width:100%}
+.dimsec{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.dimsec>summary{cursor:pointer;font-weight:700;font-size:15px}.dimsec[open]>summary{margin-bottom:6px}.snowb{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:#dbeeff;color:#0b3a66;border:1px solid #9cc8f0}
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
@@ -1857,6 +1858,26 @@ const DIM_GROUPS=SKI?{BF1:['Racks W (bottes femme) · niveau 1','Profondeur d\'u
   BH1:['Bottes homme · niveau 1 (2 faces)','Profondeur totale'],BH2:['Bottes homme · niveau 2 (2 faces)','Profondeur totale'],BH3:['Bottes homme · niveau 3 (2 faces)','Profondeur totale'],BH4:['Bottes homme · niveau 4 (2 faces)','Profondeur totale'],FS1:['Fond, côté ski · niveau 1 (bas)','Profondeur de la moitié côté ski'],FS2:['Fond, côté ski · niveau 2','Profondeur de la moitié côté ski'],FS3:['Fond, côté ski · niveau 3 (haut)','Profondeur de la moitié côté ski'],EN1:['Rack de l\'entrée · niveau 1 (skis debout)','Profondeur'],EN2:['Rack de l\'entrée · niveau 2 (bottes)','Profondeur'],EN3:['Rack de l\'entrée · niveau 3 (bottes)','Profondeur'],ED1:['Racks ED1-ED2 (à droite de l\'entrée) · niveau 1 (skis debout)','Profondeur'],ED2:['Racks ED1-ED2 (à droite de l\'entrée) · niveau 2 (boîtes)','Profondeur'],ED3:['Racks ED1-ED2 (à droite de l\'entrée) · niveau 3 (boîtes, haut)','Profondeur']}:{D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
   G1:['Gauche · niveau 1 (tous les racks G ; hauteur vide = celle de D1.1)','Profondeur côté snow'],G2:['Gauche · niveau 2 (tous les racks G)','Profondeur côté snow'],G3:['Gauche · niveau 3 (tous les racks G)','Profondeur côté snow'],G4:['Gauche · niveau 4 (tous les racks G, sans dessus)','Profondeur côté snow'],
   M1:['Milieu · niveau 1 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M2:['Milieu · niveau 2 (étagère double face G + D)','Profondeur totale, allée G → allée D'],M3:['Milieu · niveau 3 (étagère double face G + D)','Profondeur totale, allée G → allée D'],F1:['Fond F1 · niveau 1 (bas)','Profondeur côté snow'],F2:['Fond F1 · niveau 2','Profondeur côté snow'],F3:['Fond F1 · niveau 3 (haut)','Profondeur côté snow']};
+/* Dimensions des emplacements : rangées par zone. [titre, note, [[groupe, nom court, badge snow]]] */
+const DIM_SECS=SKI?[
+  ['👩 Racks femme · W0 à W5','Racks <b>double face</b>, mesurez <b>une face</b>. <b>Côté ski</b> : niveaux 0 (sol) à 4, tout au ski. <b>Côté snow</b> : niveaux 3 et 4 au ski (sauf W4) ; <b>W4 niveaux 3-4</b> et <b>W0 niveaux 1-2</b> côté snow sont au <b>rayon snow</b>.',
+    [['BF1','Niveau 1 (bas)','W0 côté snow : rayon snow'],['BF2','Niveau 2','W0 côté snow : rayon snow'],['BF3','Niveau 3','aussi côté snow · W4 : rayon snow'],['BF4','Niveau 4 (haut)','aussi côté snow · W4 : rayon snow']]],
+  ['👨 Racks homme · H0 à H5','Racks <b>double face</b> (côté mur HG + côté allée HD) : mesurez la <b>profondeur totale</b>. Tout au ski.',
+    [['BH1','Niveau 1 (bas)'],['BH2','Niveau 2'],['BH3','Niveau 3'],['BH4','Niveau 4 (haut)']]],
+  ['⬅ Entrée, à gauche · EN 1','Contre le mur, en face de la rangée W. Niveau 1 : skis debout.',
+    [['EN1','Niveau 1 (skis debout)'],['EN2','Niveau 2 (bottes)'],['EN3','Niveau 3 (bottes)']]],
+  ['➡ Entrée, à droite · ED 1 et ED 2','Contre le mur. Niveau 1 : skis debout ; niveaux 2 et 3 : boîtes.',
+    [['ED1','Niveau 1 (skis debout)'],['ED2','Niveau 2 (boîtes)'],['ED3','Niveau 3 (boîtes, haut)']]],
+  ['⬆ Fond · FS 1','Dos contre le bout de W5. <b>Ski seulement</b> sur le prolongement de W5 (pas d’accès côté snow). Pas de niveau 0. Mesurez la <b>moitié côté ski</b> ; l’autre moitié (F1, niveaux 1-3) est au <b>rayon snow</b>.',
+    [['FS1','Niveau 1 (bas)','autre moitié : rayon snow'],['FS2','Niveau 2','autre moitié : rayon snow'],['FS3','Niveau 3 (haut)','autre moitié : rayon snow']]]
+]:[
+  ['➡ Droite · D1 à D5','',[['D12','Niveaux 1 et 2'],['D3','Niveau 3 (haut)']]],
+  ['⬅ Gauche · G (racks W du ski, côté snow)','Ce sont les racks femme du ski, vus <b>côté snow</b>. Le snow n’utilise que <b>G4 niveaux 3-4</b> et <b>G0 niveaux 1-2</b> ; le reste est au <b>rayon ski</b>. Mesurez la profondeur côté snow.',
+    [['G1','Niveau 1 (bas ; hauteur vide = celle de D1.1)','G0 au snow, le reste au ski'],['G2','Niveau 2','G0 au snow, le reste au ski'],['G3','Niveau 3','G4 au snow, le reste au ski'],['G4','Niveau 4 (haut, sans dessus)','G4 au snow, le reste au ski']]],
+  ['↔ Milieu · M1 à M6','MG et MD du même rack et du même niveau sont <b>la même étagère</b> double face : profondeur totale, allée G → allée D.',
+    [['M1','Niveau 1 (bas)'],['M2','Niveau 2'],['M3','Niveau 3 (haut)']]],
+  ['⬆ Fond · F 1','Moitié <b>côté snow</b> du rack du fond ; l’autre moitié (FS1, contre W5) est au <b>rayon ski</b>.',
+    [['F1','Niveau 1 (bas)','autre moitié : rayon ski'],['F2','Niveau 2','autre moitié : rayon ski'],['F3','Niveau 3 (haut)','autre moitié : rayon ski']]]];
 /* Au milieu, MG et MD du même rack et du même niveau sont une seule étagère : on la note M (ex. M3.2) */
 const DIM_LOCS=[...new Set(LOCS.filter(capGroup).map(e=>e.replace(/^M[GD]/,'M')))];
 const dimRank=e=>{const i=DIM_LOCS.indexOf(e);return i<0?999:i;};
@@ -1882,9 +1903,10 @@ function boxEditRow(b){const sz=sizesOf(b.type),v=x=>x!=null?String(x).replace('
     <div class="inline" style="gap:6px"><button type="button" class="btn sm primary" data-act="boxsave" data-id="${b.id}">Enregistrer</button><button type="button" class="btn sm ghost" data-act="boxcancel">Annuler</button></div></div>`;}
 function vDims(){const d=dims();
   const inp=(attr,v,lbl)=>`<input type="text" inputmode="decimal" ${attr} value="${v!=null?String(v).replace('.',','):''}" placeholder="cm" aria-label="${lbl}" class="dim-in">`;
-  const grp=Object.entries(DIM_GROUPS).map(([g,[lbl,pl]])=>{const o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}</b>
+  const one=(g,lbl,sn)=>{const pl=(DIM_GROUPS[g]||[])[1]||'Profondeur',o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}${sn?` <span class="snowb">❄ ${esc(sn)}</span>`:''}</b>
     <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'||g.startsWith('BH')?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
-    <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;}).join('');
+    <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;};
+  const grp=DIM_SECS.map(([t,n,L])=>`<details class="dimsec"><summary>${t}</summary>${n?`<p class="sub">${n}</p>`:''}<div class="dimgs">${L.map(([g,l,sn])=>one(g,l,sn)).join('')}</div></details>`).join('');
   const ov=Object.entries(d.over).sort((a,b)=>dimRank(a[0])-dimRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
   const typeOpt=t=>Object.entries(SKI?{botte:TYPE.botte}:{botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
   const bt=st.boxType||'botte',sz=sizesOf(bt);
@@ -1907,7 +1929,7 @@ function vDims(){const d=dims();
   const models=new Map();S.articles.filter(a=>a.type!=='board').forEach(a=>{const k=[a.type,a.marque,a.modele].join('|');const m=models.get(k)||{a,miss:new Set(),n:0};m.n++;if(!boxFor(a))m.miss.add(a.taille);models.set(k,m);});
   const miss=[...models.values()].filter(m=>m.miss.size).sort((x,y)=>x.a.type.localeCompare(y.a.type)||x.a.marque.localeCompare(y.a.marque)||x.a.modele.localeCompare(y.a.modele));
   return `<div class="card"><h3>Dimensions des emplacements</h3>
-      <p class="sub">En centimètres, la place utile (sans les montants). Si tous les emplacements d'un groupe sont pareils, une seule ligne suffit. Au milieu, MG et MD du même rack et du même niveau sont <b>la même étagère</b> : indiquez la profondeur totale, d'une allée à l'autre.</p>
+      <p class="sub">En centimètres, la place utile (sans les montants). Si tous les emplacements d'un groupe sont pareils, une seule ligne suffit. Touchez une zone pour l'ouvrir ; <span class="snowb">❄ …</span> = partagé avec l'autre rayon.</p>
       <div class="dimgs">${grp}</div>
       <details class="dimdet"${Object.keys(d.over).length?' open':''}><summary>Un emplacement a des mesures différentes ?</summary>
         ${ov||'<p class="sub">Aucun pour l\'instant.</p>'}
