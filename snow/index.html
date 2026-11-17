@@ -92,7 +92,7 @@ textarea{resize:vertical;min-height:60px}
 .szs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .pkb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.pkb .sz{font:600 14px var(--f-body);padding:8px 10px}.pkb .sz small{margin-left:4px}
 .ctrsum{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}.ctrsum .moins b{color:var(--bad,#d1102c)}.ctrsum .ok b{color:#1a7f37}
-:root{--c-ok:rgba(46,160,67,.55);--c-mod:rgba(240,140,0,.6);--c-bad:rgba(220,40,50,.55)}
+:root{--c-ok:#3f9a2e;--c-mod:#f0952e;--c-bad:#d8343c;--c-todo:rgba(127,127,127,.18)}.cbub small{color:inherit;opacity:.85}
 .cbub{border-width:1.5px}.cbub[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
 .cdot{display:inline-block;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line-strong,var(--line));vertical-align:-2px;margin-right:6px;flex:none}
 .clegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}.clegend span{display:inline-flex;align-items:center}
@@ -1493,8 +1493,13 @@ function ctrlMix(rows,i,R,extra){const r=rows[i],x=R[r.k],q=r.q;
   if(!any)m.todo=q;
   if(extra)m.mod+=extra;return m;}
 function ctrlBg(m){const tot=m.ok+m.mod+m.bad+m.todo;if(!tot||m.todo===tot)return '';
-  const p=v=>(v/tot*100).toFixed(1),a=+p(m.ok),b=a+ +p(m.mod),c=b+ +p(m.bad);
-  return `background:linear-gradient(90deg,var(--c-ok) 0 ${a}%,var(--c-mod) ${a}% ${b}%,var(--c-bad) ${b}% ${c}%,transparent ${c}% 100%)`;}
+  /* dégradé façon cellule Excel : chaque couleur occupe sa part, avec un fondu doux entre deux couleurs */
+  const seg=[['var(--c-ok)',m.ok],['var(--c-mod)',m.mod],['var(--c-bad)',m.bad],['var(--c-todo)',m.todo]].filter(x=>x[1]>0).map(([c,v])=>[c,v/tot*100]);
+  if(seg.length===1)return `background:${seg[0][0]};color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)`;
+  let pos=0;const st=[`${seg[0][0]} 0%`];
+  seg.forEach(([c,w],k)=>{if(k===seg.length-1)return;const b=pos+w,h=Math.min(9,w/2,seg[k+1][1]/2);st.push(`${c} ${(b-h).toFixed(1)}%`,`${seg[k+1][0]} ${(b+h).toFixed(1)}%`);pos=b;});
+  st.push(`${seg[seg.length-1][0]} 100%`);
+  return `background:linear-gradient(90deg,${st.join(',')});color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)`;}
 const ctrlState=m=>{const t=m.ok+m.mod+m.bad+m.todo;return !t||m.todo===t?'à faire':m.todo?'en cours':m.mod||m.bad?'écarts':'exact';};
 function vCtrl(){const S2=ctrlSt(),R=S2.r,rows=ctrlRows(),f=st.ctrlF||'tout',ft=st.ctrlT||'',list=!!st.ctrlList;
   const types=[...new Set(rows.map(r=>r.t))],T=ft||(types.length===1?types[0]:'');
