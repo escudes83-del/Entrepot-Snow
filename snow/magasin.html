@@ -582,7 +582,7 @@ const LV4=[1,2,3,4];
 const LOCS=SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);LV4.forEach(l=>add('WS',0,l));[3,4].forEach(l=>add('WN',0,l));
   for(let r=1;r<=5;r++){LV4.forEach(l=>add('WS',r,l));if(r!==4)[3,4].forEach(l=>add('WN',r,l));}
   for(let r=0;r<=5;r++)LV4.forEach(l=>add('HD',r,l));for(let r=0;r<=5;r++)LV4.forEach(l=>add('HG',r,l)); /* H0 : devant H1, côté entrée */
-  LV.forEach(l=>add('FS',1,l));/* FS2 (derrière W5) est fusionné dans FS1 : un seul niveau sur toute la longueur, pleine profondeur derrière W5 */L.push('FS1.0'); /* au sol devant le fond, côté ski */for(let i=1;i<=10;i++)L.push('Z'+i); /* zones cartons au sol : allée côté mur (CA0-CA5, le long de H0-H5), devant EN1, ED1, ED2 */ /* au sol, au bout de H5 (côté fond) */LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l)));return withFloor(L);})()
+  LV.forEach(l=>add('FS',1,l));/* FS2 (derrière W5) est fusionné dans FS1 : un seul niveau sur toute la longueur, pleine profondeur derrière W5 *//* pas de niveau 0 sur le fond : seulement 1, 2, 3 */for(let i=1;i<=10;i++)L.push('Z'+i); /* zones cartons au sol : allée côté mur (CA0-CA5, le long de H0-H5), devant EN1, ED1, ED2 */ /* au sol, au bout de H5 (côté fond) */LV.forEach(l=>add('EN',1,l));[1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l)));return withFloor(L);})()
   :(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [3,4].forEach(l=>add('G',4,l));[1,2].forEach(l=>add('G',0,l)); /* G0 (W0 au ski) : côté snow, niveaux 1 et 2 au snow */ /* racks de gauche : 4 niveaux ; le snow n'utilise que G4 niveaux 3 et 4, côté snow */
   for(let r=1;r<=6;r++)LV.forEach(l=>add('MG',r,l));
@@ -1245,7 +1245,7 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
   f+=row('W0',`<div class="mrow">${chips('WS',0,H,count,LV4,LV4)}<i class="sep"></i>${chips('WN',0,H,count,[3,4],LV4)}</div>`);
   return `<div class="plan-wrap"><div class="plan-ski">
     <div class="pk-cols">
-      <div class="rack pk-fond"><span class="rk">FOND · FS1</span><div class="mrow"><span class="mface" title="Derrière W5 : toute la profondeur ; ensuite la moitié côté ski">derrière W5 ➡ vers le snow</span>${chips('FS',1,H,count)}</div></div>
+      <div class="rack pk-fond"><span class="rk">FOND · FS1</span><div class="mrow"><span class="mface" title="Le dos du rack est contre le bout de W5. Dans le prolongement de W5 : ski seulement, toute la profondeur (pas d'accès côté snow). Ensuite : la moitié côté ski ; l'autre face (niveaux 1, 2, 3) est au rayon snow.">dos contre W5 · ski seulement</span>${chips('FS',1,H,count)}</div></div>
       <div class="zone-lbl wall">mur · allée</div>
       <div class="col"><div class="mface hhead"><span>cartons</span><span>côté mur</span><span>côté allée</span></div><div class="mface">BOTTES HOMME</div>${h}</div>
       <div class="zone-lbl">allée</div>
