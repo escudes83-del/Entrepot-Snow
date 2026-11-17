@@ -272,15 +272,15 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
-.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plan-ski .pk-fond{padding:6px 10px;grid-column:4/6;grid-row:1}.pk-cols>*{grid-row:2}.pk-cols>.pk-fond{grid-row:1}.plan-ski .pk-fond .mrow{gap:6px;flex-wrap:nowrap;justify-content:center}.plan-ski .pk-bot{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;border-top:2px dashed var(--line-strong);padding-top:10px}.plan-ski .pk-bot .ent{grid-area:auto;padding:0 6px 8px}.pk-side{display:flex;flex-direction:column;gap:4px;min-width:0}.pk-side .rack{padding:6px}.pk-ed{display:flex;gap:6px}.pk-ed .rack{flex:1;min-width:0}
+.plan-ski{display:flex;flex-direction:column;gap:12px}.plan-ski .pk-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plan-ski .pk-fond{padding:6px 10px;grid-column:4/6;grid-row:2;margin-bottom:-3px}.pk-cols>*{grid-row:3}.plan-ski .pk-cols>.colh{grid-row:1;align-self:end}.plan-ski .pk-cols{row-gap:4px}.pk-cols>.pk-fond{grid-row:2}.plan-ski .pk-fond .mrow{gap:6px;flex-wrap:nowrap;justify-content:center}.plan-ski .pk-bot{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;border-top:2px dashed var(--line-strong);padding-top:10px}.plan-ski .pk-bot .ent{grid-area:auto;padding:0 6px 8px}.pk-side{display:flex;flex-direction:column;gap:4px;min-width:0}.pk-side .rack{padding:6px}.pk-ed{display:flex;gap:6px}.pk-ed .rack{flex:1;min-width:0}
 .plan-ski .pk-cols{display:grid;grid-template-columns:34px auto 34px auto 34px;justify-content:center;gap:8px;align-items:start}
 .plan-ski .rack{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 8px;min-height:38px}.plan-ski .rack .rk{min-width:36px;text-align:left}
 .plan-ski .pk-fond .mrow{justify-content:flex-start}.plan-ski .hhead{display:flex;gap:8px}.plan-ski .hhead span:first-child{width:52px;flex:none}.plan-ski .hhead span:nth-child(2){flex:1;padding-left:74px}
-.plan-ski .pk-cols>.pk-top{grid-row:3;grid-column:1/-1;margin-top:6px}.plan-ski .pk-cols>.pk-bot{grid-row:5;grid-column:1/-1}.plan-ski .pk-cols>.pk-sep{display:none}
+.plan-ski .pk-cols>.pk-top{grid-row:4;grid-column:1/-1;margin-top:6px}.plan-ski .pk-cols>.pk-bot{grid-row:6;grid-column:1/-1}.plan-ski .pk-cols>.pk-sep{display:none}
 @media (min-width:1001px){.plan-ski .pk-cols{grid-template-columns:34px auto 34px auto minmax(34px,auto) auto;justify-content:center}
-  .plan-ski .pk-cols>.pk-sep{display:block;grid-row:4;grid-column:1/-1;border-top:2px dashed var(--line-strong)}
+  .plan-ski .pk-cols>.pk-sep{display:block;grid-row:5;grid-column:1/-1;border-top:2px dashed var(--line-strong)}
   .plan-ski .pk-cols>.pk-bot{display:contents}
-  .plan-ski .pk-cols .b-en{grid-row:5;grid-column:4;align-self:start}.plan-ski .pk-cols .pk-bot .ent{grid-row:5;grid-column:5;align-self:center;padding:0 8px}.plan-ski .pk-cols .b-ed{grid-row:5;grid-column:6;align-self:start}.plan-ski .pk-cols .b-ed .rack{flex-direction:column;gap:3px;min-width:76px}.plan-ski .pk-cols .b-ed .rack .rk{min-width:0;text-align:center}}
+  .plan-ski .pk-cols .b-en{grid-row:6;grid-column:4;align-self:start}.plan-ski .pk-cols .pk-bot .ent{grid-row:6;grid-column:5;align-self:center;padding:0 8px}.plan-ski .pk-cols .b-ed{grid-row:6;grid-column:6;align-self:start}.plan-ski .pk-cols .b-ed .rack{flex-direction:column;gap:3px;min-width:76px}.plan-ski .pk-cols .b-ed .rack .rk{min-width:0;text-align:center}}
 .hrow{display:flex;gap:48px;align-items:stretch}.plan-ski .pk-cols>.col>.rack,.plan-ski .hrow{height:48px;box-sizing:border-box}.plan-ski .hrow>.rack{height:100%}.hrow.bh{margin:0}.hrow>.ctz:not(.h),.hrow>.ctz-sp{margin-left:10px}.hrow.bh .ctz{flex:1}.plan-ski .zone-lbl.wall{border-left:4px solid var(--line-strong);padding-left:4px}.pass{font:600 9px var(--f-mono);color:var(--muted);text-align:center;padding:4px 0}.hrow .rack{flex:1}.ctz-sp{flex:none;width:52px}
 .ctz{flex:none;width:52px;box-sizing:border-box;border:1.5px dashed #ead27a;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.45) 0 5px,rgba(255,246,205,.25) 5px 10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px}
 .ctz b{font:700 10px var(--f-mono);color:#2b2200;background:#fffdf3;border:1px solid #e3c766;border-radius:3px;padding:1px 4px;line-height:1.2}.ctz.h{width:auto;flex-direction:row;gap:8px;padding:3px 8px;min-height:28px}
@@ -1250,9 +1250,11 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
     <div class="pk-cols">
       <div class="rack pk-fond"><span class="rk">FOND · FS1</span><div class="mrow"><span class="mface" title="Le dos du rack est contre le bout de W5. Dans le prolongement de W5 : ski seulement, toute la profondeur (pas d'accès côté snow). Ensuite : la moitié côté ski ; l'autre face (niveaux 1, 2, 3) est au rayon snow.">dos contre W5 · ski seulement</span>${chips('FS',1,H,count)}</div></div>
       <div class="zone-lbl wall">mur · allée</div>
-      <div class="col"><div class="mface hhead"><span>cartons</span><span>côté mur</span><span>côté allée</span></div><div class="mface">BOTTES HOMME</div>${h}</div>
+      <div class="colh" style="grid-column:2"><div class="mface hhead"><span>cartons</span><span>côté mur</span><span>côté allée</span></div><div class="mface">BOTTES HOMME</div></div>
+      <div class="col">${h}</div>
       <div class="zone-lbl">allée</div>
-      <div class="col"><div class="mface" style="display:flex;justify-content:space-between"><span>côté ski</span><span>côté snow (niv. 3-4)</span></div><div class="mface">BOTTES FEMME</div>${f}</div>
+      <div class="colh" style="grid-column:4"><div class="mface" style="display:flex;justify-content:space-between"><span>côté ski</span><span>côté snow (niv. 3-4)</span></div><div class="mface">BOTTES FEMME</div></div>
+      <div class="col">${f}</div>
       <div class="zone-lbl">rayon snow</div>
     <div class="pk-top"><div class="mface">ZONE D'ARRIVÉE · devant M1 (rayon snow)</div><div class="chips">${chip('ARR1','🚚',H,count)}</div></div>
     <div class="pk-sep"></div>
