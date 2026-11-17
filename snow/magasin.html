@@ -91,6 +91,7 @@ textarea{resize:vertical;min-height:60px}
 .fgrid select{padding:7px 8px;font-size:14px}
 .szs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .pkb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.pkb .sz{font:600 14px var(--f-body);padding:8px 10px}.pkb .sz small{margin-left:4px}
+.dimrow.bxedit{background:var(--surface);border:2px solid var(--accent);border-radius:8px;padding:12px;color:var(--ink)}.dimrow.bxedit .dim-in,.dimrow.bxedit select{background:var(--surface-2,var(--bg));color:var(--ink);border:1.5px solid var(--line-strong,var(--line))}
 .dimrow.on{background:#fff3c4;border-radius:6px;color:#2b2200;box-shadow:inset 3px 0 0 #e0b400}.dimrow.on>span:not(.bx-a),.dimrow.on>span:not(.bx-a) *,.dimrow.on>b{color:#2b2200}.dimrow.on .btn.ghost{color:#5a4a00}
 .dimrow.bxr{display:grid;grid-template-columns:minmax(0,1fr) 120px 190px auto;gap:6px 14px;padding:12px 6px}.bxr .bx-s{white-space:nowrap}.bxr .bx-d{white-space:nowrap;text-align:right}.bxr .bx-a{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
 @media (max-width:640px){.dimrow.bxr{grid-template-columns:78px minmax(0,1fr) auto;gap:4px 8px}.bxr .bx-t{grid-column:1/-1}.bxr .bx-d{text-align:left;font-size:.92em}.bxr .bx-a{gap:2px}}
@@ -1850,7 +1851,7 @@ function boxFor(a){const rk=z=>a.type==='fix'?(S.sizesF.indexOf(z)+1||99):sizeRa
   return c.sort((x,y)=>(!!y.modele-!!x.modele)||(!!y.marque-!!x.marque)||((x.to?rk(x.to):999)-(x.from?rk(x.from):0))-((y.to?rk(y.to):999)-(y.from?rk(y.from):0)))[0]||null;}
 /* modifier une ligne de boîte : tailles de / à, et les 3 mesures */
 function boxEditRow(b){const sz=sizesOf(b.type),v=x=>x!=null?String(x).replace('.',','):'',o=cur=>sz.map(z=>`<option value="${esc(z)}"${z===cur?' selected':''}>${esc(szLbl(b.type,z))}</option>`).join('');
-  return `<div class="dimrow on" style="flex-wrap:wrap;gap:8px"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'}</span>
+  return `<div class="dimrow bxedit" style="flex-wrap:wrap;gap:8px"><span><b>${TYPE[b.type]||b.type}</b> · ${b.marque?esc(b.marque):'toutes marques'} · ${b.modele?esc(b.modele):'tous modèles'}</span>
     <div class="inline" style="flex-wrap:wrap;gap:6px;width:100%"><label class="opt">Tailles de <select id="bxeFrom"><option value="">la plus petite</option>${o(b.from)}</select></label><label class="opt">à <select id="bxeTo"><option value="">la plus grande</option>${o(b.to)}</select></label></div>
     <div style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;width:100%"><input type="text" inputmode="decimal" id="bxeL" class="dim-in" style="width:76px;flex:none" value="${v(b.L)}" aria-label="Longueur" placeholder="L">×<input type="text" inputmode="decimal" id="bxel" class="dim-in" style="width:76px;flex:none" value="${v(b.l)}" aria-label="Largeur" placeholder="l">×<input type="text" inputmode="decimal" id="bxeH" class="dim-in" style="width:76px;flex:none" value="${v(b.H)}" aria-label="Hauteur" placeholder="H"> cm</div>
     <div class="inline" style="gap:6px"><button type="button" class="btn sm primary" data-act="boxsave" data-id="${b.id}">Enregistrer</button><button type="button" class="btn sm ghost" data-act="boxcancel">Annuler</button></div></div>`;}
