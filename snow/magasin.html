@@ -1892,7 +1892,7 @@ function vDims(){const d=dims();
       <div class="boxadd">
         <div class="field"><label for="bxType">Type</label><select id="bxType">${typeOpt(bt)}</select></div>
         <div class="field"><label for="bxMarque">Marque <small class="opt">vide = toutes</small></label><input type="text" id="bxMarque" list="dl-bxm" autocomplete="off"><datalist id="dl-bxm">${S.brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div>
-        <div class="field"><label for="bxModele">Modèle <small class="opt">vide = tous</small></label><input type="text" id="bxModele" list="dl-bxmo" autocomplete="off"><datalist id="dl-bxmo">${modelOptions('')}</datalist></div>
+        <div class="field"><label for="bxModele">Modèle <small class="opt">vide = tous</small></label><input type="text" id="bxModele" list="dl-bxmo" autocomplete="off"><datalist id="dl-bxmo">${bxModelOpts()}</datalist></div>
         <div class="field"><label for="bxFrom">Tailles de</label><select id="bxFrom"><option value="">la plus petite</option>${sz.map(z=>`<option value="${esc(z)}">${esc(szLbl(bt,z))}</option>`).join('')}</select></div>
         <div class="field"><label for="bxTo">à</label><select id="bxTo"><option value="">la plus grande</option>${sz.map(z=>`<option value="${esc(z)}">${esc(szLbl(bt,z))}</option>`).join('')}</select></div>
         <div class="field"><label>Longueur × largeur × hauteur (cm)</label><div class="inline">${inp('id="bxL"',null,'Longueur')}${inp('id="bxl"',null,'Largeur')}${inp('id="bxH"',null,'Hauteur')}</div></div>
@@ -2253,6 +2253,10 @@ function locOptions(cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec
 function sizeOptions(type,cur){const arr=sizesOf(type);const list=cur&&!arr.includes(cur)?[cur,...arr]:arr;return list.map(s=>`<option${s===cur?' selected':''}>${esc(s)}</option>`).join('');}
 /* Reprend l'écriture existante si on tape « ride » alors que « Ride » existe déjà */
 function sameAs(v,list){if(!v)return'';const n=norm(v);return list.find(x=>norm(x)===n)||v;}
+/* réglages › boîtes : seulement les modèles de la marque (et du type) choisis */
+function bxModelOpts(){const mq=$('#bxMarque'),ty=$('#bxType'),m=mq?sameAs(mq.value.trim(),S.brands):'',t=ty?ty.value:'';
+  const L=[...new Set(S.articles.filter(x=>x.modele&&(!m||norm(x.marque)===norm(m))&&(!t||x.type===t)).map(x=>x.modele))].sort((x,y)=>x.localeCompare(y));return L.map(x=>`<option value="${esc(x)}"></option>`).join('');}
+['input','change'].forEach(ev=>document.addEventListener(ev,e=>{const id=e.target&&e.target.id;if(id==='bxMarque'||id==='bxType'){const d=$('#dl-bxmo');if(d)d.innerHTML=bxModelOpts();}}));
 function modelOptions(marque){const m=[...new Set(S.articles.filter(x=>!marque||x.marque===marque).map(x=>x.modele))].sort((x,y)=>x.localeCompare(y));return m.map(x=>`<option value="${esc(x)}"></option>`).join('');}
 function openArt(id,code,tplId){
   const tpl=!id&&tplId&&art(tplId);const multi=!id;
