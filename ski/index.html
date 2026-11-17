@@ -277,7 +277,8 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .chk{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:5px}
 .chk.t{border-left:3px solid #7c3aed}.chk-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.chk-sz{font-size:13px;color:#a78bfa;font-weight:600}
 .chk select{width:100%}
-.dimsec{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.dimsec>summary{cursor:pointer;font-weight:700;font-size:15px}.dimsec[open]>summary{margin-bottom:6px}.snowb{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:#dbeeff;color:#0b3a66;border:1px solid #9cc8f0}
+.dimsec{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.dimsec>summary{cursor:pointer;font-weight:700;font-size:15px}.dimsec[open]>summary{margin-bottom:6px}.snowb.exb{background:#fff3c4;color:#4a3a00;border-color:#e3c766}.dimex{margin:6px 0;font-size:13px}.dimex div{margin-top:3px}
+.snowb{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:#dbeeff;color:#0b3a66;border:1px solid #9cc8f0}
 .dimgs{display:flex;flex-direction:column;gap:10px;margin-top:8px}.dimg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .dimf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dimf label,.dimp{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}.dimf .dim-in{width:100%}
 .dimp{flex-direction:row;align-items:center;gap:8px}
@@ -1878,6 +1879,7 @@ const DIM_SECS=SKI?[
     [['M1','Niveau 1 (bas)'],['M2','Niveau 2'],['M3','Niveau 3 (haut)']]],
   ['⬆ Fond · F 1','Moitié <b>côté snow</b> du rack du fond ; l’autre moitié (FS1, contre W5) est au <b>rayon ski</b>.',
     [['F1','Niveau 1 (bas)','autre moitié : rayon ski'],['F2','Niveau 2','autre moitié : rayon ski'],['F3','Niveau 3 (haut)','autre moitié : rayon ski']]]];
+const DIM_SEC_RX=SKI?[/^W[SN]/,/^H[GD]/,/^EN/,/^ED/,/^FS/]:[/^D/,/^G/,/^M/,/^F\d/];
 /* Au milieu, MG et MD du même rack et du même niveau sont une seule étagère : on la note M (ex. M3.2) */
 const DIM_LOCS=[...new Set(LOCS.filter(capGroup).map(e=>e.replace(/^M[GD]/,'M')))];
 const dimRank=e=>{const i=DIM_LOCS.indexOf(e);return i<0?999:i;};
@@ -1906,7 +1908,8 @@ function vDims(){const d=dims();
   const one=(g,lbl,sn)=>{const pl=(DIM_GROUPS[g]||[])[1]||'Profondeur',o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}${sn?` <span class="snowb">❄ ${esc(sn)}</span>`:''}</b>
     <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'||g.startsWith('BH')?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
     <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;};
-  const grp=DIM_SECS.map(([t,n,L])=>`<details class="dimsec"><summary>${t}</summary>${n?`<p class="sub">${n}</p>`:''}<div class="dimgs">${L.map(([g,l,sn])=>one(g,l,sn)).join('')}</div></details>`).join('');
+  const grp=DIM_SECS.map(([t,n,L],k)=>{const ex=Object.entries(d.over).filter(([e])=>DIM_SEC_RX[k].test(e)).sort((a,b)=>dimRank(a[0])-dimRank(b[0]));
+    return `<details class="dimsec"><summary>${t}${ex.length?` <span class="snowb exb">${ex.length} mesuré${ex.length>1?'s':''} à part</span>`:''}</summary>${n?`<p class="sub">${n}</p>`:''}${ex.length?`<div class="info dimex"><b>Mesures à part</b> (plus bas, « Un emplacement a des mesures différentes ? ») :${ex.map(([e,o])=>`<div><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''}</div>`).join('')}</div>`:''}<div class="dimgs">${L.map(([g,l,sn])=>one(g,l,sn)).join('')}</div></details>`;}).join('');
   const ov=Object.entries(d.over).sort((a,b)=>dimRank(a[0])-dimRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
   const typeOpt=t=>Object.entries(SKI?{botte:TYPE.botte}:{botte:'Bottes',fix:'Fixations'}).map(([k,l])=>`<option value="${k}"${k===t?' selected':''}>${l}</option>`).join('');
   const bt=st.boxType||'botte',sz=sizesOf(bt);
