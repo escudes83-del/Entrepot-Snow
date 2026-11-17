@@ -91,6 +91,15 @@ textarea{resize:vertical;min-height:60px}
 .fgrid select{padding:7px 8px;font-size:14px}
 .szs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .pkb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.pkb .sz{font:600 14px var(--f-body);padding:8px 10px}.pkb .sz small{margin-left:4px}
+.ctrsum{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}.ctrsum .moins b{color:var(--bad,#d1102c)}.ctrsum .ok b{color:#1a7f37}
+.ctr{display:grid;grid-template-columns:minmax(0,1fr) 46px 84px 40px 44px;gap:6px;align-items:center;padding:5px 4px;border-bottom:1px solid var(--line)}
+.ctr.hd{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--line-strong,var(--line))}
+.ctr .cq{text-align:center;font-family:var(--f-mono)}.ctr input.cn{width:100%;box-sizing:border-box;text-align:center;padding:6px 2px}.ctr .cl small{color:var(--muted);font-size:11px}
+.ctr.lv0{background:var(--surface-2,rgba(127,127,127,.08));border-radius:6px;margin-top:10px}.ctr.lv1{padding-left:14px;font-weight:600}.ctr.lv2{padding-left:30px}
+.ctr .cok{height:34px;border-radius:8px;border:1.5px solid var(--line-strong,var(--line));background:var(--surface);color:var(--muted);font-size:16px;cursor:pointer}.ctr .cok[aria-pressed="true"]{background:#1a7f37;border-color:#1a7f37;color:#fff}
+.ce{text-align:center;font-weight:700;font-family:var(--f-mono)}.ce.ok{color:#1a7f37}.ce.plus{color:#1f6fd1}.ce.moins{color:var(--bad,#d1102c)}
+.ctr-t{margin-top:14px;font-weight:800;font-size:15px}.ctr-t small{font-weight:400;color:var(--muted)}
+@media (max-width:420px){.ctr{grid-template-columns:minmax(0,1fr) 34px 60px 36px 34px;gap:4px}.ctr.lv1{padding-left:6px}.ctr.lv2{padding-left:14px}}
 .setmenu{display:flex;flex-direction:column;gap:10px}
 .setbtn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
 .setbtn:hover{border-color:var(--accent)}.setbtn .si{font-size:22px;width:32px;text-align:center;flex:none}.setbtn b{display:block;font-size:16px}.setbtn small{display:block;color:var(--muted);margin-top:2px}.setbtn .sa{margin-left:auto;font-size:22px;color:var(--muted)}
@@ -1444,18 +1453,102 @@ function vOrders(){
 
 function tagList(kind,arr){return `<div class="tags">${arr.map((x,i)=>`<span class="tag">${esc(x)}<button type="button" data-act="rmtag" data-k="${kind}" data-i="${i}" aria-label="Retirer ${esc(x)}">×</button></span>`).join('')}</div>
   <div class="inline"><div class="field"><label for="add-${kind}">Ajouter</label><input type="text" id="add-${kind}"></div><button type="button" class="btn" data-act="addtag" data-k="${kind}">Ajouter</button></div>`;}
+/* ---------- Contrôle d'inventaire (pistolet RFID) : on compare, on note les écarts. Ne touche JAMAIS au stock. ----------
+   état partagé : {at, by, r:{clé:{n}|{ok}}, extra:[{id,marque,modele,taille,n}]} ; clé = type|marque|modèle|taille ('' = total) */
+const CTRL={st:null,sent:'',sub:false,t:null},CTRL_LS=KEY+'-controle';
+function ctrlSt(){if(!CTRL.st){try{CTRL.st=JSON.parse(localStorage.getItem(CTRL_LS)||'null');}catch(e){}if(!CTRL.st||!CTRL.st.r)CTRL.st={at:Date.now(),by:me(),r:{},extra:[]};}
+  if(!CTRL.sub&&cloud.on&&cloud.fs){CTRL.sub=true;cloud.fs.onSnapshot(cloud.fs.doc(cloud.db,C('cfg'),'controle'),snap=>{if(!snap.exists())return;const j=snap.data().json;if(j===CTRL.sent)return;
+    try{CTRL.st=JSON.parse(j);CTRL.sent=j;localStorage.setItem(CTRL_LS,j);}catch(e){}if(st.tab==='settings'&&st.setSec==='ctrl')softRender();},cloudErr);}
+  return CTRL.st;}
+function ctrlSave(){const S2=ctrlSt();S2.upd=Date.now();const j=JSON.stringify(S2);try{localStorage.setItem(CTRL_LS,j);}catch(e){}
+  clearTimeout(CTRL.t);CTRL.t=setTimeout(()=>{if(cloud.on&&cloud.fs){CTRL.sent=j;cloud.fs.setDoc(cloud.fs.doc(cloud.db,C('cfg'),'controle'),{json:j,at:Date.now()}).catch(cloudErr);}},500);}
+/* lignes : type › marque › modèle › taille, avec les totaux */
+function ctrlRows(){const T=new Map();
+  S.articles.forEach(a=>{const q=qOf(a);if(q<=0)return;const t=T.get(a.type)||new Map();T.set(a.type,t);const m=t.get(a.marque)||new Map();t.set(a.marque,m);
+    const mo=m.get(a.modele)||new Map();m.set(a.modele,mo);const z=mo.get(a.taille)||{q:0,a};z.q+=q;mo.set(a.taille,z);});
+  const out=[],cmp=(x,y)=>String(x).localeCompare(String(y),'fr',{sensitivity:'base'});
+  Object.keys(TYPE).filter(t=>T.has(t)).forEach(t=>{out.push({lv:-1,t,label:TYPE[t],q:0});const ti=out.length-1;
+    [...T.get(t).keys()].sort(cmp).forEach(mq=>{const M=T.get(t).get(mq),mi=out.length;out.push({lv:0,t,k:[t,mq,'',''].join('|'),label:mq||'(sans marque)',q:0});
+      [...M.keys()].sort(cmp).forEach(mo=>{const Z=M.get(mo),oi=out.length;out.push({lv:1,t,k:[t,mq,mo,''].join('|'),label:mo||'(sans modèle)',q:0});
+        [...Z.entries()].sort((x,y)=>sizeRank(x[1].a)-sizeRank(y[1].a)).forEach(([z,v])=>{out.push({lv:2,t,k:[t,mq,mo,z].join('|'),label:szLbl(t,z),q:v.q});out[oi].q+=v.q;out[mi].q+=v.q;out[ti].q+=v.q;});});});});
+  return out;}
+const ctrlGap=(r,R)=>{const x=R[r.k];if(!x)return null;if(x.ok)return 0;return x.n!=null?x.n-r.q:null;};
+const ctrlGapTxt=g=>g==null?'':g===0?'=':(g>0?'+':'−')+Math.abs(g);
+const ctrlGapCls=g=>g==null?'':g===0?'ok':g>0?'plus':'moins';
+function vCtrl(){const S2=ctrlSt(),R=S2.r,rows=ctrlRows(),f=st.ctrlF||'tout',ft=st.ctrlT||'';
+  const sz=rows.filter(r=>r.lv===2),done=sz.filter(r=>ctrlGap(r,R)!=null).length,mods=rows.filter(r=>r.lv===1);
+  const mdone=mods.filter(r=>ctrlGap(r,R)!=null||sz.filter(z=>z.k.startsWith(r.k)).every(z=>ctrlGap(z,R)!=null)).length;
+  const gaps=rows.filter(r=>r.lv>=0&&ctrlGap(r,R)).length+S2.extra.length;
+  /* filtre : on garde aussi les lignes parentes des lignes affichées */
+  const keep=r=>r.lv<0?false:f==='tout'?true:f==='reste'?ctrlGap(r,R)==null:!!ctrlGap(r,R);
+  const vis=new Set();rows.forEach((r,i)=>{if(ft&&r.t!==ft)return;if(keep(r)){vis.add(i);let lv=r.lv;for(let j=i-1;j>=0&&lv>-1;j--){if(rows[j].lv<lv){vis.add(j);lv=rows[j].lv;}}}});
+  const row=r=>{if(r.lv===-1)return `<div class="ctr-t">${esc(r.label)} <small>${r.q} au total</small></div>`;const g=ctrlGap(r,R),x=R[r.k]||{},ek=encodeURIComponent(r.k);
+    return `<div class="ctr lv${r.lv}${g!=null?' done':''}"><span class="cl">${r.lv===0?'<b>'+esc(r.label)+'</b> <small>total marque</small>':r.lv===1?esc(r.label)+' <small>total modèle</small>':esc(r.label)}</span><b class="cq">${r.q}</b>
+      <input type="number" min="0" inputmode="numeric" class="cn" data-ctrl="${ek}" value="${x.n!=null&&!x.ok?x.n:''}" placeholder="—" aria-label="Nombre lu par le pistolet">
+      <button type="button" class="cok" data-act="ctrlok" data-k="${ek}" aria-pressed="${!!x.ok}" title="Identique">✓</button><span class="ce ${ctrlGapCls(g)}" data-ce="${ek}">${ctrlGapTxt(g)}</span></div>`;};
+  const types=[...new Set(rows.map(r=>r.t))];
+  return `<div class="card"><h3>Contrôle d'inventaire</h3>
+    <p class="sub">Comparez votre stock avec le pistolet RFID. Pour chaque ligne : <b>✓</b> si c'est pareil, sinon tapez le <b>nombre lu par le pistolet</b> ; l'écart se calcule tout seul. Si le pistolet ne donne pas les tailles, contrôlez le <b>total du modèle</b> ou de la <b>marque</b>. <b>Le stock n'est jamais modifié.</b> Le contrôle est gardé${cloud.on?' en ligne (téléphone et ordinateur)':' sur cet appareil'}.</p>
+    <div class="ctrsum"><span><b>${done}</b> / ${sz.length} tailles</span><span><b>${mdone}</b> / ${mods.length} modèles</span><span class="${gaps?'moins':'ok'}"><b>${gaps}</b> écart${gaps>1?'s':''}</span></div>
+    <div class="inline" style="flex-wrap:wrap;gap:6px">
+      <button type="button" class="btn" data-act="ctrlprint" data-v="vide">🖨 Feuille papier (imprimer ou PDF)</button>
+      <button type="button" class="btn" data-act="ctrldl" data-v="vide">⬇ Télécharger la feuille (pour l'envoyer par mail)</button>
+      <button type="button" class="btn" data-act="ctrlprint" data-v="bilan">🖨 Bilan des écarts</button></div>
+    <p class="sub" style="font-size:12px">Pour un PDF : « Feuille papier », puis choisir l'imprimante « Enregistrer au format PDF » (sur iPhone : Imprimer, puis Partager). Le fichier téléchargé s'ouvre dans n'importe quel navigateur et s'imprime tel quel.</p></div>
+  <div class="card">
+    <div class="pkb">${['tout','reste','ecarts'].map(k=>`<button type="button" class="sz" data-act="ctrlf" data-v="${k}" aria-pressed="${f===k}">${k==='tout'?'Tout':k==='reste'?'À contrôler':'Seulement les écarts'}</button>`).join('')}</div>
+    ${types.length>1?`<div class="pkb">${['',...types].map(t=>`<button type="button" class="sz" data-act="ctrlt" data-v="${t}" aria-pressed="${ft===t}">${t?esc(TYPE[t]):'Tous types'}</button>`).join('')}</div>`:''}
+    <div class="ctr hd"><span class="cl">Marque · modèle · taille</span><span class="cq">Stock</span><span style="text-align:center">Pistolet</span><span style="text-align:center">OK</span><span class="ce">Écart</span></div>
+    ${rows.map((r,i)=>vis.has(i)?row(r):'').join('')||'<p class="sub">Rien à afficher.</p>'}</div>
+  <div class="card"><h3>Trouvé par le pistolet, pas dans mon stock</h3>
+    ${S2.extra.map(x=>`<div class="dimrow"><span><b>${esc(x.marque)}</b> ${esc(x.modele)} ${esc(x.taille||'')}</span><b class="ce plus">+${x.n}</b><button type="button" class="btn sm ghost" data-act="ctrlxdel" data-v="${x.id}" aria-label="Retirer">✕</button></div>`).join('')||'<p class="sub">Aucun pour l\'instant.</p>'}
+    <div class="inline" style="flex-wrap:wrap;gap:6px"><input type="text" id="cxM" placeholder="Marque" style="width:120px"><input type="text" id="cxMo" placeholder="Modèle" style="width:160px"><input type="text" id="cxZ" placeholder="Taille" style="width:80px"><input type="number" id="cxN" min="1" value="1" inputmode="numeric" style="width:70px" aria-label="Nombre"><button type="button" class="btn sm" data-act="ctrlxadd">Ajouter</button></div></div>
+  <div class="card"><h3>Nouveau contrôle</h3><p class="sub">Commencé le ${new Date(S2.at).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}${S2.by?' par '+esc(S2.by):''}. Pour repartir de zéro (efface les coches et les nombres notés, pas le stock) :</p>
+    <div class="inline"><button type="button" class="btn${st.armed==='ctrlreset'?' armed':''}" data-act="ctrlreset">${st.armed==='ctrlreset'?'Confirmer : tout effacer':'Recommencer un contrôle'}</button></div></div>`;}
+/* feuille imprimable (vide ou bilan des écarts) : un document HTML autonome, format A4 */
+function ctrlDoc(kind){const S2=ctrlSt(),R=S2.r,rows=ctrlRows(),bil=kind==='bilan',d=new Date(),app=SKI?'Entrepôt Ski':'Entrepôt Snow',e=x=>esc(spc(x));
+  const tr=r=>{if(r.lv===-1)return `<tr class="t"><td colspan="5">${e(r.label)} — ${r.q} au total</td></tr>`;const g=ctrlGap(r,R),x=R[r.k];
+    return `<tr class="l${r.lv}"><td>${r.lv===0?'<b>'+e(r.label)+'</b> · total marque':r.lv===1?'&nbsp;&nbsp;&nbsp;'+e(r.label)+' · total modèle':'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+e(r.label)}</td><td>${r.q}</td><td>${bil&&x&&x.n!=null&&!x.ok?x.n:''}</td><td>${bil?ctrlGapTxt(g):''}</td><td>${bil&&g===0?'✓':'☐'}</td></tr>`;};
+  let body;
+  if(bil){const L=rows.filter(r=>r.lv>=0&&ctrlGap(r,R)),nc=rows.filter(r=>r.lv===2&&ctrlGap(r,R)==null).length,ne=L.length+S2.extra.length;
+    body=`<p><b>${ne} écart${ne>1?'s':''}</b> · ${nc} taille${nc>1?'s':''} pas encore contrôlée${nc>1?'s':''}.</p>
+    <table><thead><tr><th>Marque · modèle · taille</th><th>Stock</th><th>Pistolet</th><th>Écart</th><th></th></tr></thead><tbody>${L.map(tr).join('')||'<tr><td colspan="5">Aucun écart noté.</td></tr>'}</tbody></table>
+    ${S2.extra.length?`<h2>Trouvé par le pistolet, pas dans le stock</h2><table class="x2"><tbody>${S2.extra.map(x=>`<tr><td>${e(x.marque)} ${e(x.modele)} ${e(x.taille||'')}</td><td>+${x.n}</td></tr>`).join('')}</tbody></table>`:''}`;}
+  else body=`<table><thead><tr><th>Marque · modèle · taille</th><th>Mon stock</th><th>Pistolet RFID</th><th>Écart + / −</th><th>✓</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>
+    <h2>Trouvé par le pistolet, pas dans le stock (marque, modèle, taille, nombre)</h2><table class="x"><tbody>${'<tr><td></td><td></td></tr>'.repeat(8)}</tbody></table>`;
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${bil?'Bilan du contrôle':'Contrôle'} d'inventaire — ${app}</title><style>
+@page{size:A4;margin:12mm}body{font:11px/1.3 Arial,sans-serif;color:#000;background:#fff;margin:0 auto;max-width:190mm;padding:8px}h1{font-size:17px;margin:0 0 2px}h2{font-size:13px;margin:14px 0 4px}p{margin:2px 0 8px}
+table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:3px 5px;text-align:left}th{background:#e8e8e8}thead{display:table-header-group}tr{page-break-inside:avoid}
+td:nth-child(2),td:nth-child(4),th:nth-child(2),th:nth-child(4){width:17mm;text-align:center}td:nth-child(3),th:nth-child(3){width:25mm;text-align:center}td:nth-child(5),th:nth-child(5){width:9mm;text-align:center;font-size:14px}
+tr.t td{background:#333;color:#fff;font-weight:700;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr.l0 td{background:#ddd;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr.l1 td{background:#f2f2f2;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.x td{height:22px}.x td:nth-child(2){width:25mm}.x2 td:nth-child(2){width:17mm;text-align:center}.sig{margin-top:14px;display:flex;gap:30px;flex-wrap:wrap}
+</style></head><body><h1>${bil?'Bilan du contrôle d\'inventaire':'Contrôle d\'inventaire'} — ${app}</h1>
+<p>${bil?'Contrôle commencé le '+new Date(S2.at).toLocaleDateString('fr-FR')+' · bilan du ':'Feuille du '}${d.toLocaleDateString('fr-FR')} · ${rows.filter(r=>r.lv===-1).map(r=>esc(r.label)+' : '+r.q).join(' · ')}</p>${bil?'':'<p>Notez le nombre lu par le pistolet et l\'écart (+ en plus, − en moins), ou cochez ✓ si c\'est identique. Si le pistolet ne donne pas les tailles, comparez le total du modèle ou de la marque.</p>'}
+${body}<div class="sig"><span>Contrôlé par : ____________________</span><span>Le : ____ / ____ / ________</span></div></body></html>`;}
+function ctrlPrint(kind){const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(f);
+  f.onload=()=>{try{f.contentWindow.focus();f.contentWindow.print();}catch(e){toast('Impression impossible ici : utilisez « Télécharger la feuille ».');}setTimeout(()=>f.remove(),60000);};f.srcdoc=ctrlDoc(kind);}
+function ctrlDownload(kind){const url=URL.createObjectURL(new Blob([ctrlDoc(kind)],{type:'text/html'})),a=document.createElement('a');
+  a.href=url;a.download=`controle-inventaire-${SKI?'ski':'snow'}-${new Date().toISOString().slice(0,10)}.html`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  toast('Feuille téléchargée (dossier Téléchargements) : vous pouvez l\'envoyer par mail, elle s\'ouvre et s\'imprime dans n\'importe quel navigateur.');}
+/* saisie du nombre lu : écart mis à jour sur place (pas de rechargement pendant la frappe) */
+document.addEventListener('input',e=>{const t=e.target;if(!t||!t.dataset||!t.dataset.ctrl)return;const k=decodeURIComponent(t.dataset.ctrl),R=ctrlSt().r,v=t.value.trim();
+  if(v==='')delete R[k];else R[k]={n:Math.max(0,parseInt(v,10)||0)};ctrlSave();
+  const r=ctrlRows().find(x=>x.k===k),ce=t.parentElement&&t.parentElement.querySelector('.ce');if(r&&ce){const g=ctrlGap(r,R);ce.textContent=ctrlGapTxt(g);ce.className='ce '+ctrlGapCls(g);}
+  const ok=t.parentElement&&t.parentElement.querySelector('.cok');if(ok)ok.setAttribute('aria-pressed','false');});
+
 function vSettings(){
   const arm=k=>st.armed===k;
   if(role==='magasin')return `<div><h2>Réglages</h2></div><div class="info">Ces réglages sont réservés à l'entrepôt (rôle Admin dans la vraie version).</div>`;
   /* page courte : un bouton par thème, on n'ouvre qu'un thème à la fois (st.setSec) */
   const SEC=[['inv','⬇',"Télécharger l'inventaire",'Fichier Excel du stock du jour'],
+    ['ctrl','☑',"Contrôle d'inventaire (RFID)",'Comparer le stock avec le pistolet, noter les écarts, feuille papier'],
     ['hist','↶','Historique et sauvegardes','Annuler une modification, revenir à une sauvegarde'],
     ['dimloc','📏','Dimensions des emplacements','Mesures des racks et des niveaux'],
     ['dimbox','📦',SKI?'Dimensions des boîtes de chaussures':'Dimensions des boîtes de bottes et fixations','Taille des boîtes par marque, modèle et taille'],
     ['cap','▦','Capacité des racks','Places par groupe, gros lots, règles de rangement'],
     ['tr','⇄','Transférer le stock',"Copie du stock d'un appareil à l'autre"],
     ['data','⚙','Données','Marques, tailles, emplacements, remise à zéro']];
-  const SEC_SHORT={inv:'Inventaire',hist:'Historique',dimloc:'Emplacements',dimbox:'Boîtes',cap:'Capacité',tr:'Transfert',data:'Données'};
+  const SEC_SHORT={ctrl:'Contrôle',inv:'Inventaire',hist:'Historique',dimloc:'Emplacements',dimbox:'Boîtes',cap:'Capacité',tr:'Transfert',data:'Données'};
   const cur=SEC.find(x=>x[0]===st.setSec);
   if(!cur)return `<div><h2>Réglages</h2><p class="sub">Choisissez un thème.</p></div>
     <div class="setmenu">${SEC.map(([k,ic,t,d])=>`<button type="button" class="setbtn" data-act="setsec" data-v="${k}"><span class="si">${ic}</span><span><b>${esc(t)}</b><small>${esc(d)}</small></span><span class="sa">›</span></button>`).join('')}</div>`;
@@ -1466,6 +1559,7 @@ function vSettings(){
       <p class="sub">Un fichier Excel du stock du jour, classé par type, marque, modèle et taille. Il contient un résumé, une feuille par type (tailles en colonnes) et le détail avec les emplacements.</p>
       <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>`;break;
     case'hist':html=vHistory();break;
+    case'ctrl':html=vCtrl();break;
     case'dimloc':html=dd()[0];break;
     case'dimbox':html=dd()[1];break;
     case'cap':html=`<div class="card"><h3>Capacité des racks</h3>
@@ -2580,6 +2674,15 @@ document.addEventListener('click',e=>{
     case'mvundo':undoLastMove();break;
     case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
     case'setsec':st.setSec=t.dataset.v||'';render();window.scrollTo(0,0);break;
+    case'ctrlok':{const k=decodeURIComponent(t.dataset.k),R=ctrlSt().r;if(R[k]&&R[k].ok)delete R[k];else R[k]={ok:true};ctrlSave();render();break;}
+    case'ctrlf':st.ctrlF=t.dataset.v;render();break;
+    case'ctrlt':st.ctrlT=t.dataset.v;render();break;
+    case'ctrlprint':ctrlPrint(t.dataset.v);break;
+    case'ctrldl':ctrlDownload(t.dataset.v);break;
+    case'ctrlxadd':{const m=$('#cxM').value.trim(),mo=$('#cxMo').value.trim(),z=$('#cxZ').value.trim(),n=Math.max(1,parseInt($('#cxN').value,10)||1);if(!m&&!mo){toast('Indiquez au moins la marque ou le modèle.');break;}
+      ctrlSt().extra.push({id:'x'+Date.now().toString(36),marque:m,modele:mo,taille:z,n});ctrlSave();render();break;}
+    case'ctrlxdel':{const S2=ctrlSt();S2.extra=S2.extra.filter(x=>x.id!==t.dataset.v);ctrlSave();render();break;}
+    case'ctrlreset':if(st.armed!=='ctrlreset'){st.armed='ctrlreset';render();break;}st.armed=null;CTRL.st={at:Date.now(),by:me(),r:{},extra:[]};ctrlSave();render();toast('Nouveau contrôle commencé.');break;
     case'tohist':st.tab='settings';st.setSec='hist';render();setTimeout(()=>{const h=$('#hist');if(h)h.scrollIntoView({block:'start'});},50);break;
     case'pkadd':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();break;}
     case'pkdec':{const a=art(t.dataset.id);if(!a||!st.pk)break;st.pk[a.id]=(st.pk[a.id]||0)-1;if(st.pk[a.id]<=0)delete st.pk[a.id];render();break;}
