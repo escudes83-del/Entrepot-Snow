@@ -575,7 +575,7 @@ const RAYON='ski',SKI=true;
 /* ---------- Emplacements ---------- */
 const LV=[1,2,3];
 /* au pied de chaque face de rack, une zone au sol (niveau 0, ex. D1.0) pour poser des boîtes un moment ; et une zone d'arrivée (ARR1) */
-const withFloor=L=>[...L,'ARR1']; /* plus de « niveau 0 » au pied des racks ; seulement la zone d'arrivée */
+const withFloor=L=>SKI?L:[...L,'ARR1'] /* ski : plus de zone d'arrivée, les arrivages vont dans les zones cartons Z */; /* plus de « niveau 0 » au pied des racks ; seulement la zone d'arrivée */
 const isFloor=e=>/\.0$/.test(e||'');
 const ZONES=SKI?{WS:'Femme · racks W, côté ski',WN:'Femme · racks W, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre',EN:'Rack de l\'entrée (contre le mur, à gauche de l\'entrée snow)',ED:'Racks de l\'entrée, à droite (contre le mur)',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'}
   :{G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'};
@@ -1028,7 +1028,7 @@ const P3D=(()=>{
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=5;r++){const z=T-r*sG+sG/2;sprite(`W${r}`,Gx+Gw/2,yT,z,30);sprite(`H${r}`,MX+MW/2,yT,HZ(r)+DL/2,30);}
     sprite('W0',Gx+Gw/2,yT,T+10+DL/2,26);sprite('H0',MX+MW/2,yT,HZ(0)+DL/2,26);sprite('FOND côté ski · FS1',(FB0+FB1)/2,yT,WZ+60,28);sprite('EN1 · entrée',ENX+DL/2,yT,ENZ+38,26);sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);
-    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+38,T*.55,30,Math.PI/2);floorText('RAYON SNOW · autre appli',(Mx+Dx)/2,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);solZone(Mx,T+10+MSH,Mw,110,'ARR1','ZONE D\'ARRIVÉE (snow et ski)');
+    floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+38,T*.55,30,Math.PI/2);floorText('RAYON SNOW · autre appli',(Mx+Dx)/2,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);
     {const z0=WZ+60,z1=HZ(5)-10;cartonZone('Z10',MX,z0,MW,z1-z0);floorText('Z10',MX+MW/2,(z0+z1)/2,22);sprite('BOUT H5',MX+MW/2,70,(z0+z1)/2,20);} /* bout de H5 : largeur du rack, jusqu'à 60 cm de la fenêtre */
     {const m=new T3.Mesh(new T3.PlaneGeometry(8,HZ(0)+DL-(FZ0-160)),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WX-4,.9,(HZ(0)+DL+FZ0-160)/2);gR.add(m);floorText('MUR',WX+16,FZ0+40,20,Math.PI/2);}} /* dépôt au sol au bout de H5, côté fond */ /* la même zone que le snow, devant M1 */
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
@@ -1249,14 +1249,11 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
   return `<div class="plan-wrap"><div class="plan-ski">
     <div class="pk-cols">
       <div class="rack pk-fond"><span class="rk">FOND · FS1</span><div class="mrow"><span class="mface" title="Le dos du rack est contre le bout de W5. Dans le prolongement de W5 : ski seulement, toute la profondeur (pas d'accès côté snow). Ensuite : la moitié côté ski ; l'autre face (niveaux 1, 2, 3) est au rayon snow.">dos contre W5 · ski seulement</span>${chips('FS',1,H,count)}</div></div>
-      <div class="zone-lbl wall">mur · allée</div>
-      <div class="colh" style="grid-column:2"><div class="mface hhead"><span>cartons</span><span>côté mur</span><span>côté allée</span></div><div class="mface">BOTTES HOMME</div></div>
+      <div class="zone-lbl wall"></div>
       <div class="col">${h}</div>
       <div class="zone-lbl">allée</div>
-      <div class="colh" style="grid-column:4"><div class="mface" style="display:flex;justify-content:space-between"><span>côté ski</span><span>côté snow (niv. 3-4)</span></div><div class="mface">BOTTES FEMME</div></div>
       <div class="col">${f}</div>
       <div class="zone-lbl">rayon snow</div>
-    <div class="pk-top"><div class="mface">ZONE D'ARRIVÉE · devant M1 (rayon snow)</div><div class="chips">${chip('ARR1','🚚',H,count)}</div></div>
     <div class="pk-sep"></div>
     <div class="pk-bot">
       <div class="pk-side b-en"><div class="mface" title="contre le mur">À GAUCHE DE L'ENTRÉE</div>${ctz('Z1','h')}<div class="pass">↕ passage</div>${row('EN1',chips('EN',1,H,count))}<div class="mface">niv. 1 : skis debout</div></div>
