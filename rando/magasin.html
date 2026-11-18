@@ -307,10 +307,10 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
   .plan-ski .pk-cols>.pk-bot{display:contents}
   .plan-ski .pk-cols .b-en{grid-row:6;grid-column:4;align-self:start}.plan-ski .pk-cols .pk-bot .ent{grid-row:6;grid-column:5;align-self:center;padding:0 8px}.plan-ski .pk-cols .b-ed{grid-row:6;grid-column:6;align-self:start}.plan-ski .pk-cols .b-ed .rack{flex-direction:column;gap:3px;min-width:76px}.plan-ski .pk-cols .b-ed .rack .rk{min-width:0;text-align:center}}
 .hrow{display:flex;gap:48px;align-items:stretch}.plan-ski .pk-cols>.col>.rack,.plan-ski .hrow{height:48px;box-sizing:border-box}.plan-ski .hrow>.rack{height:100%}.hrow.bh{margin:0}.hrow>.ctz:not(.h),.hrow>.ctz-sp{margin-left:10px}.hrow.bh .ctz{flex:1}.plan-ski .zone-lbl.wall{border-left:4px solid var(--line-strong);padding-left:4px}.pass{font:600 9px var(--f-mono);color:var(--muted);text-align:center;padding:4px 0}.hrow .rack{flex:1}.ctz-sp{flex:none;width:52px}
-.plan-rd{display:grid;grid-template-columns:26px minmax(0,1fr) 34px minmax(0,1.15fr) 26px;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
+.plan-rd{display:grid;grid-template-columns:26px max-content 34px max-content 26px;justify-content:center;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
 .plan-rd .rd-snow{grid-area:snow}.plan-rd .rd-a{grid-area:a}.plan-rd .rd-al{grid-area:al}.plan-rd .rd-b{grid-area:b}
 .plan-rd .rd-wall{grid-area:wall;border-left:4px solid var(--line-strong);padding-left:4px}
-.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:start}.plan-rd .rd-a>.rack{height:42px;box-sizing:border-box}.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:60px}.plan-rd .rd-hrow>.ctz{margin:9px 0}
+.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:start}.plan-rd .rd-a>.rack,.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:56px;box-sizing:border-box}.plan-rd .rd-hrow>.ctz{margin:9px 0}
 .plan-rd .rd-hrow{display:flex;gap:10px;align-items:stretch}.plan-rd .rd-hrow>.rack{flex:1}
 .plan-rd .rd-front{display:flex;gap:10px}.plan-rd .rd-front>.ctz{flex:1;width:auto}
 .plan-rd .rd-h{min-height:16px}.plan-rd .rd-faces{display:flex;gap:10px;padding-left:34px}.plan-rd .rd-faces span{flex:1;text-align:center}.plan-rd .rd-faces .rd-zh{flex:none;width:52px}
@@ -625,7 +625,7 @@ const ZONES=RANDO?{ED:'Racks de l\'entrée (contre le mur)',AG:'Rangée A, côt�
 const LV4=[1,2,3,4];
 const LOCS=RANDO?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l))); /* ED1, ED2 : contre le mur de l'entrée ; niveau 1 skis debout, 2 et 3 boîtes */
-  for(let r=1;r<=6;r++){LV4.forEach(l=>add('AG',r,l));LV4.forEach(l=>add('AD',r,l));} /* rangée face à ED1 : racks comme ceux du snow (244 de long), 4 niveaux, DEUX faces : AG côté snow (gauche), AD côté allée (droite) */
+  for(let r=1;r<=6;r++){LV4.forEach(l=>add('AG',r,l));LV4.forEach(l=>add('AD',r,l));} /* rangée face à ED1 : racks comme ED (362 × 117), perpendiculaires au mur de l'entrée, 4 niveaux, DEUX faces : AG côté snow (gauche), AD côté allée (droite) */
   for(let r=1;r<=4;r++){LV4.forEach(l=>add('BG',r,l));LV4.forEach(l=>add('BD',r,l));} /* rangée face à ED2 : 4 racks comme ED (362 × 117), 4 niveaux, DEUX faces : BG côté allée (rangée A), BD côté mur */
   for(let i=1;i<=8;i++)L.push('Z'+i); /* zones cartons au sol : Z1-Z2 devant ED1-ED2, Z3-Z4 devant A1 et B1 (côté entrée), Z5-Z8 dans l'allée côté mur, le long de B1-B4 */
   return L;})()
@@ -1083,7 +1083,7 @@ const P3D=(()=>{
   /* rayon rando : ED1-ED2 contre le mur de l'entrée (zones Z1-Z2 devant), une grande allée, puis les rangées qui s'enfoncent :
      A (face à ED1, racks comme le snow) et B (face à ED2, 4 racks comme ED, double face) ; Z3-Z4 au sol devant A1 et B1,
      Z5-Z8 au sol dans l'allée entre B et le mur ; le snow et le ski sont dessinés en gris */
-  function randoLayout(tops){const PAS=60,ZF=40,GAP=200,Z0=EDZ-PAS-40-GAP-ZF-15,ADP=Math.max(62,dimOf('AG1.1').P*2||124),AX=EDX+EDL/2-ADP/2,BX=EDX+EDL*1.5-EDP/2,WALL=EDX+EDL*2+20,CX=(BX+EDP+WALL)/2-25;
+  function randoLayout(tops){const PAS=60,ZF=40,GAP=200,Z0=EDZ-PAS-40-GAP-ZF-15,ADP=Math.max(62,dimOf('AG1.1').P*2||EDP),AX=EDX+EDL/2-ADP/2,BX=EDX+EDL*1.5-EDP/2,WALL=EDX+EDL*2+20,CX=(BX+EDP+WALL)/2-25;
     /* autres rayons, en gris */
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;const g=new T3.Mesh(new T3.BoxGeometry(62,200,DL),mGhost);g.position.set(Dx+31,100,z+DL/2);gR.add(g);
       const w=new T3.Mesh(new T3.BoxGeometry(Gw,200,DL),mGhost);w.position.set(Gx+Gw/2,100,z+DL/2);gR.add(w);}
@@ -1095,15 +1095,15 @@ const P3D=(()=>{
       cartonZone(`Z${r}`,x,EDZ-PAS-40,EDL-4,40,'x');floorText(`Z${r}`,x+EDL/2,EDZ-PAS-20,22);});
     floorText('ALLÉE',(AX+BX+EDP)/2,EDZ-PAS-40-GAP/2,34);
     /* rangée A : 6 racks de 244 × 62 (comme le snow), 4 niveaux ; rangée B : 4 racks de 362 × 117, 4 niveaux, double face */
-    for(let r=1;r<=6;r++)tops.push(rack({ax:'z',ox:AX,oz:Z0-r*246,fd:1,len:244,dep:ADP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`A${sd}${r}.${l}`})); /* AG côté snow, AD côté allée */
+    for(let r=1;r<=6;r++)tops.push(rack({ax:'z',ox:AX,oz:Z0-r*364,fd:1,len:362,dep:ADP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`A${sd}${r}.${l}`})); /* AG côté snow, AD côté allée */
     for(let r=1;r<=4;r++){const z=Z0-r*364;tops.push(rack({ax:'z',ox:BX,oz:z,fd:1,len:362,dep:EDP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`B${sd}${r}.${l}`})); /* BG côté allée, BD côté mur */
       cartonZone(`Z${r+4}`,CX,z+30,50,302); /* 60 cm de passage entre deux zones */floorText(`Z${r+4}`,CX+25,z+181,22,Math.PI/2);} /* allée côté mur : 50 cm au milieu, le long de chaque rack B */
     /* Z3, Z4 : 40 cm au sol devant A1 et B1 (côté entrée), de la largeur du rack */
     cartonZone('Z3',AX,Z0+15,ADP,ZF);floorText('Z3',AX+ADP/2,Z0+15+ZF/2,20);
     cartonZone('Z4',BX,Z0+15,EDP,ZF);floorText('Z4',BX+EDP/2,Z0+15+ZF/2,20);
-    {const z1=Z0-4*364-60,m=new T3.Mesh(new T3.PlaneGeometry(8,EDZ+EDP-z1),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WALL,.9,(EDZ+EDP+z1)/2);gR.add(m);floorText('MUR',WALL-20,z1+60,20,Math.PI/2);}
+    {const z1=Z0-6*364-60,m=new T3.Mesh(new T3.PlaneGeometry(8,EDZ+EDP-z1),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WALL,.9,(EDZ+EDP+z1)/2);gR.add(m);floorText('MUR',WALL-20,z1+60,20,Math.PI/2);}
     const TOP=Math.max(...tops),yT=TOP+30;
-    for(let r=1;r<=6;r++)sprite(`A${r}`,AX+ADP/2,yT,Z0-r*246+122,28);for(let r=1;r<=4;r++)sprite(`B${r}`,BX+EDP/2,yT,Z0-r*364+181,30);
+    for(let r=1;r<=6;r++)sprite(`A${r}`,AX+ADP/2,yT,Z0-r*364+181,30);for(let r=1;r<=4;r++)sprite(`B${r}`,BX+EDP/2,yT,Z0-r*364+181,30);
     sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);
     floorText('ALLÉE',(AX+ADP+BX)/2,Z0-700,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);}
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
@@ -1257,7 +1257,7 @@ const P3D=(()=>{
     scene.add(new T3.HemisphereLight(0xffffff,0x8090a0,.75));const sun=new T3.DirectionalLight(0xffffff,.75);sun.position.set(-600,1400,900);scene.add(sun);
     mPost=new T3.MeshLambertMaterial({color:0x4b5866});mShelf=new T3.MeshLambertMaterial({color:0x9aa7b4});mPal=new T3.MeshLambertMaterial({color:0xa5784a});
     mGhost=new T3.MeshBasicMaterial({color:0x7b8794,wireframe:true,transparent:true,opacity:.35});mWall=new T3.MeshLambertMaterial({color:0x7c8b9a,transparent:true,opacity:.18});
-    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1960:1540,SKI?T+780:T+670),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?380:570,-.5,SKI?(T+300)/2:(T+430)/2);scene.add(fl);
+    floorMat=new T3.MeshLambertMaterial({color:0x888888});const fl=new T3.Mesh(new T3.PlaneGeometry(SKI?1960:1540,RANDO?T+1500:SKI?T+780:T+670),floorMat);fl.rotation.x=-Math.PI/2;fl.position.set(SKI?380:570,-.5,RANDO?(T+300)/2-360:SKI?(T+300)/2:(T+430)/2);scene.add(fl);
     const ray=new T3.Raycaster(),pt=new T3.Vector2(),cv=R.domElement;
     /* ce qui est sous le doigt : une boîte (et son niveau) ou un niveau ; un niveau vide et transparent laisse voir les boîtes derrière */
     const at=ev=>{const r=cv.getBoundingClientRect();pt.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(pt,camera);
@@ -2069,7 +2069,7 @@ const DIM_GROUPS=RANDO?{ED1:['Racks ED 1-ED 2 · niveau 1 (skis debout)','Profon
 const DIM_SECS=RANDO?[
   ['➡ Entrée · ED 1 et ED 2','Contre le mur de l’entrée. Niveau 1 : skis debout ; niveaux 2 et 3 : boîtes.',
     [['ED1','Niveau 1 (skis debout)'],['ED2','Niveau 2 (boîtes)'],['ED3','Niveau 3 (boîtes, haut)']]],
-  ['🅰 Rangée A · A 1 à A 6 (face à ED 1, double face)','Racks de la même longueur que ceux du snow (244), 4 niveaux, <b>double face</b> (côté snow AG + côté allée AD, chacun son stock) : mesurez la <b>profondeur totale</b>. <b>Hauteurs à mesurer.</b>',
+  ['🅰 Rangée A · A 1 à A 6 (face à ED 1, double face)','Racks de la même taille que ED (362 × 117), perpendiculaires au mur de l’entrée, 4 niveaux, <b>double face</b> (côté snow AG + côté allée AD, chacun son stock) : mesurez la <b>profondeur totale</b>. <b>Hauteurs à mesurer.</b>',
     [['RA1','Niveau 1 (bas)'],['RA2','Niveau 2'],['RA3','Niveau 3'],['RA4','Niveau 4 (haut)']]],
   ['🅱 Rangée B · B 1 à B 4 (face à ED 2, double face)','4 racks de la même taille que ED (362 × 117), 4 niveaux, <b>double face</b> (côté allée BG + côté mur BD, chacun son stock) : mesurez la <b>profondeur totale</b>. <b>Hauteurs à mesurer.</b>',
     [['RB1','Niveau 1 (bas)'],['RB2','Niveau 2'],['RB3','Niveau 3'],['RB4','Niveau 4 (haut)']]]
@@ -2098,7 +2098,7 @@ const POSE={plat:'À plat',tranche:'Sur la tranche',mixte:'À plat devant + sur 
 const dims=()=>{const d=S.dims=S.dims||{};d.locs=d.locs||{};
   if(SKI&&!RANDO&&!d.locs.EN2){d.locs.EN1=d.locs.EN1||{L:244,P:76,H:180};d.locs.EN2={L:244,P:76,H:49};d.locs.EN3=d.locs.EN3||{L:244,P:76,H:49};} /* rack de l'entrée : 244 × 76 × 49 ; niveau 1 haut pour les skis debout */
   if(RANDO&&!d.locs.ED1){d.locs.ED1={L:362,P:117,H:188};d.locs.ED2=d.locs.ED2||{L:362,P:117,H:80};d.locs.ED3=d.locs.ED3||{L:362,P:117,H:80};} /* reprises des mesures du ski */
-  if(RANDO&&!d.locs.RB1)[1,2,3,4].forEach(l=>{d.locs['RB'+l]=d.locs['RB'+l]||{L:362,P:117};d.locs['RA'+l]=d.locs['RA'+l]||{L:244,P:124};}); /* longueur et profondeur connues, hauteurs à mesurer */ /* ED1-ED2 : 3 niveaux (1 skis debout, 2 et 3 boîtes) */ /* ED1 et ED2 : 362 × 117 ; niveau 1 skis (188), niveau 2 boîtes (80) */
+  if(RANDO&&!d.locs.RB1)[1,2,3,4].forEach(l=>{d.locs['RB'+l]=d.locs['RB'+l]||{L:362,P:117};d.locs['RA'+l]=d.locs['RA'+l]||{L:362,P:117};}); /* longueur et profondeur connues, hauteurs à mesurer */ /* ED1-ED2 : 3 niveaux (1 skis debout, 2 et 3 boîtes) */ /* ED1 et ED2 : 362 × 117 ; niveau 1 skis (188), niveau 2 boîtes (80) */
   /* ancien groupe « milieu niveaux 1 et 2 » : ses mesures sont reprises pour les niveaux 1 et 2, séparés */
   if(d.locs.M12){['M1','M2'].forEach(k=>{if(!d.locs[k])d.locs[k]={...d.locs.M12};});delete d.locs.M12;}
   if(d.over)Object.keys(d.over).forEach(e=>{if(/^M[GD]\d/.test(e)){const m=e.replace(/^M[GD]/,'M');if(!d.over[m])d.over[m]=d.over[e];delete d.over[e];}});d.over=d.over||{};d.boxes=d.boxes||[];return d;};
