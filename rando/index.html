@@ -310,10 +310,10 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .plan-rd{display:grid;grid-template-columns:26px max-content 34px max-content 26px;justify-content:center;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
 .plan-rd .rd-snow{grid-area:snow}.plan-rd .rd-a{grid-area:a}.plan-rd .rd-al{grid-area:al}.plan-rd .rd-b{grid-area:b}
 .plan-rd .rd-wall{grid-area:wall;border-left:4px solid var(--line-strong);padding-left:4px}
-.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:start}.plan-rd .rd-a>.rack,.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:56px;box-sizing:border-box}.plan-rd .rd-hrow>.ctz{margin:9px 0}
+.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:start}.plan-rd .rd-a>.rack,.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:56px;box-sizing:border-box}.plan-rd .rd-b>.rd-hrow:not(.rd-front){gap:30px}.plan-rd .rd-hrow>.ctz{margin:-3px 0;border-radius:0}.plan-rd .rd-b>.rd-hrow:nth-child(2)>.ctz{border-top-left-radius:4px;border-top-right-radius:4px}.plan-rd .rd-b>.rd-hrow:nth-child(5)>.ctz{border-bottom-left-radius:4px;border-bottom-right-radius:4px}.plan-rd .rd-front.rd-hrow{gap:30px}
 .plan-rd .rd-hrow{display:flex;gap:10px;align-items:stretch}.plan-rd .rd-hrow>.rack{flex:1}
 .plan-rd .rd-front{display:flex;gap:10px}.plan-rd .rd-front>.ctz{flex:1;width:auto}
-.plan-rd .rd-h{min-height:16px}.plan-rd .rd-faces{display:flex;gap:10px;padding-left:34px}.plan-rd .rd-faces span{flex:1;text-align:center}.plan-rd .rd-faces .rd-zh{flex:none;width:52px}
+.plan-rd .rd-h{min-height:16px}.plan-rd .rd-faces{display:flex;gap:10px;padding-left:34px}.plan-rd .rd-faces span{flex:1;text-align:center}.plan-rd .rd-faces .rd-zh{flex:none;width:52px;margin-left:20px}
 .plan-rd .rd-gap{grid-area:gap;display:flex;align-items:center;justify-content:center;min-height:56px;border-bottom:2px dashed var(--line-strong);font:700 11px var(--f-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .plan-rd .rd-ent{grid-area:ent;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font:700 12px var(--f-mono);color:var(--muted)}
 .plan-rd .rd-ed{grid-area:ed1;display:flex;flex-direction:column;gap:2px}.plan-rd .rd-ed.rd-ed2{grid-area:ed2}
@@ -1100,7 +1100,7 @@ const P3D=(()=>{
     /* rangée A : 6 racks de 244 × 62 (comme le snow), 4 niveaux ; rangée B : 4 racks de 362 × 117, 4 niveaux, double face */
     for(let r=1;r<=6;r++)tops.push(rack({ax:'z',ox:AX,oz:Z0-r*364,fd:1,len:362,dep:ADP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`A${sd}${r}.${l}`})); /* AG côté snow, AD côté allée */
     for(let r=1;r<=4;r++){const z=Z0-r*364;tops.push(rack({ax:'z',ox:BX,oz:z,fd:1,len:362,dep:EDP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`B${sd}${r}.${l}`})); /* BG côté allée, BD côté mur */
-      cartonZone(`Z${r+4}`,CX,z+30,50,302); /* 60 cm de passage entre deux zones */floorText(`Z${r+4}`,CX+25,z+181,22,Math.PI/2);} /* allée côté mur : 50 cm au milieu, le long de chaque rack B */
+      cartonZone(`Z${r+4}`,CX,z,50,364); /* zones collées les unes aux autres, tout le long des racks B ; passage entre les racks et les zones */floorText(`Z${r+4}`,CX+25,z+181,22,Math.PI/2);} /* allée côté mur : 50 cm au milieu, le long de chaque rack B */
     /* Z3, Z4 : 40 cm au sol devant A1 et B1 (côté entrée), de la largeur du rack */
     cartonZone('Z3',AX,Z0+15,ADP,ZF);floorText('Z3',AX+ADP/2,Z0+15+ZF/2,20);
     cartonZone('Z4',BX,Z0+15,EDP,ZF);floorText('Z4',BX+EDP/2,Z0+15+ZF/2,20);
