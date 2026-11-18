@@ -307,17 +307,20 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
   .plan-ski .pk-cols>.pk-bot{display:contents}
   .plan-ski .pk-cols .b-en{grid-row:6;grid-column:4;align-self:start}.plan-ski .pk-cols .pk-bot .ent{grid-row:6;grid-column:5;align-self:center;padding:0 8px}.plan-ski .pk-cols .b-ed{grid-row:6;grid-column:6;align-self:start}.plan-ski .pk-cols .b-ed .rack{flex-direction:column;gap:3px;min-width:76px}.plan-ski .pk-cols .b-ed .rack .rk{min-width:0;text-align:center}}
 .hrow{display:flex;gap:48px;align-items:stretch}.plan-ski .pk-cols>.col>.rack,.plan-ski .hrow{height:48px;box-sizing:border-box}.plan-ski .hrow>.rack{height:100%}.hrow.bh{margin:0}.hrow>.ctz:not(.h),.hrow>.ctz-sp{margin-left:10px}.hrow.bh .ctz{flex:1}.plan-ski .zone-lbl.wall{border-left:4px solid var(--line-strong);padding-left:4px}.pass{font:600 9px var(--f-mono);color:var(--muted);text-align:center;padding:4px 0}.hrow .rack{flex:1}.ctz-sp{flex:none;width:52px}
-.plan-rd{display:grid;grid-template-columns:26px minmax(0,1fr) 30px minmax(0,1fr) 92px;grid-template-areas:"snow a al b wall" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:start;max-width:980px;margin:0 auto}
-.plan-rd .rd-snow{grid-area:snow;align-self:stretch}.plan-rd .rd-a{grid-area:a}.plan-rd .rd-al{grid-area:al;align-self:stretch}.plan-rd .rd-b{grid-area:b}
-.plan-rd .rd-wall{grid-area:wall;display:flex;flex-direction:column;gap:6px;align-self:stretch;border-right:4px solid var(--line-strong);padding-right:4px}
-.plan-rd .rd-wall .rack{flex-direction:column;gap:4px;padding:6px 4px;min-height:120px;justify-content:center}.plan-rd .rd-wall .rack .rk{min-width:0;text-align:center;font-size:11px}
-.plan-rd .rd-ent{grid-area:ent;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font:700 12px var(--f-mono);color:var(--muted);border-top:2px dashed var(--line-strong);padding-top:8px;align-self:stretch}
-.plan-rd .rd-ed{grid-area:ed1;display:flex;flex-direction:column;gap:2px;border-top:2px dashed var(--line-strong);padding-top:8px}.plan-rd .rd-ed.rd-ed2{grid-area:ed2}
-.plan-rd .rd-note{grid-area:note;text-align:center}.plan-rd .rd-faces{display:flex;justify-content:space-around;padding-left:30px}
-.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:stretch}.plan-rd .rd-col>.rack{flex:1}
+.plan-rd{display:grid;grid-template-columns:26px minmax(0,1fr) 34px minmax(0,1.35fr) 26px;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
+.plan-rd .rd-snow{grid-area:snow}.plan-rd .rd-a{grid-area:a}.plan-rd .rd-al{grid-area:al}.plan-rd .rd-b{grid-area:b}
+.plan-rd .rd-wall{grid-area:wall;border-left:4px solid var(--line-strong);padding-left:4px}
+.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px}.plan-rd .rd-col>.rack,.plan-rd .rd-col>.rd-hrow:not(.rd-front){flex:1;min-height:44px}
+.plan-rd .rd-hrow{display:flex;gap:10px;align-items:stretch}.plan-rd .rd-hrow>.rack{flex:1}
+.plan-rd .rd-front{display:flex;gap:10px}.plan-rd .rd-front>.ctz{flex:1;width:auto}
+.plan-rd .rd-h{min-height:16px}.plan-rd .rd-faces{display:flex;gap:10px;padding-left:34px}.plan-rd .rd-faces span{flex:1;text-align:center}.plan-rd .rd-faces .rd-zh{flex:none;width:52px}
+.plan-rd .rd-gap{grid-area:gap;display:flex;align-items:center;justify-content:center;min-height:56px;border-bottom:2px dashed var(--line-strong);font:700 11px var(--f-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.plan-rd .rd-ent{grid-area:ent;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font:700 12px var(--f-mono);color:var(--muted)}
+.plan-rd .rd-ed{grid-area:ed1;display:flex;flex-direction:column;gap:2px}.plan-rd .rd-ed.rd-ed2{grid-area:ed2}
+.plan-rd .rd-note{grid-area:note;text-align:center}
 .plan-rd .zone-lbl{writing-mode:vertical-rl;text-align:center}
-.plan-rd .rack{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 8px;min-height:40px}.plan-rd .rack .rk{min-width:30px;text-align:left}
-@media (max-width:640px){.plan-rd{grid-template-columns:16px minmax(0,1fr) 16px minmax(0,1fr) 50px;gap:4px}.plan-rd .rack{flex-direction:column;gap:3px;padding:4px 2px}.plan-rd .rack .rk{min-width:0;text-align:center}.plan-rd .chips{flex-wrap:wrap;justify-content:center}}
+.plan-rd .rack{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 8px}.plan-rd .rack .rk{min-width:30px;text-align:left}
+@media (max-width:640px){.plan-rd{grid-template-columns:14px minmax(0,1fr) 16px minmax(0,1.35fr) 14px;gap:4px}.plan-rd .rack{flex-direction:column;gap:3px;padding:4px 2px}.plan-rd .rack .rk{min-width:0;text-align:center}.plan-rd .chips{flex-wrap:wrap;justify-content:center}.plan-rd .rd-hrow,.plan-rd .rd-front{gap:4px}.plan-rd .rd-faces{padding-left:0}.plan-rd .rd-faces .rd-zh{width:24px;font-size:0}}
 .ctz{flex:none;width:52px;box-sizing:border-box;border:1.5px dashed #ead27a;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.45) 0 5px,rgba(255,246,205,.25) 5px 10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px}
 .ctz b{font:700 10px var(--f-mono);color:#2b2200;background:#fffdf3;border:1px solid #e3c766;border-radius:3px;padding:1px 4px;line-height:1.2}.ctz.h{width:auto;flex-direction:row;gap:8px;padding:3px 8px;min-height:28px}
 .ctz-k{display:inline-block;width:18px;height:14px;vertical-align:middle;margin-right:4px;border:1.5px dashed #ead27a;border-radius:3px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.55) 0 3px,rgba(255,246,205,.25) 3px 6px)}
@@ -627,7 +630,7 @@ const LOCS=RANDO?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l))); /* ED1, ED2 : contre le mur de l'entrée ; niveau 1 skis debout, 2 et 3 boîtes */
   for(let r=1;r<=6;r++)LV4.forEach(l=>add('A',r,l)); /* rangée face à ED1 : racks comme ceux du snow (244 × 62) ; niveaux à confirmer */
   for(let r=1;r<=4;r++){LV4.forEach(l=>add('BG',r,l));LV4.forEach(l=>add('BD',r,l));} /* rangée face à ED2 : 4 racks comme ED (362 × 117), 4 niveaux, DEUX faces : BG côté allée (rangée A), BD côté mur */
-  L.push('Z1','Z2','SD1'); /* zones cartons devant ED1, ED2 ; skis debout le long du mur */
+  for(let i=1;i<=8;i++)L.push('Z'+i); /* zones cartons au sol : Z1-Z2 devant ED1-ED2, Z3-Z4 devant A1 et B1 (côté entrée), Z5-Z8 dans l'allée côté mur, le long de B1-B4 */
   return L;})()
   :SKI?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);LV4.forEach(l=>add('WS',0,l));[3,4].forEach(l=>add('WN',0,l));
   for(let r=1;r<=5;r++){LV4.forEach(l=>add('WS',r,l));if(r!==4)[3,4].forEach(l=>add('WN',r,l));}
@@ -643,7 +646,7 @@ const LOCS=RANDO?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   LV.forEach(l=>add('BAV',1,l));LV.forEach(l=>add('BAR',1,l));
   L.push('BM1'); /* au sol, collée au bout de M6 (côté fond) : bottes ou fixations */
   return withFloor(L);})();
-function locLabel(c){if(c==='ARR1')return ZONES.ARR;if(RANDO&&/^Z\d+$/.test(c))return `Zone cartons · au sol devant ED ${c.slice(1)} (40 cm)`;if(c==='SD1')return ZONES.SD;if(c==='BM1')return 'Bout de M6, au sol (côté fond)';if(SKI&&!RANDO&&/^Z\d+$/.test(c)){const n=+c.slice(1);return n===1?'Zone cartons · au sol devant EN 1 (40 cm)':n<=3?`Zone cartons · au sol devant ED ${n-1} (40 cm)`:n<=9?`Zone cartons · allée côté mur, le long de H ${n-4} (au sol, 50 cm)`:'Zone cartons · au sol au bout de H 5 (côté fenêtre)';}const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
+function locLabel(c){if(c==='ARR1')return ZONES.ARR;if(RANDO&&/^Z\d+$/.test(c)){const n=+c.slice(1);return n<=2?`Zone cartons · au sol devant ED ${n} (40 cm)`:n===3?'Zone cartons · au sol devant A 1, côté entrée (40 cm)':n===4?'Zone cartons · au sol devant B 1, côté entrée (40 cm)':`Zone cartons · allée côté mur, le long de B ${n-4} (au sol, 50 cm)`;}if(c==='SD1')return ZONES.SD;if(c==='BM1')return 'Bout de M6, au sol (côté fond)';if(SKI&&!RANDO&&/^Z\d+$/.test(c)){const n=+c.slice(1);return n===1?'Zone cartons · au sol devant EN 1 (40 cm)':n<=3?`Zone cartons · au sol devant ED ${n-1} (40 cm)`:n<=9?`Zone cartons · allée côté mur, le long de H ${n-4} (au sol, 50 cm)`:'Zone cartons · au sol au bout de H 5 (côté fenêtre)';}const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
   const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
   let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):z==='FS'&&r==='2'?'Fond, côté ski (ancien FS2, fusionné avec FS1)':['F','BAV','BAR','FS','EN'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${z==='WS'||z==='WN'?'W':z[0]==='H'?'H':z==='ED'?'ED':z==='A'?'A':z==='BG'||z==='BD'?'B':''}${r}`;
   const hi=/^(G|WS|WN|HG|HD|A|BG|BD)$/.test(z)?'4':'3'; /* racks à 4 niveaux : le haut est le 4 */
@@ -1000,7 +1003,7 @@ const P3D=(()=>{
   const VIEWS={all:{p:[-900,1900,T+1350],t:[330,60,T/2+100]},ent:{p:[(Mx+Mw+Dx)/2,190,T+180],t:[(Mx+Mw+Dx)/2,110,T-700]},top:{p:[420,3300,T/2+201],t:[420,0,T/2+200]},pl:{p:[Mx-20,210,T*.7],t:[PLx+10,75,T*.47]}};
   const DEFB=BOX_DEF;
   if(SKI)Object.assign(VIEWS,{all:{p:[-1150,2300,T+1550],t:[250,60,T/2+120]},ent:{p:[Gx-SKA/2,190,T+180],t:[Gx-SKA/2,110,T-700]},top:{p:[380,3900,T/2+201],t:[380,0,T/2+200]},pl:{p:[-560,360,T+360],t:[-380,0,T*.4]}});
-  if(RANDO)Object.assign(VIEWS,{all:{p:[2500,2300,T+1500],t:[820,60,T/2+250]},ent:{p:[915,190,EDZ-110],t:[915,110,300]},top:{p:[760,3900,T/2+201],t:[760,0,T/2+200]},pl:{p:[840,240,EDZ-180],t:[840,70,500]}});
+  if(RANDO)Object.assign(VIEWS,{all:{p:[2500,2300,T+1500],t:[820,60,T/2+250]},ent:{p:[915,190,EDZ-110],t:[915,110,300]},top:{p:[760,3900,T/2+201],t:[760,0,T/2+200]},pl:{p:[1165,260,EDZ-200],t:[1165,40,300]}});
   const TC={botte:'#3d7fc4',fix:'#f08a24',board:'#3fa66b'},TN={...TYPE};
   const PAL=['#3d7fc4','#e8663d','#3fa66b','#d4a72c','#8e5cc4','#d1495b','#2bb3b1','#8a6a4b','#e377c2','#6b8e23','#1f5fa8','#9aa5b1'],SELC='#fff36b';
   const load=src=>new Promise((ok,ko)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=ko;document.head.appendChild(e);});
@@ -1080,25 +1083,28 @@ const P3D=(()=>{
     floorText('ALLÉE',Gx-SKA/2,T*.55,40,Math.PI/2);floorText('ALLÉE',WX+38,T*.55,30,Math.PI/2);floorText('RAYON SNOW · autre appli',(Mx+Dx)/2,T/2,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);
     {const z0=FZ0-FDP,z1=HZ(5)-10;cartonZone('Z10',MX,z0,MW,z1-z0);floorText('Z10',MX+MW/2,(z0+z1)/2,22);sprite('BOUT H5',MX+MW/2,70,(z0+z1)/2,20);} /* bout de H5 : largeur du rack ; s'arrête au niveau du dos du fond FS1, le passage du fond (côté fenêtre) reste libre */
     {const m=new T3.Mesh(new T3.PlaneGeometry(8,HZ(0)+DL-(FZ0-160)),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WX-4,.9,(HZ(0)+DL+FZ0-160)/2);gR.add(m);floorText('MUR',WX+16,FZ0+40,20,Math.PI/2);}} /* dépôt au sol au bout de H5, côté fond */ /* la même zone que le snow, devant M1 */
-  /* rayon rando : ED1-ED2 contre le mur de l'entrée (avec leurs zones cartons), rangée A face à ED1 (racks comme le snow),
-     rangée B face à ED2 (4 racks comme ED), skis debout le long du mur ; le snow et le ski sont dessinés en gris */
-  function randoLayout(tops){const PAS=60,Z0=EDZ-PAS-40-150,AX=EDX+EDL/2-31,BX=EDX+EDL*1.5-EDP/2,WALL=EDX+EDL*2+20;
+  /* rayon rando : ED1-ED2 contre le mur de l'entrée (zones Z1-Z2 devant), une grande allée, puis les rangées qui s'enfoncent :
+     A (face à ED1, racks comme le snow) et B (face à ED2, 4 racks comme ED, double face) ; Z3-Z4 au sol devant A1 et B1,
+     Z5-Z8 au sol dans l'allée entre B et le mur ; le snow et le ski sont dessinés en gris */
+  function randoLayout(tops){const PAS=60,ZF=40,GAP=200,Z0=EDZ-PAS-40-GAP-ZF-15,AX=EDX+EDL/2-31,BX=EDX+EDL*1.5-EDP/2,WALL=EDX+EDL*2+20,CX=(BX+EDP+WALL)/2-25;
     /* autres rayons, en gris */
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;const g=new T3.Mesh(new T3.BoxGeometry(62,200,DL),mGhost);g.position.set(Dx+31,100,z+DL/2);gR.add(g);
       const w=new T3.Mesh(new T3.BoxGeometry(Gw,200,DL),mGhost);w.position.set(Gx+Gw/2,100,z+DL/2);gR.add(w);}
     for(let r=1;r<=NM;r++){const g=new T3.Mesh(new T3.BoxGeometry(Mw,200,ML-6),mGhost);g.position.set(Mx+Mw/2,100,T-r*ML+ML/2+MSH);gR.add(g);}
     floorText('RAYON SNOW · autre appli',(Mx+Dx)/2,T/2,34,Math.PI/2);floorText('RAYON SKI · autre appli',Gx-160,T/2,34,Math.PI/2);
-    /* ED1, ED2 : niveau 1 skis debout, 2 et 3 boîtes */
+    /* ED1, ED2 : niveau 1 skis debout, 2 et 3 boîtes ; Z1-Z2 : 40 cm devant, après 60 cm de passage */
     [1,2].forEach(r=>{const x=EDX+(r-1)*EDL,o={ax:'x',ox:x,oz:EDZ,fd:1,len:EDL-4,dep:EDP,levels:[1,2,3],slotLevels:[2,3],code:l=>`ED${r}.${l}`};tops.push(rack(o));
       slot(`ED${r}.1`,frame('x',x,EDZ,1),EDL-4,EDP,o.ys[0]+SH,o.hs[0],{ax:'x',o0:x,flip:isFlip('x',1),skis:true});
-      cartonZone(`Z${r}`,x,EDZ-PAS-40,EDL-4,40,'x');floorText(`Z${r}`,x+EDL/2,EDZ-PAS-20,22);}); /* 40 cm devant ED1, ED2, après 60 cm de passage */
-    /* rangée A : 6 racks de 244 × 62 (comme le snow), 4 niveaux pour l'instant ; rangée B : 4 racks de 362 × 117, 4 niveaux */
+      cartonZone(`Z${r}`,x,EDZ-PAS-40,EDL-4,40,'x');floorText(`Z${r}`,x+EDL/2,EDZ-PAS-20,22);});
+    floorText('ALLÉE',(AX+BX+EDP)/2,EDZ-PAS-40-GAP/2,34);
+    /* rangée A : 6 racks de 244 × 62 (comme le snow), 4 niveaux ; rangée B : 4 racks de 362 × 117, 4 niveaux, double face */
     for(let r=1;r<=6;r++)tops.push(rack({ax:'z',ox:AX,oz:Z0-r*246,fd:1,len:244,dep:62,levels:[1,2,3,4],nlev:4,code:l=>`A${r}.${l}`}));
-    for(let r=1;r<=4;r++)tops.push(rack({ax:'z',ox:BX,oz:Z0-r*364,fd:1,len:362,dep:EDP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`B${sd}${r}.${l}`})); /* double face : BG côté allée, BD côté mur */
-    /* skis debout le long du mur (emplacement à préciser) */
-    {const z0=Z0-4*364,len=600,x0=WALL-70;const t=hatchTex();t.repeat.set(60/22,len/22);const m=new T3.Mesh(new T3.PlaneGeometry(60,len),new T3.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x0+30,.8,z0+len/2);gR.add(m);
-      slot('SD1',frame('z',x0,z0,1),len,60,1,190,{ax:'z',o0:z0,flip:false,skis:true});floorText('SKIS DEBOUT · SD1',x0+30,z0+len/2,20,Math.PI/2);}
-    {const m=new T3.Mesh(new T3.PlaneGeometry(8,EDZ+EDP-(Z0-4*364-60)),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WALL,.9,(EDZ+EDP+Z0-4*364-60)/2);gR.add(m);floorText('MUR',WALL-20,Z0-4*364+40,20,Math.PI/2);}
+    for(let r=1;r<=4;r++){const z=Z0-r*364;tops.push(rack({ax:'z',ox:BX,oz:z,fd:1,len:362,dep:EDP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`B${sd}${r}.${l}`})); /* BG côté allée, BD côté mur */
+      cartonZone(`Z${r+4}`,CX,z+2,50,358);floorText(`Z${r+4}`,CX+25,z+181,22,Math.PI/2);} /* allée côté mur : 50 cm au milieu, le long de chaque rack B */
+    /* Z3, Z4 : 40 cm au sol devant A1 et B1 (côté entrée), de la largeur du rack */
+    cartonZone('Z3',AX,Z0+15-ZF+ZF,62,ZF);floorText('Z3',AX+31,Z0+15+ZF/2,18);
+    cartonZone('Z4',BX,Z0+15,EDP,ZF);floorText('Z4',BX+EDP/2,Z0+15+ZF/2,20);
+    {const z1=Z0-4*364-60,m=new T3.Mesh(new T3.PlaneGeometry(8,EDZ+EDP-z1),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WALL,.9,(EDZ+EDP+z1)/2);gR.add(m);floorText('MUR',WALL-20,z1+60,20,Math.PI/2);}
     const TOP=Math.max(...tops),yT=TOP+30;
     for(let r=1;r<=6;r++)sprite(`A${r}`,AX+31,yT,Z0-r*246+122,28);for(let r=1;r<=4;r++)sprite(`B${r}`,BX+EDP/2,yT,Z0-r*364+181,30);
     sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);
@@ -1312,19 +1318,22 @@ const P3D=(()=>{
     .catch(()=>{const m=document.getElementById('p3dMsg');if(m)m.textContent='La 3D n\'a pas pu se charger (pas de connexion internet ?). Le plan reste disponible avec le bouton Plan.';});}
   return {mount};})();
 
-/* plan 2D du rayon rando : en haut le fond, en bas l'entrée ; rangée A au-dessus de ED1, rangée B au-dessus de ED2 */
-function planRando(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=c=>`<div class="ctz h" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`;
-  let a='',b='';for(let r=6;r>=1;r--)a+=row(`A${r}`,chips('A',r,H,count,LV4,LV4));for(let r=4;r>=1;r--)b+=row(`B${r}`,`<div class="mrow">${chips('BG',r,H,count,LV4,LV4)}<i class="sep"></i>${chips('BD',r,H,count,LV4,LV4)}</div>`);
+/* plan 2D du rayon rando, sur le modèle du plan ski : en haut le fond, en bas l'entrée.
+   Rangée A au-dessus de ED1, rangée B au-dessus de ED2 avec ses zones au sol côté mur ; Z3 et Z4 devant A1 et B1 ; grande allée ; Z1-Z2 puis ED1-ED2 */
+function planRando(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=(c,cls='')=>`<div class="ctz ${cls}" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`;
+  let a='',b='';for(let r=6;r>=1;r--)a+=row(`A${r}`,chips('A',r,H,count,LV4,LV4));
+  for(let r=4;r>=1;r--)b+=`<div class="rd-hrow">${row(`B${r}`,`<div class="mrow">${chips('BG',r,H,count,LV4,LV4)}<i class="sep"></i>${chips('BD',r,H,count,LV4,LV4)}</div>`)}${ctz('Z'+(r+4))}</div>`;
   return `<div class="plan-wrap"><div class="plan-rd">
     <div class="rd-snow zone-lbl">rayon snow</div>
-    <div class="rd-col rd-a"><div class="mface">RANGÉE A · face à ED 1</div>${a}</div>
+    <div class="rd-col rd-a"><div class="mface rd-h">RANGÉE A · face à ED 1</div>${a}<div class="rd-front">${ctz('Z3','h')}</div></div>
     <div class="rd-al zone-lbl">allée</div>
-    <div class="rd-col rd-b"><div class="mface">RANGÉE B · face à ED 2</div><div class="mface rd-faces"><span>côté allée</span><span>côté mur</span></div>${b}</div>
-    <div class="rd-wall"><div class="rack zsol" title="${esc(locLabel('SD1'))}"><span class="rk">SKIS DEBOUT</span>${chip('SD1','🎿',H,count)}</div><div class="zone-lbl">mur</div></div>
+    <div class="rd-col rd-b"><div class="mface rd-h rd-faces"><span>côté allée</span><span>côté mur</span><span class="rd-zh">au sol</span></div>${b}<div class="rd-hrow rd-front">${ctz('Z4','h')}<div class="ctz-sp"></div></div></div>
+    <div class="rd-wall zone-lbl">mur</div>
+    <div class="rd-gap"><span>allée</span></div>
     <div class="rd-ent"><span>▲ Entrée</span></div>
-    <div class="rd-ed">${ctz('Z1')}<div class="pass">↕ passage</div>${row('ED1',chips('ED',1,H,count))}</div>
-    <div class="rd-ed rd-ed2">${ctz('Z2')}<div class="pass">↕ passage</div>${row('ED2',chips('ED',2,H,count))}</div>
-    <div class="rd-note mface">ED : niv. 1 skis debout · contre le mur de l'entrée</div></div></div>
+    <div class="rd-ed">${ctz('Z1','h')}<div class="pass">↕ passage</div>${row('ED1',chips('ED',1,H,count))}</div>
+    <div class="rd-ed rd-ed2">${ctz('Z2','h')}<div class="pass">↕ passage</div>${row('ED2',chips('ED',2,H,count))}</div>
+    <div class="rd-note mface">ED : contre le mur de l'entrée · niveau 1 skis debout · rangée B : 2 faces (côté allée, côté mur)</div></div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 /* plan 2D du rayon ski */
 function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=(c,cls='')=>`<div class="ctz ${cls}" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`,hrow=(c,rk)=>`<div class="hrow">${c?ctz(c):'<div class="ctz-sp"></div>'}${rk}</div>`;
