@@ -307,10 +307,10 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
   .plan-ski .pk-cols>.pk-bot{display:contents}
   .plan-ski .pk-cols .b-en{grid-row:6;grid-column:4;align-self:start}.plan-ski .pk-cols .pk-bot .ent{grid-row:6;grid-column:5;align-self:center;padding:0 8px}.plan-ski .pk-cols .b-ed{grid-row:6;grid-column:6;align-self:start}.plan-ski .pk-cols .b-ed .rack{flex-direction:column;gap:3px;min-width:76px}.plan-ski .pk-cols .b-ed .rack .rk{min-width:0;text-align:center}}
 .hrow{display:flex;gap:48px;align-items:stretch}.plan-ski .pk-cols>.col>.rack,.plan-ski .hrow{height:48px;box-sizing:border-box}.plan-ski .hrow>.rack{height:100%}.hrow.bh{margin:0}.hrow>.ctz:not(.h),.hrow>.ctz-sp{margin-left:10px}.hrow.bh .ctz{flex:1}.plan-ski .zone-lbl.wall{border-left:4px solid var(--line-strong);padding-left:4px}.pass{font:600 9px var(--f-mono);color:var(--muted);text-align:center;padding:4px 0}.hrow .rack{flex:1}.ctz-sp{flex:none;width:52px}
-.plan-rd{display:grid;grid-template-columns:26px minmax(0,1fr) 34px minmax(0,1.35fr) 26px;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
+.plan-rd{display:grid;grid-template-columns:26px minmax(0,1fr) 34px minmax(0,1.15fr) 26px;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
 .plan-rd .rd-snow{grid-area:snow}.plan-rd .rd-a{grid-area:a}.plan-rd .rd-al{grid-area:al}.plan-rd .rd-b{grid-area:b}
 .plan-rd .rd-wall{grid-area:wall;border-left:4px solid var(--line-strong);padding-left:4px}
-.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px}.plan-rd .rd-col>.rack,.plan-rd .rd-col>.rd-hrow:not(.rd-front){flex:1;min-height:44px}
+.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:start}.plan-rd .rd-a>.rack{height:42px;box-sizing:border-box}.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:60px}.plan-rd .rd-hrow>.ctz{margin:9px 0}
 .plan-rd .rd-hrow{display:flex;gap:10px;align-items:stretch}.plan-rd .rd-hrow>.rack{flex:1}
 .plan-rd .rd-front{display:flex;gap:10px}.plan-rd .rd-front>.ctz{flex:1;width:auto}
 .plan-rd .rd-h{min-height:16px}.plan-rd .rd-faces{display:flex;gap:10px;padding-left:34px}.plan-rd .rd-faces span{flex:1;text-align:center}.plan-rd .rd-faces .rd-zh{flex:none;width:52px}
@@ -320,7 +320,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .plan-rd .rd-note{grid-area:note;text-align:center}
 .plan-rd .zone-lbl{writing-mode:vertical-rl;text-align:center}
 .plan-rd .rack{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 8px}.plan-rd .rack .rk{min-width:30px;text-align:left}
-@media (max-width:640px){.plan-rd{grid-template-columns:14px minmax(0,1fr) 16px minmax(0,1.35fr) 14px;gap:4px}.plan-rd .rack{flex-direction:column;gap:3px;padding:4px 2px}.plan-rd .rack .rk{min-width:0;text-align:center}.plan-rd .chips{flex-wrap:wrap;justify-content:center}.plan-rd .rd-hrow,.plan-rd .rd-front{gap:4px}.plan-rd .rd-faces{padding-left:0}.plan-rd .rd-faces .rd-zh{width:24px;font-size:0}}
+@media (max-width:640px){.plan-rd{grid-template-columns:14px minmax(0,1fr) 16px minmax(0,1.15fr) 14px;gap:4px}.plan-rd .rack{flex-direction:column;gap:3px;padding:4px 2px}.plan-rd .rack .rk{min-width:0;text-align:center}.plan-rd .chips{flex-wrap:wrap;justify-content:center}.plan-rd .rd-hrow,.plan-rd .rd-front{gap:4px}.plan-rd .rd-faces{padding-left:0}.plan-rd .rd-faces .rd-zh{width:24px;font-size:0}}
 .ctz{flex:none;width:52px;box-sizing:border-box;border:1.5px dashed #ead27a;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.45) 0 5px,rgba(255,246,205,.25) 5px 10px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px}
 .ctz b{font:700 10px var(--f-mono);color:#2b2200;background:#fffdf3;border:1px solid #e3c766;border-radius:3px;padding:1px 4px;line-height:1.2}.ctz.h{width:auto;flex-direction:row;gap:8px;padding:3px 8px;min-height:28px}
 .ctz-k{display:inline-block;width:18px;height:14px;vertical-align:middle;margin-right:4px;border:1.5px dashed #ead27a;border-radius:3px;background:repeating-linear-gradient(45deg,rgba(250,228,140,.55) 0 3px,rgba(255,246,205,.25) 3px 6px)}
@@ -621,14 +621,14 @@ const LV=[1,2,3];
 /* au pied de chaque face de rack, une zone au sol (niveau 0, ex. D1.0) pour poser des boîtes un moment ; et une zone d'arrivée (ARR1) */
 const withFloor=L=>SKI?L:[...L,'ARR1'] /* ski : plus de zone d'arrivée, les arrivages vont dans les zones cartons Z */; /* plus de « niveau 0 » au pied des racks ; seulement la zone d'arrivée */
 const isFloor=e=>/\.0$/.test(e||'');
-const ZONES=RANDO?{ED:'Racks de l\'entrée (contre le mur)',A:'Rangée A, face à ED 1',BG:'Rangée B, côté allée (face à la rangée A)',BD:'Rangée B, côté mur',SD:'Skis debout le long du mur',ARR:'Zone d\'arrivée'}:SKI?{WS:'Femme · racks W, côté ski',WN:'Femme · racks W, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre',EN:'Rack de l\'entrée (contre le mur, à gauche de l\'entrée snow)',ED:'Racks de l\'entrée, à droite (contre le mur)',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'}
+const ZONES=RANDO?{ED:'Racks de l\'entrée (contre le mur)',AG:'Rangée A, côté snow (gauche)',AD:'Rangée A, côté allée (face à la rangée B)',BG:'Rangée B, côté allée (face à la rangée A)',BD:'Rangée B, côté mur',SD:'Skis debout le long du mur',ARR:'Zone d\'arrivée'}:SKI?{WS:'Femme · racks W, côté ski',WN:'Femme · racks W, côté snow',HG:'Homme · côté mur',HD:'Homme · côté allée',FS:'Fond, côté ski',MUR:'Skis · le long du mur',FEN:'Skis · le long de la fenêtre',EN:'Rack de l\'entrée (contre le mur, à gauche de l\'entrée snow)',ED:'Racks de l\'entrée, à droite (contre le mur)',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'}
   :{G:'Gauche',MG:'Milieu, côté gauche',MD:'Milieu, côté droit',D:'Droite',F:'Fond',E:'Étagère',BAV:'Bloc avant',BAR:'Bloc arrière',ARR:'Zone d\'arrivée, au sol devant M1 (fournisseur / retour magasin)'};
 /* ski : bottes femme sur les racks de gauche (face ski 1-3, face snow niveau 3 sauf G4, G0 niveau 3), bottes homme sur la rangée H (2 faces), fond côté ski, skis debout le long du mur et de la fenêtre */
 /* ski : racks de gauche et bottes homme ont 4 niveaux ; face snow des racks de gauche (GN) : niveaux 3 et 4 (les planches debout cachent 1 et 2), sauf G4 qui est au snow ; G0 : ski seulement */
 const LV4=[1,2,3,4];
 const LOCS=RANDO?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   [1,2].forEach(r=>[1,2,3].forEach(l=>add('ED',r,l))); /* ED1, ED2 : contre le mur de l'entrée ; niveau 1 skis debout, 2 et 3 boîtes */
-  for(let r=1;r<=6;r++)LV4.forEach(l=>add('A',r,l)); /* rangée face à ED1 : racks comme ceux du snow (244 × 62) ; niveaux à confirmer */
+  for(let r=1;r<=6;r++){LV4.forEach(l=>add('AG',r,l));LV4.forEach(l=>add('AD',r,l));} /* rangée face à ED1 : racks comme ceux du snow (244 de long), 4 niveaux, DEUX faces : AG côté snow (gauche), AD côté allée (droite) */
   for(let r=1;r<=4;r++){LV4.forEach(l=>add('BG',r,l));LV4.forEach(l=>add('BD',r,l));} /* rangée face à ED2 : 4 racks comme ED (362 × 117), 4 niveaux, DEUX faces : BG côté allée (rangée A), BD côté mur */
   for(let i=1;i<=8;i++)L.push('Z'+i); /* zones cartons au sol : Z1-Z2 devant ED1-ED2, Z3-Z4 devant A1 et B1 (côté entrée), Z5-Z8 dans l'allée côté mur, le long de B1-B4 */
   return L;})()
@@ -648,8 +648,8 @@ const LOCS=RANDO?(()=>{const L=[],add=(z,r,l)=>L.push(`${z}${r}.${l}`);
   return withFloor(L);})();
 function locLabel(c){if(c==='ARR1')return ZONES.ARR;if(RANDO&&/^Z\d+$/.test(c)){const n=+c.slice(1);return n<=2?`Zone cartons · au sol devant ED ${n} (40 cm)`:n===3?'Zone cartons · au sol devant A 1, côté entrée (40 cm)':n===4?'Zone cartons · au sol devant B 1, côté entrée (40 cm)':`Zone cartons · allée côté mur, le long de B ${n-4} (au sol, 50 cm)`;}if(c==='SD1')return ZONES.SD;if(c==='BM1')return 'Bout de M6, au sol (côté fond)';if(SKI&&!RANDO&&/^Z\d+$/.test(c)){const n=+c.slice(1);return n===1?'Zone cartons · au sol devant EN 1 (40 cm)':n<=3?`Zone cartons · au sol devant ED ${n-1} (40 cm)`:n<=9?`Zone cartons · allée côté mur, le long de H ${n-4} (au sol, 50 cm)`:'Zone cartons · au sol au bout de H 5 (côté fenêtre)';}const w=/^(MUR|FEN)(\d+)$/.exec(c||'');if(w)return `${ZONES[w[1]]} · zone ${w[2]}`;
   const m=/^([A-Z]+)(\d+)\.(\d+)$/.exec(c||'');if(!m)return c||'';const[,z,r,l]=m;
-  let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):z==='FS'&&r==='2'?'Fond, côté ski (ancien FS2, fusionné avec FS1)':['F','BAV','BAR','FS','EN'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${z==='WS'||z==='WN'?'W':z[0]==='H'?'H':z==='ED'?'ED':z==='A'?'A':z==='BG'||z==='BD'?'B':''}${r}`;
-  const hi=/^(G|WS|WN|HG|HD|A|BG|BD)$/.test(z)?'4':'3'; /* racks à 4 niveaux : le haut est le 4 */
+  let s=z==='E'?(r==='1'?'Étagère':`Étagère ${r}`):z==='FS'&&r==='2'?'Fond, côté ski (ancien FS2, fusionné avec FS1)':['F','BAV','BAR','FS','EN'].includes(z)?ZONES[z]:`${ZONES[z]} · rack ${z==='WS'||z==='WN'?'W':z[0]==='H'?'H':z==='ED'?'ED':z==='AG'||z==='AD'?'A':z==='BG'||z==='BD'?'B':''}${r}`;
+  const hi=/^(G|WS|WN|HG|HD|AG|AD|BG|BD)$/.test(z)?'4':'3'; /* racks à 4 niveaux : le haut est le 4 */
   return l==='0'?`${s} · au sol, au pied du rack`:`${s} · niveau ${l}${l==='1'?(z==='EN'||z==='ED'?' (bas, skis debout)':' (bas)'):l===hi?' (haut)':''}`;}
 
 /* ---------- Données ---------- */
@@ -721,7 +721,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}if(ty
 let role='entrepot';try{role=localStorage.getItem(KEY+'-role')||'entrepot';}catch(e){}
 const st={tab:'search',q:'',fType:'',fGenre:'',fMarque:'',fModele:'',fAnnee:'',fZone:'',fRack:'',fNiv:'',fCouleur:'',fSerrage:'',fTailles:[],focus:null,focusOrder:null,open:null,armed:null,sh:{step:null,v:{},hist:[],q:1},sq:'',sqType:''};
 if(role==='magasin')st.tab='cmd';
-const ZONE_OF=RANDO?{ED:'ED',A:'RA',BG:'RB',BD:'RB',SD:'SK',Z:'CT',ARR:'ARR'}:SKI?{WS:'BF',WN:'BF',HG:'BH',HD:'BH',BH:'BH',FS:'FS',MUR:'SK',FEN:'SK',EN:'EN',ED:'ED',ARR:'ARR',Z:'CT'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',BM:'M',ARR:'ARR'};
+const ZONE_OF=RANDO?{ED:'ED',AG:'RA',AD:'RA',BG:'RB',BD:'RB',SD:'SK',Z:'CT',ARR:'ARR'}:SKI?{WS:'BF',WN:'BF',HG:'BH',HD:'BH',BH:'BH',FS:'FS',MUR:'SK',FEN:'SK',EN:'EN',ED:'ED',ARR:'ARR',Z:'CT'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',BM:'M',ARR:'ARR'};
 const ZONE_LBL=RANDO?{ED:'Racks de l\'entrée',RA:'Rangée A (face à ED 1)',RB:'Rangée B (face à ED 2)',SK:'Skis debout',CT:'Zones cartons (au sol)',ARR:'Zone d\'arrivée'}:SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis',EN:'Rack de l\'entrée',ED:'Racks à droite de l\'entrée',ARR:'Zone d\'arrivée',CT:'Zones cartons (au sol)'}:{ARR:'Zone d\'arrivée',D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
 const zoneOf=emp=>ZONE_OF[(/^[A-Z]+/.exec(emp||'')||[''])[0]]||'';
 function sizeRankStr(t){if(/cm/.test(t))return 100+parseFloat(t);const n=parseFloat(t);if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
@@ -832,7 +832,7 @@ function filterBar(){
     return `<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Tous</option>${keys.map(k=>`<option value="${esc(k)}"${k===cur?' selected':''}>${esc(lblFn(k))} (${m.get(k)||0})</option>`).join('')}</select></div>`;};
   const alpha=(x,y)=>x.localeCompare(y);
   const tailles=facet('taille',a=>a.taille);const tk=[...new Set([...tailles.keys(),...st.fTailles])].sort((x,y)=>sizeRankStr(x)-sizeRankStr(y));
-  return `<input class="search" type="search" id="q" placeholder="${SKI?(role==='magasin'?'Ex. : lange 25.5, rossignol 168…':(RANDO?'Ex. : scarpa 26.5, dynafit, BG1.2…':'Ex. : lange 25.5, rossignol 168, WS1.2…')):role==='magasin'?'Ex. : ride sage 7 8, nitro L…':'Ex. : ride sage 7 8, nitro L, D1.2…'}" value="${esc(st.q)}" autocomplete="off">
+  return `<input class="search" type="search" id="q" placeholder="${SKI?(role==='magasin'?'Ex. : lange 25.5, rossignol 168…':(RANDO?'Ex. : scarpa 26.5, dynafit, AD1.2…':'Ex. : lange 25.5, rossignol 168, WS1.2…')):role==='magasin'?'Ex. : ride sage 7 8, nitro L…':'Ex. : ride sage 7 8, nitro L, D1.2…'}" value="${esc(st.q)}" autocomplete="off">
   <div class="filters">
     <div class="seg">${[['','Tout'],...Object.entries(TYPE)].map(([v,l])=>`<button type="button" data-ftype="${v}" aria-pressed="${st.fType===v}">${l}</button>`).join('')}</div>
     <div class="seg">${[['','H/F'],['H','Homme'],['F','Femme'],['U','Unisexe']].map(([v,l])=>`<button type="button" data-fgenre="${v}" aria-pressed="${st.fGenre===v}">${l}</button>`).join('')}</div>
@@ -886,7 +886,7 @@ const BOX_DEF={botte:{L:46,l:37,H:14.5},fix:{L:40,l:32,H:16},board:{L:155,l:30,H
 /* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
 const FSN=76; /* fond : profondeur du côté snow (F1), ajoutée à celle du côté ski pour FS2 qui est tout au ski */
 function locDims(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m||m[3]==='0')return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
-  if(RANDO){g=z==='ED'?d.locs['ED'+l]:z==='A'?d.locs['RA'+l]:z==='BG'||z==='BD'?d.locs['RB'+l]:null;o=d.over[code];const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(z[0]==='B'?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
+  if(RANDO){g=z==='ED'?d.locs['ED'+l]:z==='AG'||z==='AD'?d.locs['RA'+l]:z==='BG'||z==='BD'?d.locs['RB'+l]:null;o=d.over[code];const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^[AB][GD]$/.test(z)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
   if(SKI){g=z==='WS'||z==='WN'?d.locs['BF'+l]:z==='HG'||z==='HD'?d.locs['BH'+l]:z==='FS'?(d.locs['FS'+l]||d.locs.FS):z==='EN'?d.locs['EN'+l]:z==='ED'?d.locs['ED'+l]:null;o=d.over[code];const x=Object.assign({},g||{},o||{});
     const w5=z==='FS'?d.locs['BF'+l]||d.locs.BF1:null,wP=w5&&w5.P||0;
     if(z==='FS')return {L:x.L?x.L+wP:0,P:x.P||0,H:x.H||0,pose:(g&&g.pose)||'',deep:wP&&x.P?{len:wP,P:x.P+FSN}:null}; /* fond : FS1 + le bout derrière W5 (pleine profondeur) */
@@ -1086,7 +1086,7 @@ const P3D=(()=>{
   /* rayon rando : ED1-ED2 contre le mur de l'entrée (zones Z1-Z2 devant), une grande allée, puis les rangées qui s'enfoncent :
      A (face à ED1, racks comme le snow) et B (face à ED2, 4 racks comme ED, double face) ; Z3-Z4 au sol devant A1 et B1,
      Z5-Z8 au sol dans l'allée entre B et le mur ; le snow et le ski sont dessinés en gris */
-  function randoLayout(tops){const PAS=60,ZF=40,GAP=200,Z0=EDZ-PAS-40-GAP-ZF-15,AX=EDX+EDL/2-31,BX=EDX+EDL*1.5-EDP/2,WALL=EDX+EDL*2+20,CX=(BX+EDP+WALL)/2-25;
+  function randoLayout(tops){const PAS=60,ZF=40,GAP=200,Z0=EDZ-PAS-40-GAP-ZF-15,ADP=Math.max(62,dimOf('AG1.1').P*2||124),AX=EDX+EDL/2-ADP/2,BX=EDX+EDL*1.5-EDP/2,WALL=EDX+EDL*2+20,CX=(BX+EDP+WALL)/2-25;
     /* autres rayons, en gris */
     for(let r=1;r<=5;r++){const z=T-r*sG+(sG-DL)/2;const g=new T3.Mesh(new T3.BoxGeometry(62,200,DL),mGhost);g.position.set(Dx+31,100,z+DL/2);gR.add(g);
       const w=new T3.Mesh(new T3.BoxGeometry(Gw,200,DL),mGhost);w.position.set(Gx+Gw/2,100,z+DL/2);gR.add(w);}
@@ -1098,17 +1098,17 @@ const P3D=(()=>{
       cartonZone(`Z${r}`,x,EDZ-PAS-40,EDL-4,40,'x');floorText(`Z${r}`,x+EDL/2,EDZ-PAS-20,22);});
     floorText('ALLÉE',(AX+BX+EDP)/2,EDZ-PAS-40-GAP/2,34);
     /* rangée A : 6 racks de 244 × 62 (comme le snow), 4 niveaux ; rangée B : 4 racks de 362 × 117, 4 niveaux, double face */
-    for(let r=1;r<=6;r++)tops.push(rack({ax:'z',ox:AX,oz:Z0-r*246,fd:1,len:244,dep:62,levels:[1,2,3,4],nlev:4,code:l=>`A${r}.${l}`}));
+    for(let r=1;r<=6;r++)tops.push(rack({ax:'z',ox:AX,oz:Z0-r*246,fd:1,len:244,dep:ADP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`A${sd}${r}.${l}`})); /* AG côté snow, AD côté allée */
     for(let r=1;r<=4;r++){const z=Z0-r*364;tops.push(rack({ax:'z',ox:BX,oz:z,fd:1,len:362,dep:EDP,levels:[1,2,3,4],nlev:4,split:true,code:(l,sd)=>`B${sd}${r}.${l}`})); /* BG côté allée, BD côté mur */
-      cartonZone(`Z${r+4}`,CX,z+2,50,358);floorText(`Z${r+4}`,CX+25,z+181,22,Math.PI/2);} /* allée côté mur : 50 cm au milieu, le long de chaque rack B */
+      cartonZone(`Z${r+4}`,CX,z+30,50,302); /* 60 cm de passage entre deux zones */floorText(`Z${r+4}`,CX+25,z+181,22,Math.PI/2);} /* allée côté mur : 50 cm au milieu, le long de chaque rack B */
     /* Z3, Z4 : 40 cm au sol devant A1 et B1 (côté entrée), de la largeur du rack */
-    cartonZone('Z3',AX,Z0+15-ZF+ZF,62,ZF);floorText('Z3',AX+31,Z0+15+ZF/2,18);
+    cartonZone('Z3',AX,Z0+15,ADP,ZF);floorText('Z3',AX+ADP/2,Z0+15+ZF/2,20);
     cartonZone('Z4',BX,Z0+15,EDP,ZF);floorText('Z4',BX+EDP/2,Z0+15+ZF/2,20);
     {const z1=Z0-4*364-60,m=new T3.Mesh(new T3.PlaneGeometry(8,EDZ+EDP-z1),new T3.MeshBasicMaterial({color:0x5b6573}));m.rotation.x=-Math.PI/2;m.position.set(WALL,.9,(EDZ+EDP+z1)/2);gR.add(m);floorText('MUR',WALL-20,z1+60,20,Math.PI/2);}
     const TOP=Math.max(...tops),yT=TOP+30;
-    for(let r=1;r<=6;r++)sprite(`A${r}`,AX+31,yT,Z0-r*246+122,28);for(let r=1;r<=4;r++)sprite(`B${r}`,BX+EDP/2,yT,Z0-r*364+181,30);
+    for(let r=1;r<=6;r++)sprite(`A${r}`,AX+ADP/2,yT,Z0-r*246+122,28);for(let r=1;r<=4;r++)sprite(`B${r}`,BX+EDP/2,yT,Z0-r*364+181,30);
     sprite('ED1',EDX+EDL/2,yT,EDZ+58,26);sprite('ED2',EDX+EDL*1.5,yT,EDZ+58,26);
-    floorText('ALLÉE',(AX+62+BX)/2,Z0-700,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);}
+    floorText('ALLÉE',(AX+ADP+BX)/2,Z0-700,34,Math.PI/2);floorText('▲ ENTRÉE',Mx+Mw/2,T+150+MSH,60);}
   function buildRacks(){if(gR){scene.remove(gR);gR.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();});}
     gR=new T3.Group();scene.add(gR);hitsL=[];const tops=[];
     if(RANDO){randoLayout(tops);return;}
@@ -1321,11 +1321,11 @@ const P3D=(()=>{
 /* plan 2D du rayon rando, sur le modèle du plan ski : en haut le fond, en bas l'entrée.
    Rangée A au-dessus de ED1, rangée B au-dessus de ED2 avec ses zones au sol côté mur ; Z3 et Z4 devant A1 et B1 ; grande allée ; Z1-Z2 puis ED1-ED2 */
 function planRando(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=(c,cls='')=>`<div class="ctz ${cls}" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`;
-  let a='',b='';for(let r=6;r>=1;r--)a+=row(`A${r}`,chips('A',r,H,count,LV4,LV4));
+  let a='',b='';for(let r=6;r>=1;r--)a+=row(`A${r}`,`<div class="mrow">${chips('AG',r,H,count,LV4,LV4)}<i class="sep"></i>${chips('AD',r,H,count,LV4,LV4)}</div>`);
   for(let r=4;r>=1;r--)b+=`<div class="rd-hrow">${row(`B${r}`,`<div class="mrow">${chips('BG',r,H,count,LV4,LV4)}<i class="sep"></i>${chips('BD',r,H,count,LV4,LV4)}</div>`)}${ctz('Z'+(r+4))}</div>`;
   return `<div class="plan-wrap"><div class="plan-rd">
     <div class="rd-snow zone-lbl">rayon snow</div>
-    <div class="rd-col rd-a"><div class="mface rd-h">RANGÉE A · face à ED 1</div>${a}<div class="rd-front">${ctz('Z3','h')}</div></div>
+    <div class="rd-col rd-a"><div class="mface rd-h rd-faces"><span>côté snow</span><span>côté allée</span></div>${a}<div class="rd-front">${ctz('Z3','h')}</div></div>
     <div class="rd-al zone-lbl">allée</div>
     <div class="rd-col rd-b"><div class="mface rd-h rd-faces"><span>côté allée</span><span>côté mur</span><span class="rd-zh">au sol</span></div>${b}<div class="rd-hrow rd-front">${ctz('Z4','h')}<div class="ctz-sp"></div></div></div>
     <div class="rd-wall zone-lbl">mur</div>
@@ -1333,7 +1333,7 @@ function planRando(H,count){const row=(lbl,inner)=>`<div class="rack"><span clas
     <div class="rd-ent"><span>▲ Entrée</span></div>
     <div class="rd-ed">${ctz('Z1','h')}<div class="pass">↕ passage</div>${row('ED1',chips('ED',1,H,count))}</div>
     <div class="rd-ed rd-ed2">${ctz('Z2','h')}<div class="pass">↕ passage</div>${row('ED2',chips('ED',2,H,count))}</div>
-    <div class="rd-note mface">ED : contre le mur de l'entrée · niveau 1 skis debout · rangée B : 2 faces (côté allée, côté mur)</div></div></div>
+    <div class="rd-note mface">ED : contre le mur de l'entrée · niveau 1 skis debout · rangées A et B : 2 faces</div></div></div>
     <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 /* plan 2D du rayon ski */
 function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=(c,cls='')=>`<div class="ctz ${cls}" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`,hrow=(c,rk)=>`<div class="hrow">${c?ctz(c):'<div class="ctz-sp"></div>'}${rk}</div>`;
@@ -1782,7 +1782,7 @@ function inventaireXlsx(){
    Capacité par défaut = l'emplacement le plus rempli du groupe (considéré comme plein). */
 const CAP_GROUPS=RANDO?{ED:'Racks ED 1-ED 2 (niveaux 2 et 3)',RA:'Rangée A (face à ED 1)',RB:'Rangée B (face à ED 2)'}:SKI?{BF:'Bottes femme (racks W)',BH:'Bottes homme',FS:'Fond, côté ski',EN:'Rack de l\'entrée (niveaux 2 et 3)'}:{D12:'Droite · niveaux 1 et 2',D3:'Droite · niveau 3',M12:'Milieu (côtés G et D) · niveaux 1 et 2',M3:'Milieu (côtés G et D) · niveau 3',G:'Gauche (G4 niveaux 3-4, G0 niveaux 1-2) · côté snow'};
 function capGroup(emp){const m=/^([A-Z]+)\d+\.(\d)$/.exec(emp||'');if(!m||m[2]==='0')return null;
-  if(RANDO)return m[1]==='A'?'RA':m[1]==='BG'||m[1]==='BD'?'RB':m[1]==='ED'?(m[2]==='1'?null:'ED'):null;
+  if(RANDO)return m[1]==='AG'||m[1]==='AD'?'RA':m[1]==='BG'||m[1]==='BD'?'RB':m[1]==='ED'?(m[2]==='1'?null:'ED'):null;
   if(SKI)return m[1]==='WS'||m[1]==='WN'?'BF':m[1]==='HG'||m[1]==='HD'?'BH':m[1]==='FS'?'FS':m[1]==='EN'?(m[2]==='1'?null:'EN'):m[1]==='ED'?(m[2]==='1'?null:'ED'):null;
   if(m[1]==='D')return m[2]==='3'?'D3':'D12';if(m[1]==='MG'||m[1]==='MD')return m[2]==='3'?'M3':'M12';if(m[1]==='G')return LOCS.includes(emp)?'G':null; /* seulement G4.3 et G4.4 */return null;}
 function occMap(){const o={};S.articles.forEach(a=>{const x=o[a.emp]=o[a.emp]||{botte:0,fix:0,board:0,f:0};const q=qOf(a);x[a.type]=(x[a.type]||0)+q;const c=q&&slotCap(a.emp,boxOf(a));if(c)x.f+=q/c;});return o;}
@@ -2063,7 +2063,7 @@ function arrValidate(){const A=arr(),T=!!A.test,realA=S.articles,realB=S.brands,
    S.dims = {locs:{D12:{L,P,H,pose},...}, over:{emp:{L,P,H}}, boxes:[{id,type,marque,modele,from,to,L,l,H}]}
    Pas encore utilisé pour le calcul : on collecte d'abord les mesures. */
 const DIM_GROUPS=RANDO?{ED1:['Racks ED 1-ED 2 · niveau 1 (skis debout)','Profondeur'],ED2:['Racks ED 1-ED 2 · niveau 2 (boîtes)','Profondeur'],ED3:['Racks ED 1-ED 2 · niveau 3 (boîtes, haut)','Profondeur'],
-  RA1:['Rangée A · niveau 1','Profondeur'],RA2:['Rangée A · niveau 2','Profondeur'],RA3:['Rangée A · niveau 3','Profondeur'],RA4:['Rangée A · niveau 4','Profondeur'],
+  RA1:['Rangée A · niveau 1 (2 faces)','Profondeur totale'],RA2:['Rangée A · niveau 2 (2 faces)','Profondeur totale'],RA3:['Rangée A · niveau 3 (2 faces)','Profondeur totale'],RA4:['Rangée A · niveau 4 (2 faces)','Profondeur totale'],
   RB1:['Rangée B · niveau 1 (2 faces)','Profondeur totale'],RB2:['Rangée B · niveau 2 (2 faces)','Profondeur totale'],RB3:['Rangée B · niveau 3 (2 faces)','Profondeur totale'],RB4:['Rangée B · niveau 4 (2 faces)','Profondeur totale']}:SKI?{BF1:['Racks W (bottes femme) · niveau 1','Profondeur d\'une face'],BF2:['Racks W (bottes femme) · niveau 2','Profondeur d\'une face'],BF3:['Racks W (bottes femme) · niveau 3','Profondeur d\'une face'],BF4:['Racks W (bottes femme) · niveau 4','Profondeur d\'une face'],
   BH1:['Bottes homme · niveau 1 (2 faces)','Profondeur totale'],BH2:['Bottes homme · niveau 2 (2 faces)','Profondeur totale'],BH3:['Bottes homme · niveau 3 (2 faces)','Profondeur totale'],BH4:['Bottes homme · niveau 4 (2 faces)','Profondeur totale'],FS1:['Fond, côté ski · niveau 1 (bas)','Profondeur de la moitié côté ski'],FS2:['Fond, côté ski · niveau 2','Profondeur de la moitié côté ski'],FS3:['Fond, côté ski · niveau 3 (haut)','Profondeur de la moitié côté ski'],EN1:['Rack de l\'entrée · niveau 1 (skis debout)','Profondeur'],EN2:['Rack de l\'entrée · niveau 2 (bottes)','Profondeur'],EN3:['Rack de l\'entrée · niveau 3 (bottes)','Profondeur'],ED1:['Racks ED1-ED2 (à droite de l\'entrée) · niveau 1 (skis debout)','Profondeur'],ED2:['Racks ED1-ED2 (à droite de l\'entrée) · niveau 2 (boîtes)','Profondeur'],ED3:['Racks ED1-ED2 (à droite de l\'entrée) · niveau 3 (boîtes, haut)','Profondeur']}:{D12:['Droite · niveaux 1 et 2','Profondeur'],D3:['Droite · niveau 3','Profondeur'],
   G1:['Gauche · niveau 1 (tous les racks G ; hauteur vide = celle de D1.1)','Profondeur côté snow'],G2:['Gauche · niveau 2 (tous les racks G)','Profondeur côté snow'],G3:['Gauche · niveau 3 (tous les racks G)','Profondeur côté snow'],G4:['Gauche · niveau 4 (tous les racks G, sans dessus)','Profondeur côté snow'],
@@ -2072,7 +2072,7 @@ const DIM_GROUPS=RANDO?{ED1:['Racks ED 1-ED 2 · niveau 1 (skis debout)','Profon
 const DIM_SECS=RANDO?[
   ['➡ Entrée · ED 1 et ED 2','Contre le mur de l’entrée. Niveau 1 : skis debout ; niveaux 2 et 3 : boîtes.',
     [['ED1','Niveau 1 (skis debout)'],['ED2','Niveau 2 (boîtes)'],['ED3','Niveau 3 (boîtes, haut)']]],
-  ['🅰 Rangée A · A 1 à A 6 (face à ED 1)','Racks de la même taille que ceux du snow (244 × 62). <b>Nombre de niveaux et hauteurs à confirmer.</b>',
+  ['🅰 Rangée A · A 1 à A 6 (face à ED 1, double face)','Racks de la même longueur que ceux du snow (244), 4 niveaux, <b>double face</b> (côté snow AG + côté allée AD, chacun son stock) : mesurez la <b>profondeur totale</b>. <b>Hauteurs à mesurer.</b>',
     [['RA1','Niveau 1 (bas)'],['RA2','Niveau 2'],['RA3','Niveau 3'],['RA4','Niveau 4 (haut)']]],
   ['🅱 Rangée B · B 1 à B 4 (face à ED 2, double face)','4 racks de la même taille que ED (362 × 117), 4 niveaux, <b>double face</b> (côté allée BG + côté mur BD, chacun son stock) : mesurez la <b>profondeur totale</b>. <b>Hauteurs à mesurer.</b>',
     [['RB1','Niveau 1 (bas)'],['RB2','Niveau 2'],['RB3','Niveau 3'],['RB4','Niveau 4 (haut)']]]
@@ -2093,7 +2093,7 @@ const DIM_SECS=RANDO?[
     [['M1','Niveau 1 (bas)'],['M2','Niveau 2'],['M3','Niveau 3 (haut)']]],
   ['⬆ Fond · F 1','Moitié <b>côté snow</b> du rack du fond ; l’autre moitié (FS1, contre W5) est au <b>rayon ski</b>.',
     [['F1','Niveau 1 (bas)','autre moitié : rayon ski'],['F2','Niveau 2','autre moitié : rayon ski'],['F3','Niveau 3 (haut)','autre moitié : rayon ski']]]];
-const DIM_SEC_RX=RANDO?[/^ED/,/^A\d/,/^B[GD]?\d/]:SKI?[/^W[SN]/,/^H[GD]/,/^EN/,/^FS/]:[/^D/,/^G/,/^M/,/^F\d/];
+const DIM_SEC_RX=RANDO?[/^ED/,/^A[GD]?\d/,/^B[GD]?\d/]:SKI?[/^W[SN]/,/^H[GD]/,/^EN/,/^FS/]:[/^D/,/^G/,/^M/,/^F\d/];
 /* Au milieu, MG et MD du même rack et du même niveau sont une seule étagère : on la note M (ex. M3.2) */
 const DIM_LOCS=[...new Set(LOCS.filter(capGroup).map(e=>e.replace(/^M[GD]/,'M')))];
 const dimRank=e=>{const i=DIM_LOCS.indexOf(e);return i<0?999:i;};
@@ -2101,7 +2101,7 @@ const POSE={plat:'À plat',tranche:'Sur la tranche',mixte:'À plat devant + sur 
 const dims=()=>{const d=S.dims=S.dims||{};d.locs=d.locs||{};
   if(SKI&&!RANDO&&!d.locs.EN2){d.locs.EN1=d.locs.EN1||{L:244,P:76,H:180};d.locs.EN2={L:244,P:76,H:49};d.locs.EN3=d.locs.EN3||{L:244,P:76,H:49};} /* rack de l'entrée : 244 × 76 × 49 ; niveau 1 haut pour les skis debout */
   if(RANDO&&!d.locs.ED1){d.locs.ED1={L:362,P:117,H:188};d.locs.ED2=d.locs.ED2||{L:362,P:117,H:80};d.locs.ED3=d.locs.ED3||{L:362,P:117,H:80};} /* reprises des mesures du ski */
-  if(RANDO&&!d.locs.RB1)[1,2,3,4].forEach(l=>{d.locs['RB'+l]=d.locs['RB'+l]||{L:362,P:117};d.locs['RA'+l]=d.locs['RA'+l]||{L:244,P:62};}); /* longueur et profondeur connues, hauteurs à mesurer */ /* ED1-ED2 : 3 niveaux (1 skis debout, 2 et 3 boîtes) */ /* ED1 et ED2 : 362 × 117 ; niveau 1 skis (188), niveau 2 boîtes (80) */
+  if(RANDO&&!d.locs.RB1)[1,2,3,4].forEach(l=>{d.locs['RB'+l]=d.locs['RB'+l]||{L:362,P:117};d.locs['RA'+l]=d.locs['RA'+l]||{L:244,P:124};}); /* longueur et profondeur connues, hauteurs à mesurer */ /* ED1-ED2 : 3 niveaux (1 skis debout, 2 et 3 boîtes) */ /* ED1 et ED2 : 362 × 117 ; niveau 1 skis (188), niveau 2 boîtes (80) */
   /* ancien groupe « milieu niveaux 1 et 2 » : ses mesures sont reprises pour les niveaux 1 et 2, séparés */
   if(d.locs.M12){['M1','M2'].forEach(k=>{if(!d.locs[k])d.locs[k]={...d.locs.M12};});delete d.locs.M12;}
   if(d.over)Object.keys(d.over).forEach(e=>{if(/^M[GD]\d/.test(e)){const m=e.replace(/^M[GD]/,'M');if(!d.over[m])d.over[m]=d.over[e];delete d.over[e];}});d.over=d.over||{};d.boxes=d.boxes||[];return d;};
