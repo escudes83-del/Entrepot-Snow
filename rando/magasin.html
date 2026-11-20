@@ -310,7 +310,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .plan-rd{display:grid;grid-template-columns:26px max-content 34px max-content 26px;justify-content:center;grid-template-areas:"snow a al b wall" "gap gap gap gap gap" "ent ed1 . ed2 ." ". note note note .";gap:8px;align-items:stretch;max-width:1000px;margin:0 auto}
 .plan-rd .rd-snow{grid-area:snow}.plan-rd .rd-a{grid-area:a}.plan-rd .rd-al{grid-area:al}.plan-rd .rd-b{grid-area:b}
 .plan-rd .rd-wall{grid-area:wall;border-left:4px solid var(--line-strong);padding-left:4px}
-.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:start}.plan-rd .rd-a>.rack,.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:56px;box-sizing:border-box}.plan-rd .rd-b>.rd-hrow:not(.rd-front){gap:30px}.plan-rd .rd-hrow>.ctz{margin:-3px 0;border-radius:0}.plan-rd .rd-b>.rd-hrow:nth-child(2)>.ctz{border-top-left-radius:4px;border-top-right-radius:4px}.plan-rd .rd-b>.rd-hrow:nth-child(5)>.ctz{border-bottom-left-radius:4px;border-bottom-right-radius:4px}.plan-rd .rd-front.rd-hrow{gap:30px}
+.plan-rd .rd-col{display:flex;flex-direction:column;gap:6px;align-self:end} /* alignées côté entrée : A1 en face de B1, la rangée A va plus loin vers le fond */.plan-rd .rd-a>.rack,.plan-rd .rd-b>.rd-hrow:not(.rd-front){height:56px;box-sizing:border-box}.plan-rd .rd-b>.rd-hrow:not(.rd-front){gap:30px}.plan-rd .rd-hrow:not(.rd-front)>.ctz{margin:-3px 0;border-radius:0}.plan-rd .rd-b>.rd-hrow:nth-child(2)>.ctz{border-top-left-radius:4px;border-top-right-radius:4px}.plan-rd .rd-b>.rd-hrow:nth-child(5)>.ctz{border-bottom-left-radius:4px;border-bottom-right-radius:4px}.plan-rd .rd-front.rd-hrow{gap:30px}
 .plan-rd .rd-hrow{display:flex;gap:10px;align-items:stretch}.plan-rd .rd-hrow>.rack{flex:1}
 .plan-rd .rd-front{display:flex;gap:10px}.plan-rd .rd-front>.ctz{flex:1;width:auto}
 .plan-rd .rd-h{min-height:16px}.plan-rd .rd-faces{display:flex;gap:10px;padding-left:34px}.plan-rd .rd-faces span{flex:1;text-align:center}.plan-rd .rd-faces .rd-zh{flex:none;width:52px;margin-left:20px}
@@ -365,6 +365,11 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .bstate{font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface-2)}
 .bgrp-b{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 10px}.bgrp-b .btn{min-height:44px}
 .bgrp .lrow{border-top:1px solid var(--line);margin:0;border-radius:0}
+.lcard{display:flex;flex-direction:column;gap:6px;padding:10px 12px}
+.bgrp .lrow.lcard{border:1.5px solid var(--line-strong);border-radius:10px;margin:8px 12px}
+.lc-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.lc-st{margin-left:auto}
+.lc-name{font-weight:700;font-size:17px;line-height:1.25}.lc-d{color:var(--muted);font-size:15px}
+.lcard .lctl-w{margin-top:2px}
 .bgrp.b-free{border-left-color:var(--line-strong)}
 .bgrp.b-mine{border-left-color:var(--accent)}.bgrp.b-mine .bstate{background:var(--accent);color:var(--accent-ink)}
 .bgrp.b-busy{border-left-color:#f59e0b;opacity:.85}.bgrp.b-busy .bstate{background:#f59e0b;color:#1f1300}
@@ -1396,7 +1401,8 @@ function lineRow(o,l,i){
   const code=a?`<button type="button" class="code" data-act="locate" data-id="${a.id}">${esc(a.emp)}</button>`:`<span class="code none">${l.aid?'supprimé':'à chercher'}</span>`;
   const title=a?esc(artName(a)):l.aid?'Article supprimé du catalogue':`« ${esc(l.txt)} »`;
   const live=a&&(o.status==='demandee'||o.status==='prep'); /* avant préparation : montrer le stock disponible */
-  const desc=a?esc(artDesc(a))+`<br><span class="opt">📍 ${esc(locLabel(a.emp))}</span>`+(live?` · <b class="qn${qOf(a)?'':' zero'}">Stock ${qOf(a)}</b>${qOf(a)<l.qty?' <span class="pill ln-rupture">stock insuffisant</span>':''}`:''):l.txt?'Demande en texte libre':'';
+  /* l'essentiel seulement : type · homme/femme · taille ; le stock n'apparaît que s'il ne suffit pas */
+  const desc=a?esc([TYPE[a.type],GENRE[a.genre],szLbl(a.type,a.taille)].filter(Boolean).join(' · '))+(live&&qOf(a)<l.qty?` <span class="pill ln-rupture">${qOf(a)?`plus que ${qOf(a)} en stock`:'rupture de stock'}</span>`:''):l.txt?'Demande en texte libre':'';
   const done=doneOf(l),mine=l.by&&l.by===me(),open=role==='entrepot'&&(o.status==='demandee'||o.status==='prep');
   let ctl='';
   if(open){
@@ -1413,7 +1419,9 @@ function lineRow(o,l,i){
   const right=l.st==='cours'?`<span class="lpill ${mine?'mine':'busy'}">En cours${l.by?' · '+esc(l.by):''}</span>`
     :(l.st==='ok'||l.st==='rupture')?`<span class="lpill ${l.st==='rupture'||done<l.qty?'short':'ok'}">${l.st==='rupture'?'✕ Rupture':'✓ Validée'} · ${done}/${l.qty}${l.by&&open?' · '+esc(l.by):''}</span>`
     :open?`<span class="lpill free">Libre</span>`:'';
-  return `<div class="row lrow ls-${l.st||'none'}">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><div class="main"><div class="t">${title}</div><div class="d">${desc}</div></div><div class="acts">${right}</div>${ctl?`<div class="lctl-w">${ctl}</div>`:''}</div>`;}
+  /* un cadre par modèle : emplacement + quantité + état en haut, puis le modèle, puis les boutons */
+  return `<div class="lrow lcard ls-${l.st||'none'}"><div class="lc-top">${code}<span class="qbig" title="Quantité demandée">×${l.qty}</span><span class="lc-st">${right}</span></div>
+    <div class="lc-name">${title}</div><div class="lc-d">${desc}</div>${ctl?`<div class="lctl-w">${ctl}</div>`:''}</div>`;}
 const me=()=>(S.myName||'').trim();
 /* Numéro affiché d'une commande : JJMM-rang (ex. 1011-2 = 2e commande du 10 novembre). Les anciennes gardent leur numéro. */
 const onum=o=>o&&(o.num||String(o.id));
