@@ -338,6 +338,15 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .mvhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.mvhead .btn{margin-left:auto}
 .mvdone{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
 .arrlog{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.locpick-b{width:100%;justify-content:flex-start;gap:8px;text-align:left;min-height:46px}.locpick-b .mono{font-size:17px}.locpick-b small{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.locpick{margin-top:6px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);max-height:min(60vh,460px);overflow:auto;padding:4px 8px 10px}
+.lp-sec{padding:8px 0;border-bottom:1px solid var(--line)}.lp-sec:last-child{border-bottom:0}
+.lp-t{font-weight:700;font-size:14px;margin:2px 0 6px;position:sticky;top:-4px;background:var(--surface);padding:2px 0;z-index:1}
+.lp-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}.lp-row.lp-gap{margin-top:12px}
+.lp-h span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:center}
+.lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+.lp-c{font:600 15px var(--f-mono);padding:9px 6px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);cursor:pointer;text-align:center}
+.lp-c.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.lp-c.lp-x{visibility:hidden}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 .jr{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.jr.off{opacity:.55}.jr-l{color:var(--muted);margin-top:2px}
 .boxask{margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--warn-bg);color:var(--ink);display:flex;flex-direction:column;gap:6px}
@@ -2537,6 +2546,28 @@ function openLoc(code){
 function locOptions(cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
   const old=cur&&!LOCS.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)} (n'existe plus, à changer)</option>`:'';
   return old+Object.entries(groups).map(([z,cs])=>`<optgroup label="${ZONES[z]}">${cs.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('')}</optgroup>`).join('');}
+/* Choix de l'emplacement en grille : les deux faces d'un même rack sur la même ligne (ex. HG 0.1 | HD 0.1) */
+const LOC_PAIRS=[['HG','HD'],['WS','WN'],['MG','MD'],['AG','AD'],['BG','BD']];
+function locGrid(id,cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
+  const cell=c=>c?`<button type="button" class="lp-c${c===cur?' on':''}" data-act="lppick" data-for="${id}" data-v="${c}">${spc(c)}</button>`:'<span class="lp-c lp-x"></span>';
+  const rk=c=>(/^[A-Z]+(\d+)\./.exec(c)||[])[1];
+  const done=new Set();let h='';
+  Object.keys(groups).forEach(z=>{if(done.has(z))return;
+    const pr=LOC_PAIRS.find(([a,b])=>(a===z||b===z)&&groups[a]&&groups[b]);
+    if(pr){const [a,b]=pr;done.add(a);done.add(b);
+      const la=ZONES[a]||a,lb=ZONES[b]||b,ia=la.lastIndexOf(' · '),ib=lb.lastIndexOf(' · ');
+      const same=ia>0&&ib>0&&la.slice(0,ia)===lb.slice(0,ib),title=same?la.slice(0,ia):`${la} / ${lb}`;
+      const keys=[...new Set([...groups[a],...groups[b]].map(c=>c.replace(/^[A-Z]+/,'')))];
+      const rows=keys.sort((x,y)=>parseFloat(x)-parseFloat(y)||x.localeCompare(y)).map((k,i,arr)=>`<div class="lp-row${i&&rk(a+k)!==rk(a+arr[i-1])?' lp-gap':''}">${cell(groups[a].includes(a+k)?a+k:'')}${cell(groups[b].includes(b+k)?b+k:'')}</div>`).join('');
+      h+=`<div class="lp-sec"><div class="lp-t">${esc(title)}</div><div class="lp-row lp-h"><span>${esc(same?la.slice(ia+3):la)}</span><span>${esc(same?lb.slice(ib+3):lb)}</span></div>${rows}</div>`;}
+    else{done.add(z);h+=`<div class="lp-sec"><div class="lp-t">${esc(ZONES[z]||z)}</div><div class="lp-grid">${groups[z].map(cell).join('')}</div></div>`;}});
+  return h;}
+function locPicker(id,cur){const old=cur&&!LOCS.includes(cur);
+  return `<input type="hidden" id="${id}" value="${esc(cur||'')}"><button type="button" class="btn locpick-b" data-act="lpopen" data-for="${id}" aria-expanded="false"><b class="mono" data-lpv="${id}">${cur?spc(cur):'Choisir…'}</b> <small class="opt" data-lpl="${id}">${cur?esc(old?'n\'existe plus, à changer':locLabel(cur)):''}</small><span class="lp-ar">▾</span></button>
+    <div class="locpick" id="lp-${id}" hidden>${locGrid(id,cur)}</div>`;}
+/* après un changement par le code (conseil de rangement…) : remettre le bouton à jour */
+function lpSync(id){const i=document.getElementById(id);if(!i)return;const v=i.value,b=document.querySelector(`[data-lpv="${id}"]`),l=document.querySelector(`[data-lpl="${id}"]`);
+  if(b)b.textContent=v?spc(v):'Choisir…';if(l)l.textContent=v?locLabel(v):'';document.querySelectorAll(`#lp-${id} .lp-c[data-v]`).forEach(x=>x.classList.toggle('on',x.dataset.v===v));}
 function sizeOptions(type,cur){const arr=sizesOf(type);const list=cur&&!arr.includes(cur)?[cur,...arr]:arr;return list.map(s=>`<option${s===cur?' selected':''}>${esc(s)}</option>`).join('');}
 /* Reprend l'écriture existante si on tape « ride » alors que « Ride » existe déjà */
 function sameAs(v,list){if(!v)return'';const n=norm(v);return list.find(x=>norm(x)===n)||v;}
@@ -2560,7 +2591,7 @@ function openArt(id,code,tplId){
       ${multi?'':`<div class="field"><label for="f-taille" id="f-taille-lbl">Taille${a.type==='botte'?' (US ou cm)':''}</label><select id="f-taille">${sizeOptions(a.type,a.taille)}</select></div>`}
       ${multi?'':`<div class="field"><label for="f-qty">Quantité</label><div class="stepper" style="align-items:flex-start"><div class="in"><button type="button" data-fq="__one" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" id="f-qty" min="0" max="999" value="${qOf(a)}" inputmode="numeric"><button type="button" data-fq="__one" data-d="1" aria-label="Plus">+</button></div></div></div>`}
       <div class="field"><label for="f-annee">Année</label><input type="number" id="f-annee" value="${esc(a.annee)}" min="2000" max="2100"></div>
-      <div class="field"><label for="f-emp">Emplacement</label><select id="f-emp">${locOptions(a.emp)}</select></div>
+      <div class="field"><span class="lbl-s">Emplacement</span>${locPicker('f-emp',a.emp)}</div>
       <div class="field"><label for="f-couleur">Couleur <small class="opt">facultatif</small></label><input type="text" id="f-couleur" list="dl-couleurs" value="${esc(a.couleur||'')}" placeholder="Ex. : black, blanc/rose…" autocomplete="off">
         <datalist id="dl-couleurs">${colorOpts()}</datalist></div>
       <div class="field" id="f-serrage-w"${a.type==='botte'?'':' hidden'}><label for="f-serrage">Serrage <small class="opt">facultatif</small></label><select id="f-serrage"><option value="">Non précisé</option>${Object.entries(SERRAGE).map(([k,l])=>`<option value="${k}"${k===a.serrage?' selected':''}>${l}</option>`).join('')}</select></div>
@@ -2611,7 +2642,7 @@ function openArt(id,code,tplId){
     w._res=res;}
   renderSizes();
   f.addEventListener('click',e=>{
-    const wo=e.target.closest('[data-fwhere]');if(wo){const r=$('#f-where')._res[+wo.dataset.fwhere];whereSel=r;$('#f-emp').value=r.emp;renderSizes();return;}
+    const wo=e.target.closest('[data-fwhere]');if(wo){const r=$('#f-where')._res[+wo.dataset.fwhere];whereSel=r;$('#f-emp').value=r.emp;lpSync('f-emp');renderSizes();return;}
     const z=e.target.closest('[data-fz]');if(z){readRows();const s=z.dataset.fz;if(rows.some(r=>r.s===s))rows=rows.filter(r=>r.s!==s);else rows.push({k:'r'+(++nk),s,c:'',q:1});renderSizes();return;}
     const ad=e.target.closest('[data-fadd]');if(ad){readRows();const last=rows[rows.length-1];const k='r'+(++nk);rows.push({k,s:last?last.s:sizeList()[0],c:'',q:1});renderSizes();const c=f.querySelector(`[data-fc="${k}"]`);if(c)c.focus();return;}
     const dl=e.target.closest('[data-fdel]');if(dl){readRows();rows=rows.filter(r=>r.k!==dl.dataset.fdel);renderSizes();return;}
@@ -2684,7 +2715,7 @@ function openModel(id){
       <div class="field"><label for="m-modele">Modèle</label><input type="text" id="m-modele" value="${esc(a0.modele)}" autocomplete="off" autocapitalize="words"></div>
       <div class="field"><label for="m-genre">Homme / Femme</label><select id="m-genre">${Object.entries(GENRE).map(([k,l])=>`<option value="${k}"${k===a0.genre?' selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="m-annee">Année</label><input type="number" id="m-annee" value="${yrs.length===1?esc(yrs[0]):''}" placeholder="${yrs.length>1?'plusieurs':''}" min="2000" max="2100">${yrs.length>1?mixed:''}</div>
-      <div class="field"><label for="m-emp">Emplacement</label><select id="m-emp">${locOptions(a0.emp)}</select></div>
+      <div class="field"><span class="lbl-s">Emplacement</span>${locPicker('m-emp',a0.emp)}</div>
       ${bot?`<div class="field"><label for="m-serrage">Serrage <small class="opt">facultatif</small></label><select id="m-serrage">${sers.length>1?'<option value="__keep" selected>Laisser tel quel</option>':''}<option value="">Non précisé</option>${Object.entries(SERRAGE).map(([k,l])=>`<option value="${k}"${sers.length===1&&k===sers[0]?' selected':''}>${l}</option>`).join('')}</select></div>`:''}
     </div>
     <div class="card" style="gap:8px">
@@ -2810,6 +2841,9 @@ document.addEventListener('click',e=>{
     case'mvgo':{const to=($('#mvTo')||{}).value;if(!to){toast('Choisissez d\'abord <b>où les mettre</b>');$('#mvTo')&&$('#mvTo').focus();break;}
       const pairs=Object.entries(st.mv||{}).map(([id,k])=>[art(id),k]).filter(x=>x[0]);const n=moveArticles(pairs,to,st.mvSide||'G');st.mv={};st.mvTo='';render();
       if(n)toast(`<b>${n} boîte${n>1?'s':''}</b> déplacée${n>1?'s':''} vers <b>${esc(to)}</b>`);else toast(`Ces boîtes sont déjà en <b>${esc(to)}</b>`);break;}
+    case'lpopen':{const p=document.getElementById('lp-'+t.dataset.for);if(!p)break;p.hidden=!p.hidden;t.setAttribute('aria-expanded',String(!p.hidden));if(!p.hidden){const on=p.querySelector('.lp-c.on');(on||p).scrollIntoView({block:'nearest'});}break;}
+    case'lppick':{const id=t.dataset.for,i=document.getElementById(id);if(!i)break;i.value=t.dataset.v;lpSync(id);const p=document.getElementById('lp-'+id);if(p)p.hidden=true;
+      const b=document.querySelector(`[data-act="lpopen"][data-for="${id}"]`);if(b){b.setAttribute('aria-expanded','false');b.focus();}i.dispatchEvent(new Event('change',{bubbles:true}));break;}
     case'mvundo':undoLastMove();break;
     case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
     case'setsec':st.setSec=t.dataset.v||'';render();window.scrollTo(0,0);break;
