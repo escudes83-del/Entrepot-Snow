@@ -2551,6 +2551,9 @@ const LOC_PAIRS=[['HG','HD'],['WS','WN'],['MG','MD'],['AG','AD'],['BG','BD']];
 function locGrid(id,cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
   const cell=c=>c?`<button type="button" class="lp-c${c===cur?' on':''}" data-act="lppick" data-for="${id}" data-v="${c}">${spc(c)}</button>`:'<span class="lp-c lp-x"></span>';
   const rk=c=>(/^[A-Z]+(\d+)\./.exec(c)||[])[1];
+  /* dernier rack en premier (ex. WS 5.1 en haut), niveaux dans l'ordre à l'intérieur d'un rack */
+  const ord=(x,y)=>{const m=/^(\d+)\.(\d+)/,a=m.exec(x),b=m.exec(y);return a&&b?(+b[1]-+a[1])||(+a[2]-+b[2]):(parseFloat(y)-parseFloat(x))||x.localeCompare(y);};
+  const num=c=>c.replace(/^[A-Z]+/,'');
   const done=new Set();let h='';
   Object.keys(groups).forEach(z=>{if(done.has(z))return;
     const pr=LOC_PAIRS.find(([a,b])=>(a===z||b===z)&&groups[a]&&groups[b]);
@@ -2558,9 +2561,9 @@ function locGrid(id,cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec
       const la=ZONES[a]||a,lb=ZONES[b]||b,ia=la.lastIndexOf(' · '),ib=lb.lastIndexOf(' · ');
       const same=ia>0&&ib>0&&la.slice(0,ia)===lb.slice(0,ib),title=same?la.slice(0,ia):`${la} / ${lb}`;
       const keys=[...new Set([...groups[a],...groups[b]].map(c=>c.replace(/^[A-Z]+/,'')))];
-      const rows=keys.sort((x,y)=>parseFloat(x)-parseFloat(y)||x.localeCompare(y)).map((k,i,arr)=>`<div class="lp-row${i&&rk(a+k)!==rk(a+arr[i-1])?' lp-gap':''}">${cell(groups[a].includes(a+k)?a+k:'')}${cell(groups[b].includes(b+k)?b+k:'')}</div>`).join('');
+      const rows=keys.sort(ord).map((k,i,arr)=>`<div class="lp-row${i&&rk(a+k)!==rk(a+arr[i-1])?' lp-gap':''}">${cell(groups[a].includes(a+k)?a+k:'')}${cell(groups[b].includes(b+k)?b+k:'')}</div>`).join('');
       h+=`<div class="lp-sec"><div class="lp-t">${esc(title)}</div><div class="lp-row lp-h"><span>${esc(same?la.slice(ia+3):la)}</span><span>${esc(same?lb.slice(ib+3):lb)}</span></div>${rows}</div>`;}
-    else{done.add(z);h+=`<div class="lp-sec"><div class="lp-t">${esc(ZONES[z]||z)}</div><div class="lp-grid">${groups[z].map(cell).join('')}</div></div>`;}});
+    else{done.add(z);h+=`<div class="lp-sec"><div class="lp-t">${esc(ZONES[z]||z)}</div><div class="lp-grid">${groups[z].slice().sort((x,y)=>ord(num(x),num(y))).map(cell).join('')}</div></div>`;}});
   return h;}
 function locPicker(id,cur){const old=cur&&!LOCS.includes(cur);
   return `<input type="hidden" id="${id}" value="${esc(cur||'')}"><button type="button" class="btn locpick-b" data-act="lpopen" data-for="${id}" aria-expanded="false"><b class="mono" data-lpv="${id}">${cur?spc(cur):'Choisir…'}</b> <small class="opt" data-lpl="${id}">${cur?esc(old?'n\'existe plus, à changer':locLabel(cur)):''}</small><span class="lp-ar">▾</span></button>
