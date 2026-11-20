@@ -347,6 +347,9 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
 .lp-c{font:600 15px var(--f-mono);padding:9px 6px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);cursor:pointer;text-align:center}
 .lp-c.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.lp-c.lp-x{visibility:hidden}
+.ntf{border:1px solid var(--line);border-radius:8px;padding:10px;margin:10px 0;display:flex;flex-direction:column;gap:8px}.ntf-h{display:flex;flex-direction:column}
+.ntf-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ntf-t .mono{font-size:15px;background:var(--surface-2);padding:6px 8px;border-radius:6px;word-break:break-all;flex:1;min-width:0}
+.ntf-steps{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 .jr{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.jr.off{opacity:.55}.jr-l{color:var(--muted);margin-top:2px}
 .boxask{margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--warn-bg);color:var(--ink);display:flex;flex-direction:column;gap:6px}
@@ -809,7 +812,34 @@ const unread=()=>S.notifs.filter(n=>n.to===role&&!n.read);
 
 let actx;function beep(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();const t=actx.currentTime;[0,.18].forEach((d,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=i?1175:880;g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.18,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.25);o.connect(g).connect(actx.destination);o.start(t+d);o.stop(t+d+.3);});}catch(e){}}
 let toastT;function toast(html,sound){const r=$('#toastRoot');html=spc(html);r.innerHTML=`<div class="toast" role="status">${html}</div>`;if(sound)beep();clearTimeout(toastT);toastT=setTimeout(()=>r.innerHTML='',3800);}
-function notify(to,text){S.notifs.push({id:Date.now()+Math.random(),to,text,at:Date.now(),read:false});}
+function notify(to,text){S.notifs.push({id:Date.now()+Math.random(),to,text,at:Date.now(),read:false});ntfyPush(to,text);}
+/* Notification sur les téléphones, même appli fermée, par l'appli gratuite « ntfy » (ntfy.sh).
+   Un canal secret par rayon et par côté (entrepôt / magasin), créé dans Réglages › Notifications. Seul un court texte part (n°, prénom, nombre de pièces). */
+const RAYON_LBL={snow:'Snow',ski:'Ski',rando:'Rando'}[RAYON]||RAYON;
+function ntfyPush(to,text,test){const N=S.ntfy||{},topic=N[to];if(!topic||(!test&&N.off&&N.off[to]))return Promise.resolve(false);
+  let click='';try{const u=new URL(to==='entrepot'?'index.html':'magasin.html',location.href);u.search=NS?'?ns='+NS:'';u.hash='';click=u.href;}catch(e){}
+  const tag=/^Nouvelle/.test(text)?'shopping_cart':/corrigée/.test(text)?'pencil2':/annulé/.test(text)?'x':/prête/.test(text)?'white_check_mark':/Pick-up/.test(text)?'package':'bell';
+  return fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic,title:`${to==='entrepot'?'Entrepôt':'Magasin'} ${RAYON_LBL}`,message:text,tags:[tag],priority:/^Nouvelle/.test(text)?5:4,click})}).then(r=>r.ok).catch(()=>false);}
+const ntfyTopic=to=>`${NS?NS+'-':''}${to}-${RAYON}-${Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')}`;
+function vNotif(){const N=S.ntfy;
+  if(!N)return `<div class="card"><h3>Notifications sur les téléphones</h3>
+    <p class="sub">Pour qu'un téléphone <b>sonne et affiche un message en haut de l'écran</b> à chaque commande, même appli fermée, comme un message WhatsApp. On utilise l'appli gratuite <b>ntfy</b>.</p>
+    <button type="button" class="btn primary" data-act="ntfyon">Activer les notifications (${esc(RAYON_LBL)})</button></div>`;
+  const row=(to,who,what)=>`<div class="ntf"><div class="ntf-h"><b>${who}</b><small class="opt">${what}</small></div>
+    <div class="ntf-t"><span class="mono">${esc(N[to])}</span><button type="button" class="btn sm" data-act="ntfycopy" data-to="${to}">Copier</button></div>
+    <div class="inline"><button type="button" class="btn sm" data-act="ntfytest" data-to="${to}">🔔 Envoyer un test</button>
+      <label class="optchk"><input type="checkbox" data-act="ntfypause" data-to="${to}"${N.off&&N.off[to]?' checked':''}> En pause</label></div></div>`;
+  return `<div class="card"><h3>Notifications sur les téléphones · ${esc(RAYON_LBL)}</h3>
+    <p class="sub">Chaque téléphone s'abonne une fois au canal ci-dessous dans l'appli gratuite <b>ntfy</b>. Ensuite il sonne à chaque événement, même appli fermée. Le nom du canal sert de mot de passe : ne le donnez qu'aux personnes concernées.</p>
+    ${row('entrepot','📦 Téléphones de l\'entrepôt','nouvelle commande, commande corrigée ou annulée, pick-up')}
+    ${row('magasin','🏬 Téléphones des magasins','commande prête')}
+    <details class="dimdet"><summary>Comment s'abonner sur un téléphone</summary><ol class="ntf-steps">
+      <li>Installez l'appli <b>ntfy</b> (Play Store ou App Store, icône verte « ntfy »).</li>
+      <li>Ouvrez-la, touchez <b>+</b> (s'abonner à un sujet / Subscribe to topic).</li>
+      <li>Collez le nom du canal ci-dessus (bouton « Copier »), laissez le serveur par défaut (ntfy.sh), touchez <b>S'abonner</b>.</li>
+      <li>Revenez ici et touchez <b>Envoyer un test</b> : le téléphone doit sonner.</li>
+      <li>Android : dans les réglages du téléphone, autorisez les notifications de ntfy et retirez ntfy de l'économie de batterie.</li></ol></details>
+    <div class="inline" style="margin-top:8px"><button type="button" class="btn sm ghost${st.armed==='ntfynew'?' armed':''}" data-act="ntfynew">${st.armed==='ntfynew'?'Confirmer : nouveaux canaux (il faudra se réabonner)':'Changer les noms des canaux'}</button></div></div>`;}
 
 const IC={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h4V8h8v12h4V4z"/></svg>',
@@ -1677,12 +1707,13 @@ function vSettings(){
   const SEC=[['inv','⬇',"Télécharger l'inventaire",'Fichier Excel du stock du jour'],
     ['ctrl','☑',"Contrôle d'inventaire (RFID)",'Comparer le stock avec le pistolet, noter les écarts, feuille papier'],
     ['hist','↶','Historique et sauvegardes','Annuler une modification, revenir à une sauvegarde'],
+    ['notif','🔔','Notifications sur les téléphones','Faire sonner les téléphones à chaque commande'],
     ['dimloc','📏','Dimensions des emplacements','Mesures des racks et des niveaux'],
     ['dimbox','📦',SKI?'Dimensions des boîtes de chaussures':'Dimensions des boîtes de bottes et fixations','Taille des boîtes par marque, modèle et taille'],
     ['cap','▦','Capacité des racks','Places par groupe, gros lots, règles de rangement'],
     ['tr','⇄','Transférer le stock',"Copie du stock d'un appareil à l'autre"],
     ['data','⚙','Données','Marques, tailles, emplacements, remise à zéro']];
-  const SEC_SHORT={ctrl:'Contrôle',inv:'Inventaire',hist:'Historique',dimloc:'Emplacements',dimbox:'Boîtes',cap:'Capacité',tr:'Transfert',data:'Données'};
+  const SEC_SHORT={notif:'Notifications',ctrl:'Contrôle',inv:'Inventaire',hist:'Historique',dimloc:'Emplacements',dimbox:'Boîtes',cap:'Capacité',tr:'Transfert',data:'Données'};
   const cur=SEC.find(x=>x[0]===st.setSec);
   if(!cur)return `<div><h2>Réglages</h2><p class="sub">Choisissez un thème.</p></div>
     <div class="setmenu">${SEC.map(([k,ic,t,d])=>`<button type="button" class="setbtn" data-act="setsec" data-v="${k}"><span class="si">${ic}</span><span><b>${esc(t)}</b><small>${esc(d)}</small></span><span class="sa">›</span></button>`).join('')}</div>`;
@@ -1693,6 +1724,7 @@ function vSettings(){
       <p class="sub">Un fichier Excel du stock du jour, classé par type, marque, modèle et taille. Il contient un résumé, une feuille par type (tailles en colonnes) et le détail avec les emplacements.</p>
       <div class="inline"><button type="button" class="btn primary" data-act="inventaire">⬇ Télécharger l'inventaire Excel</button></div></div>`;break;
     case'hist':html=vHistory();break;
+    case'notif':html=vNotif();break;
     case'ctrl':html=vCtrl();break;
     case'dimloc':html=dd()[0];break;
     case'dimbox':html=dd()[1];break;
@@ -2480,7 +2512,7 @@ function shopSend(){
     notify('entrepot',`Commande #${onum(o)} corrigée par ${by}`);
     shEditEnd();save();st.tab='mine';render();toast(`Correction de la commande <b>#${onum(o)}</b> envoyée. L'entrepôt est prévenu.`);return;}
   const now=Date.now(),o={id:(S.seq=Math.max(S.seq||1000,...S.orders.map(x=>+x.id||0))+1),num:newNum(now),at:now,by,status:'demandee',note:S.cartNote.trim(),lines:S.cart.map(l=>({...l,st:null}))};
-  S.orders.push(o);notify('entrepot',`Nouvelle commande #${onum(o)} de ${by} (${o.lines.length} ligne${o.lines.length>1?'s':''})`);
+  S.orders.push(o);const np=o.lines.reduce((t,l)=>t+(+l.qty||0),0);notify('entrepot',`Nouvelle commande #${onum(o)} de ${by} : ${np} pièce${np>1?'s':''} (${o.lines.length} ligne${o.lines.length>1?'s':''})${o.note?' · '+o.note.slice(0,60):''}`);
   S.cart=[];S.cartNote='';st.sh={step:null,v:{},hist:[],q:1};save();st.tab='mine';render();toast(`Commande <b>#${onum(o)}</b> envoyée. L'entrepôt est prévenu.`);}
 function shEditEnd(){const b=S.cartSaved||{cart:[],note:''};S.cart=b.cart;S.cartNote=b.note;S.cartSaved=null;S.editing=null;st.sh={step:null,v:{},hist:[],q:1};}
 function shopClick(act,t){
@@ -2843,6 +2875,11 @@ document.addEventListener('click',e=>{
     case'lpopen':{const p=document.getElementById('lp-'+t.dataset.for);if(!p)break;p.hidden=!p.hidden;t.setAttribute('aria-expanded',String(!p.hidden));if(!p.hidden){const on=p.querySelector('.lp-c.on');(on||p).scrollIntoView({block:'nearest'});}break;}
     case'lppick':{const id=t.dataset.for,i=document.getElementById(id);if(!i)break;i.value=t.dataset.v;lpSync(id);const p=document.getElementById('lp-'+id);if(p)p.hidden=true;
       const b=document.querySelector(`[data-act="lpopen"][data-for="${id}"]`);if(b){b.setAttribute('aria-expanded','false');b.focus();}i.dispatchEvent(new Event('change',{bubbles:true}));break;}
+    case'ntfyon':S.ntfy={entrepot:ntfyTopic('entrepot'),magasin:ntfyTopic('magasin'),off:{}};save();render();break;
+    case'ntfynew':if(st.armed!=='ntfynew'){st.armed='ntfynew';render();break;}st.armed=null;S.ntfy={...S.ntfy,entrepot:ntfyTopic('entrepot'),magasin:ntfyTopic('magasin')};save();render();toast('Nouveaux canaux : réabonnez les téléphones dans ntfy');break;
+    case'ntfycopy':{const v=S.ntfy&&S.ntfy[t.dataset.to];if(!v)break;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast('Nom du canal copié'),()=>toast('Copiez à la main : <b>'+esc(v)+'</b>'));break;}
+    case'ntfytest':ntfyPush(t.dataset.to,'Test : les notifications marchent 🎉',true).then(ok=>toast(ok?'Test envoyé : les téléphones abonnés doivent sonner':'Envoi impossible (pas de connexion ?)'));break;
+    case'ntfypause':{S.ntfy.off=S.ntfy.off||{};S.ntfy.off[t.dataset.to]=t.checked;save();toast(t.checked?'Notifications en pause':'Notifications réactivées');break;}
     case'mvundo':undoLastMove();break;
     case'arrundo':{const at=t.dataset.at?+t.dataset.at:(lastArr&&lastArr.at);if(!at)break;if(t.dataset.at&&st.armed!=='au'+at){st.armed='au'+at;render();break;}st.armed=null;arrUndo(at);break;}
     case'setsec':st.setSec=t.dataset.v||'';render();window.scrollTo(0,0);break;
@@ -2991,7 +3028,7 @@ document.addEventListener('keydown',e=>{
 const FB_CONFIG={apiKey:"AIzaSyDDC3AhQPbLAy8hGg9txd_kooWxOM5UrPk",authDomain:"entrepotsnow.firebaseapp.com",projectId:"entrepotsnow",
   storageBucket:"entrepotsnow.firebasestorage.app",messagingSenderId:"754342580173",appId:"1:754342580173:web:20ee46db9b4aab080c7e84"};
 const FBU='https://www.gstatic.com/firebasejs/10.12.2/';
-const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','dims','lock'];
+const STOCK_KEYS=['articles','brands','sizesB','sizesF','sizesS','demo','caps','dims','lock','ntfy'];
 /* En ligne, chaque article est un document à part (collection « arts ») : deux personnes qui changent
    des articles différents en même temps ne s'écrasent plus. cfg/stock ne garde que les réglages (listes, mesures…). */
 const CFG_KEYS=STOCK_KEYS.filter(k=>k!=='articles');
