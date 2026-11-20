@@ -1404,8 +1404,8 @@ function lineRow(o,l,i){
   const code=a?`<button type="button" class="code" data-act="locate" data-id="${a.id}">${esc(a.emp)}</button>`:`<span class="code none">${l.aid?'supprimé':'à chercher'}</span>`;
   const title=a?esc(artName(a)):l.aid?'Article supprimé du catalogue':`« ${esc(l.txt)} »`;
   const live=a&&(o.status==='demandee'||o.status==='prep'); /* avant préparation : montrer le stock disponible */
-  /* l'essentiel seulement : type · homme/femme · taille ; le stock n'apparaît que s'il ne suffit pas */
-  const desc=a?esc([TYPE[a.type],GENRE[a.genre],szLbl(a.type,a.taille)].filter(Boolean).join(' · '))+(live&&qOf(a)<l.qty?` <span class="pill ln-rupture">${qOf(a)?`plus que ${qOf(a)} en stock`:'rupture de stock'}</span>`:''):l.txt?'Demande en texte libre':'';
+  /* l'essentiel seulement : type · homme/femme · taille · couleur ; le stock n'apparaît que s'il ne suffit pas */
+  const desc=a?esc([TYPE[a.type],GENRE[a.genre],szLbl(a.type,a.taille),a.couleur].filter(Boolean).join(' · '))+(live&&qOf(a)<l.qty?` <span class="pill ln-rupture">${qOf(a)?`plus que ${qOf(a)} en stock`:'rupture de stock'}</span>`:''):l.txt?'Demande en texte libre':'';
   const done=doneOf(l),mine=l.by&&l.by===me(),open=role==='entrepot'&&(o.status==='demandee'||o.status==='prep');
   let ctl='';
   if(open){
