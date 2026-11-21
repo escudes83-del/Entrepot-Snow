@@ -832,7 +832,11 @@ function vNotif(){const N=S.ntfy;
     <div class="ntf-t"><span class="mono">${esc(N[to])}</span><button type="button" class="btn sm" data-act="ntfycopy" data-to="${to}">Copier</button></div>
     <div class="inline"><button type="button" class="btn sm" data-act="ntfytest" data-to="${to}">🔔 Envoyer un test</button>
       <label class="optchk"><input type="checkbox" data-act="ntfypause" data-to="${to}"${N.off&&N.off[to]?' checked':''}> En pause</label></div></div>`;
-  return `<div class="card"><h3>Notifications sur les téléphones · ${esc(RAYON_LBL)}</h3>
+  const srv=cloud.cfgSrv&&cloud.cfgSrv.ntfy,okSrv=!!(srv&&srv.entrepot===N.entrepot&&srv.magasin===N.magasin);
+  const status=!cloud.on?`<div class="alert bad">⚠ L'appli est <b>hors ligne</b> : les canaux ne sont pas encore enregistrés pour les autres téléphones. Reconnectez-vous puis rouvrez cette page.</div>`
+    :okSrv?`<div class="alert ok">✓ Canaux <b>enregistrés en ligne</b> : les magasins enverront les notifications.</div>`
+    :`<div class="alert warn">⏳ Envoi des canaux en ligne… Si ce message reste, fermez et rouvrez l'appli.</div>`;
+  return `<div class="card"><h3>Notifications sur les téléphones · ${esc(RAYON_LBL)}</h3>${status}
     <p class="sub">Chaque téléphone s'abonne une fois au canal ci-dessous dans l'appli gratuite <b>ntfy</b>. Ensuite il sonne à chaque événement, même appli fermée. Le nom du canal sert de mot de passe : ne le donnez qu'aux personnes concernées.</p>
     ${row('entrepot','📦 Téléphones de l\'entrepôt','nouvelle commande, commande corrigée ou annulée, pick-up')}
     ${row('magasin','🏬 Téléphones des magasins','commande prête')}
@@ -3059,7 +3063,7 @@ function chText(c){const b=c.b&&JSON.parse(c.b),a=c.a&&JSON.parse(c.a),x=a||b,nm
 function cloudPush(){
   if(!cloud.on)return;const {fs,db}=cloud;
   if(role==='entrepot'){
-    if(cloud.sent.stock!==null){const j=cfgJson();if(j!==cloud.sent.stock){cloud.sent.stock=j;fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,v:2,at:Date.now()}).catch(cloudErr);}}
+    if(cloud.sent.stock!==null){const j=cfgJson();if(j!==cloud.sent.stock){cloud.sent.stock=j;fs.setDoc(fs.doc(db,C('cfg'),'stock'),{json:j,v:2,at:Date.now()}).then(()=>{cloud.cfgSrv=JSON.parse(j);if(st.tab==='settings')softRender();}).catch(cloudErr);}}
     if(cloud.sent.arts)pushArts();}
   else if(cloud.sent.arts&&pushMeta&&(pushMeta.kind==='pickup'||pushMeta.kind==='undo'))pushArts(); /* magasin : seulement un pick-up */
   [['orders',S.orders],['notifs',S.notifs]].forEach(([col,arr])=>{const sent=cloud.sent[col];if(!sent)return;
@@ -3150,7 +3154,11 @@ async function cloudStart(){
       const mine=!cloud.cfgSeen&&S.dims&&Array.isArray(S.dims.boxes)?S.dims.boxes.slice():[];cloud.cfgSeen=true;
       if(Array.isArray(o.articles)&&o.articles.length&&!(cloud.sent.arts&&cloud.sent.arts.size)){cfgArts=fixEmps(o.articles);S.articles=o.articles;tryMigrate();}
       else if(o.articles&&cloud.sent.arts&&cloud.sent.arts.size&&role==='entrepot')setTimeout(()=>{cloud.sent.stock='';cloudPush();},1500); /* migration coupée en route, ou ancienne version de l'appli : on retire les articles de cfg */
+      if(!snap.metadata.hasPendingWrites)cloud.cfgSrv=o; /* ce que le serveur a vraiment */
+      /* canaux de notification créés sur cet appareil sans arriver en ligne (hors ligne, ancienne version…) : on les envoie */
+      const ntfyLocal=!o.ntfy&&S.ntfy&&S.ntfy.entrepot&&role==='entrepot';
       CFG_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k];});cloud.sent.stock=cfgJson();
+      if(ntfyLocal){cloud.sent.stock='';setTimeout(cloudPush,500);}
       if(mine.length){const cur=dims().boxes,ids=new Set(cur.map(b=>b.id)),add=mine.filter(b=>b&&b.id&&!ids.has(b.id));
         if(add.length){cur.push(...add);cloud.sent.stock='';if(role==='entrepot')cloudPush();toast(`${add.length} taille${add.length>1?'s':''} de boîte de cet appareil envoyée${add.length>1?'s':''} en ligne`);}}
       saveLocal();softRender();setSync('on','En ligne');
