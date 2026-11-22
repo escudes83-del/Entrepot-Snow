@@ -411,6 +411,7 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .sheet{background:var(--bg);width:100%;max-width:620px;max-height:88%;overflow:auto;border-radius:14px 14px 0 0;
   padding-block:16px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
 @media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:14px}}
+.sheet>*{flex-shrink:0} /* la fenêtre défile au lieu d'écraser (et couper) la liste */
 .sheet-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}}
