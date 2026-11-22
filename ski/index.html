@@ -673,7 +673,11 @@ function locLabel(c){if(c==='ARR1')return ZONES.ARR;if(RANDO&&/^Z\d+$/.test(c)){
 /* ---------- Données ---------- */
 const TYPE=RANDO?{botte:'Chaussures de rando',board:'Skis de rando'}:SKI?{botte:'Chaussures de ski',board:'Skis'}:{botte:'Bottes',fix:'Fixations',board:'Snowboards'};
 const sizesS=()=>{const a=[];for(let n=SKI?100:138;n<=(SKI?200:166);n++)a.push(n+' cm');return a;};
-const sizesOf=t=>t==='botte'?S.sizesB:t==='board'?S.sizesS:S.sizesF;
+/* tailles doubles des chaussures (26/26.5) : proposées entre la taille et sa demi-taille, quand les deux existent */
+const withPairs=L=>{const set=new Set(L),out=[];L.forEach(t=>{if(t.includes('/'))return;out.push(t);const cm=/ cm$/.test(t),n=parseFloat(t);
+  if(Number.isInteger(n)&&set.has((n+.5)+(cm?' cm':'')))out.push(n+'/'+(n+.5)+(cm?' cm':''));});L.forEach(t=>{if(t.includes('/')&&!out.includes(t))out.push(t);});return out;};
+const bootSizes=()=>withPairs(S.sizesB);
+const sizesOf=t=>t==='botte'?bootSizes():t==='board'?S.sizesS:S.sizesF;
 const szLbl=(type,t)=>!SKI&&type==='botte'&&!/cm/.test(t)?'US '+t:t;
 const GENRE={H:'Homme',F:'Femme',U:'Unisexe'};
 const ST={demandee:'Demandée',prep:'En préparation',prete:'Prête',recue:'Reçue'};
@@ -742,7 +746,7 @@ if(role==='magasin')st.tab='cmd';
 const ZONE_OF=RANDO?{ED:'ED',AG:'RA',AD:'RA',BG:'RB',BD:'RB',SD:'SK',Z:'CT',ARR:'ARR'}:SKI?{WS:'BF',WN:'BF',HG:'BH',HD:'BH',BH:'BH',FS:'FS',MUR:'SK',FEN:'SK',EN:'EN',ED:'ED',ARR:'ARR',Z:'CT'}:{D:'D',G:'G',MG:'M',MD:'M',F:'F',E:'E',BAV:'B',BAR:'B',BM:'M',ARR:'ARR'};
 const ZONE_LBL=RANDO?{ED:'Racks de l\'entrée',RA:'Rangée A (face à ED 1)',RB:'Rangée B (face à ED 2)',SK:'Skis debout',CT:'Zones cartons (au sol)',ARR:'Zone d\'arrivée'}:SKI?{BF:'Bottes femme',BH:'Bottes homme',FS:'Fond côté ski',SK:'Skis',EN:'Rack de l\'entrée',ED:'Racks à droite de l\'entrée',ARR:'Zone d\'arrivée',CT:'Zones cartons (au sol)'}:{ARR:'Zone d\'arrivée',D:'Droite',G:'Gauche',M:'Milieu',F:'Fond',E:'Étagère',B:'Bloc'};
 const zoneOf=emp=>ZONE_OF[(/^[A-Z]+/.exec(emp||'')||[''])[0]]||'';
-function sizeRankStr(t){if(/cm/.test(t))return 100+parseFloat(t);const n=parseFloat(t);if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
+function sizeRankStr(t){const h=/\//.test(t)?.25:0;if(/cm/.test(t))return 100+parseFloat(t)+h;const n=parseFloat(t);if(!isNaN(n))return n+h;if(!isNaN(n))return n;const i=S.sizesF.indexOf(t);return 200+(i<0?99:i);}
 
 /* ---------- Utilitaires ---------- */
 const $=s=>document.querySelector(s);
@@ -2656,7 +2660,7 @@ function openArt(id,code,tplId){
   function renderSizes(){if(!multi)return;readRows();const have=haveHere(),used=new Set(rows.map(r=>r.s));
     const chip=s=>{const h=have.has(s);return `<button type="button" class="sz${h?' have':''}" data-fz="${esc(s)}" aria-pressed="${used.has(s)}"${h?' title="Déjà rangée ici : la quantité sera ajoutée"':''}>${esc(s.replace(' cm',''))}${h?'<small>✓</small>':''}</button>`;};
     const row=(lbl,arr)=>`<div class="szs">${lbl?`<span class="szl">${lbl}</span>`:''}${arr.map(chip).join('')}</div>`;
-    const html=SKI&&f.dataset.type==='botte'?row('Mondopoint',S.sizesB):f.dataset.type==='botte'?row('US',S.sizesB.filter(s=>!/cm/.test(s)))+'<div style="height:6px"></div>'+row('cm',S.sizesB.filter(s=>/cm/.test(s))):f.dataset.type==='board'?row('cm',S.sizesS):row('',S.sizesF);
+    const html=SKI&&f.dataset.type==='botte'?row('Mondopoint',bootSizes()):f.dataset.type==='botte'?row('US',bootSizes().filter(s=>!/cm/.test(s)))+'<div style="height:6px"></div>'+row('cm',bootSizes().filter(s=>/cm/.test(s))):f.dataset.type==='board'?row('cm',S.sizesS):row('',S.sizesF);
     rows.sort((x,y)=>sizeRankStr(x.s)-sizeRankStr(y.s));
     const n=rows.length,tot=rows.reduce((x,r)=>x+r.q,0),ph=esc(genColor()||'Couleur');
     const qrows=rows.map(r=>`<div class="qrow m3"><select data-fs="${r.k}" aria-label="Taille" style="padding:6px 2px;font:700 13px var(--f-mono)">${sizeList().map(s=>`<option${s===r.s?' selected':''}>${esc(s)}</option>`).join('')}</select>
