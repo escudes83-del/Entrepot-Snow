@@ -2449,9 +2449,10 @@ function ocrPrep(file){return new Promise((ok,ko)=>{const img=new Image();img.on
 function ocrMatch(text,big){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ';const t=' '+norm(text).replace(/,/g,'.').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ',has=w=>w&&t.includes(' '+w+' '),hasIn=w=>w.length>2&&t.includes(w);
   const nums=new Set(t.split(' ').filter(w=>/^\d{1,3}(\.5)?$/.test(w))); /* nombres entiers du texte (pas des morceaux de 2026) */
   const res=S.articles.filter(a=>qOf(a)>0).map(a=>{let sc=0;
-    if(hasIn(norm(a.marque)))sc+=3;
+    const mq=norm(a.marque);if(mq.length>2?hasIn(mq):has(mq))sc+=3; /* marque courte (K2) : mot entier */
     const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0,mb=0;mw.forEach(w=>{if(has(w)||(w.length>3&&hasIn(w)))mh++;if(B.includes(' '+w+' ')||(w.length>3&&B.includes(w)))mb++;});
     if(mw.length){sc+=mh/mw.length*6;sc+=mb/mw.length*8;} /* modèle écrit en grand : bonus fort */
+    if(mw.length>1&&has(mw.join(' ')))sc+=5; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
     const z=norm(a.taille).replace(/\s*cm$/,'');if(z&&(nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
     if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
     if(a.genre==='F'&&/ (w|women|womens|femme|wmn|wms) /.test(t))sc+=.5;
