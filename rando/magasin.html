@@ -2428,8 +2428,9 @@ function vShopPick(){const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{con
     <p class="sub">Vous montez chercher vous-même ? Trouvez la boîte, touchez « Je prends », puis validez : le stock est mis à jour et l'entrepôt est prévenu.</p>
     ${pkTest()?`<div class="testban">MODE TEST · essayez la lecture des étiquettes : le stock ne sera pas modifié.</div>`:''}
     <div class="card pkscan"><div class="pkscan-h"><label class="btn primary" style="cursor:pointer;flex:1">📷 Photo de l'étiquette<input type="file" id="pkPhoto" accept="image/*"${pkTest()?'':' capture="environment"'} hidden></label>
+      <label class="btn" style="cursor:pointer;flex:1">🖼 Photo de la galerie<input type="file" id="pkGal" accept="image/*" hidden></label>
       <button type="button" class="btn testbtn${pkTest()?' on':''}" data-act="pktest" aria-pressed="${pkTest()}">${pkTest()?'🧪 Mode test : ON':'🧪 Mode test'}</button></div>
-      <small class="opt">${pkTest()?'En mode test, vous pouvez aussi choisir une photo déjà prise. L\'appli montre tout ce qu\'elle a lu et sa note pour chaque article.':'Photographiez l\'étiquette de la boîte (modèle, taille, couleur) : l\'appli trouve l\'article dans le stock.'}</small>${scanBox()}</div>
+      <small class="opt">${pkTest()?'En mode test, vous pouvez aussi choisir une photo déjà prise. L\'appli montre tout ce qu\'elle a lu et sa note pour chaque article.':'Photographiez l\'étiquette de la boîte (modèle, taille, couleur), ou choisissez une photo déjà prise dans la galerie : l\'appli trouve l\'article dans le stock.'}</small>${scanBox()}</div>
     ${basket}${filterBar()}
     ${show?`<div class="count">${sumLine(list,{shop:1})}</div><div class="list">${list.slice(0,MAX).map(row).join('')||'<div class="empty">Rien trouvé.</div>'}</div>${list.length>MAX?`<p class="sub">Les ${MAX} premiers sont affichés : précisez la recherche.</p>`:''}`
       :'<p class="sub">Tapez une marque, un modèle ou une taille pour trouver la boîte et son emplacement.</p>'}`;}
@@ -3017,7 +3018,7 @@ document.addEventListener('change',e=>{const t=e.target;
     catch(err){toast("Ce fichier n'est pas une copie du stock.");}};r.readAsText(t.files[0]);t.value='';return;}
   if(t.dataset&&t.dataset.mvq){const a=art(t.dataset.mvq);if(a&&st.mv){st.mv[a.id]=Math.max(1,Math.min(qOf(a),parseInt(t.value)||1));render();}return;}
   if(t.id==='mvTo'){st.mvTo=t.value;return;}
-  if(t.id==='pkPhoto'){const f=t.files&&t.files[0];t.value='';pickPhoto(f);return;}
+  if(t.id==='pkPhoto'||t.id==='pkGal'){const f=t.files&&t.files[0];t.value='';pickPhoto(f);return;}
   const map={fMarque:'fMarque',fModele:'fModele',fAnnee:'fAnnee',fZone:'fZone',fRack:'fRack',fNiv:'fNiv',fCouleur:'fCouleur',fSerrage:'fSerrage'};
   if(map[t.id]){st[map[t.id]]=t.value;if(t.id==='fMarque')st.fModele='';st.focus=null;render();}});
 const ENTER_NEXT=[['bxMarque','bxModele','bxFrom','bxTo','bxL','bxl','bxH','@boxadd'],['ovL','ovP','ovH','ovNote','@dimoveradd']];
