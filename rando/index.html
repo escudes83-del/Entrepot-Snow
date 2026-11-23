@@ -411,7 +411,8 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .sheet{background:var(--bg);width:100%;max-width:620px;max-height:88%;overflow:auto;border-radius:14px 14px 0 0;
   padding-block:16px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
 @media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:14px}}
-.sheet>*{flex-shrink:0} /* la fenêtre défile au lieu d'écraser (et couper) la liste */
+.sheet>*{flex-shrink:0}
+.nbx{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--accent);color:#fff;font:700 12px var(--f-mono);vertical-align:2px;white-space:nowrap} /* la fenêtre défile au lieu d'écraser (et couper) la liste */
 .sheet-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:420px){.grid2{grid-template-columns:1fr}}
@@ -2578,12 +2579,12 @@ function openLoc(code){
     const vars=new Map();g.forEach(x=>{const k=[x.couleur||'',serOf(x)].join(' · ').replace(/^ · | · $/g,'');if(!vars.has(k))vars.set(k,[]);vars.get(k).push(x);});
     const one=vars.size===1;const k1=[...vars.keys()][0];
     return `<div class="row" style="align-items:flex-start"><div class="main" style="display:flex;flex-direction:column;gap:6px">
-      <div><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)}</div><div class="d">${TYPE[a.type]} · ${GENRE[a.genre]}${one&&k1?' · '+esc(k1):''}${years?' · '+esc(years):''}</div></div>
+      <div><div class="t"><span class="mk">${esc(a.marque)}</span> ${esc(a.modele)} <span class="nbx">${(n=>`${n} ${a.type!=='board'?(n>1?'boîtes':'boîte'):SKI?(n>1?'skis':'ski'):(n>1?'planches':'planche')}`)(g.reduce((t,x)=>t+qOf(x),0))}</span></div><div class="d">${TYPE[a.type]} · ${GENRE[a.genre]}${one&&k1?' · '+esc(k1):''}${years?' · '+esc(years):''}</div></div>
       ${one?`<div class="szs">${g.map(szBtn).join('')}</div>`
         :[...vars.entries()].map(([k,xs])=>`<div class="var"><span class="vl">${esc(k||'Sans couleur')}</span><div class="szs">${xs.map(szBtn).join('')}</div></div>`).join('')}</div>
       ${ent?`<div class="acts" style="flex-direction:column;align-items:stretch"><button type="button" class="btn sm" data-act="model" data-id="${a.id}">Modifier tout</button><button type="button" class="btn sm" data-act="more" data-id="${a.id}">+ Tailles</button></div>`:''}</div>`;}).join('');
   sheet(`<div class="sheet-h"><div><div class="code" style="display:inline-block;font-size:20px;cursor:default">${code}</div><p class="sub" style="margin-top:6px">${esc(locLabel(code))}</p></div><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
-    ${list.length?`<p class="sub">${list.length} article${list.length>1?'s':''} · touchez une taille pour ${ent?'la modifier':'la commander'}.</p>`:''}
+    ${list.length?`<p class="sub">${(()=>{const bx=list.filter(a=>a.type!=='board').reduce((t,a)=>t+qOf(a),0),bd=list.filter(a=>a.type==='board').reduce((t,a)=>t+qOf(a),0),w=SKI?['ski','skis']:['planche','planches'];return [bx?`<b>${bx} boîte${bx>1?'s':''}</b>`:'',bd?`<b>${bd} ${bd>1?w[1]:w[0]}</b>`:''].filter(Boolean).join(' · ');})()} · ${list.length} article${list.length>1?'s':''} · touchez une taille pour ${ent?'la modifier':'la commander'}.</p>`:''}
     <div class="list">${rows||'<div class="empty">Emplacement vide.</div>'}</div>
     ${ent?`<button type="button" class="btn primary" data-act="new" data-code="${code}">+ Ranger un nouveau modèle ici</button>`:''}`);}
 function locOptions(cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
