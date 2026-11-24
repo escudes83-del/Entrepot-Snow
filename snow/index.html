@@ -2462,19 +2462,22 @@ function ocrLoad(){if(!ocrLib)ocrLib=new Promise((ok,ko)=>{const e=document.crea
 function ocrPrep(file){return new Promise((ok,ko)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
   const x=c.getContext('2d');x.filter='grayscale(1) contrast(1.4)';x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);ok(c);};img.onerror=ko;img.src=URL.createObjectURL(file);});}
 /* note chaque article du stock d'après le texte lu */
-function ocrMatch(text,big){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ';const t=' '+norm(text).replace(/,/g,'.').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ',has=w=>w&&t.includes(' '+w+' '),hasIn=w=>w.length>2&&t.includes(w);
+const lev=(a,b)=>{let p=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){const q=[i];for(let j=1;j<=b.length;j++)q[j]=Math.min(p[j]+1,q[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=q;}return p[b.length];};
+function ocrMatch(text,big,sure){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ';const t=' '+norm(text).replace(/,/g,'.').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ',has=w=>w&&t.includes(' '+w+' '),hasIn=w=>w.length>2&&t.includes(w);
+  const Bt=B.trim().split(' ').filter(b=>b.length>=4),near=w=>w.length>=5&&/[a-z]/.test(w)&&Bt.some(b=>Math.abs(b.length-w.length)<=1&&lev(b,w)<=1); /* « SERRA » lu pour SIERRA : une lettre près, sur un nom long écrit en grand */
   const nums=new Set(t.split(' ').filter(w=>/^\d{1,3}(\.5)?$/.test(w)));if(SKI)t.split(/[ .]/).forEach(w=>{if(/^\d{3}$/.test(w)&&+w>=150&&+w<=335&&/[05]$/.test(w))nums.add(String(+w/10));}); /* 295 = 29.5 (code article) */ /* nombres entiers du texte (pas des morceaux de 2026) */
   const res=S.articles.filter(a=>qOf(a)>0).map(a=>{let sc=0;
     const mq=norm(a.marque),bh=mq.length>2?hasIn(mq):has(mq);if(bh)sc+=3; /* marque courte (K2) : mot entier */
-    const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0,mb=0;mw.forEach(w=>{if(has(w)||(w.length>3&&hasIn(w)))mh++;if(B.includes(' '+w+' ')||(w.length>3&&B.includes(w)))mb++;});
-    const numOnly=!mw.some(w=>/[a-z]/.test(w))&&!bh,k=numOnly?.4:1; /* modèle fait de chiffres (« 120 S ») sans la marque lue : « 120 » ne suffit pas */
+    const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0,mb=0,strong=false;mw.forEach(w=>{const nr=near(w),ok=has(w)||(w.length>3&&hasIn(w));if(ok)mh++;else if(nr)mh+=.8;if((ok||nr)&&(w.length>2||/^\d+$/.test(w)))strong=true;if(B.includes(' '+w+' ')||(w.length>3&&B.includes(w)))mb++;else if(nr)mb+=.8;});
+    const numOnly=!mw.some(w=>/[a-z]/.test(w))&&!bh,k=(numOnly?.4:1)*(mh&&!strong&&!bh?.25:1); /* modèle fait de chiffres (« 120 S ») sans la marque lue : « 120 » ne suffit pas ; « AL » (2 lettres) seul non plus */
     let ms=0;if(mw.length){ms+=(mh/mw.length*6+mb/mw.length*8)*k;} /* modèle écrit en grand : bonus fort */
     if(mw.length>1&&has(mw.join(' ')))ms+=5*k;sc+=ms; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
-    let zh=false;const z=norm(a.taille).replace(/\s*cm$/,'');if(z&&(nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4,zh=true;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
+    let zh=false;const z=norm(a.taille).replace(/\s*cm$/,''),zs=!!(sure&&sure.includes(z));if(z&&(zs||nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4,zh=true;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
     if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
     if(a.genre==='F'&&/ (w|women|womens|femme|wmn|wms) /.test(t))sc+=.5;
-    return {a,sc,zh,ms};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
+    return {a,sc,zh,zs,ms};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
   const top=res.length?res[0].sc:0;let r=res.filter(x=>x.sc>=top*.7);if(r[0]&&r[0].zh)r=r.filter(x=>x.zh); /* taille lue : seulement cette taille */
+  if(r.some(x=>x.zs))r=r.filter(x=>x.zs); /* taille sûre (cadre de couleur, ligne US/MP du tableau) : pas les autres nombres de l'étiquette */
   const mMax=Math.max(0,...r.map(x=>x.ms));r=r.filter(x=>x.ms>=mMax*.85); /* un modèle dont on a lu une moins grande part du nom passe après… et disparaît */return r.slice(0,5);} /* seulement les articles proches du meilleur */
 /* taille écrite en blanc dans un cadre de couleur (ex. 29.5 sur fond rouge) : on corrige la lumière (photo sombre ou jaune),
    on repère les cadres colorés bien rectangulaires, on garde le texte blanc, on lit les chiffres */
@@ -2494,10 +2497,10 @@ function colorBoxes(img){const W=Math.round(img.width*Math.min(1,400/Math.max(im
     const bw=x1-x0+1,bh=y1-y0+1,f=n/(bw*bh);if(n>W*H*.0015&&n<W*H*.2&&bw>=bh*.9&&f>.45)out.push({x:x0/W,y:y0/H,w:bw/W,h:bh/H,f});}
   return out.sort((a,b)=>b.f-a.f).slice(0,5);}
 /* lit le cadre de 3 façons (le texte blanc peut être fin, flou ou rosé selon la photo) ; renvoie les lectures */
-async function readColorBox(img,bx,w){const X=bx.x*img.width,Y=bx.y*img.height,BW=bx.w*img.width,BH=bx.h*img.height,out=[];
+async function readColorBox(img,bx,w){const X=(bx.x+bx.w*.06)*img.width,Y=(bx.y+bx.h*.12)*img.height,BW=bx.w*.88*img.width,BH=bx.h*.76*img.height,out=[]; /* sans les bords du cadre */
   const crop=H0=>{const c=document.createElement('canvas');c.width=Math.max(1,Math.round(BW*H0/BH));c.height=H0;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,X,Y,BW,BH,0,0,c.width,c.height);return c;};
   const ocr=async c=>{const pad=document.createElement('canvas');pad.width=c.width+40;pad.height=c.height+40;const px=pad.getContext('2d');px.fillStyle='#fff';px.fillRect(0,0,pad.width,pad.height);px.drawImage(c,20,20);
-    const {data}=await w.recognize(pad);return (data.text||'').replace(/,/g,'.').replace(/[^0-9./]/g,'');};
+    const {data}=await w.recognize(pad);return (data.text||'').replace(/,/g,'.').replace(/[^0-9./]/g,'').replace(/^[./]+|[./]+$/g,'');};
   /* 1 et 2 : le plus clair des 3 couleurs (texte blanc = clair, fond coloré = foncé), inversé ; contraste étiré, ou coupé en deux (Otsu) */
   const gray=(c,mode)=>{const x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height),p=d.data,v=new Uint8Array(p.length/4),hist=new Uint32Array(256);
     for(let i=0,j=0;i<p.length;i+=4,j++){v[j]=Math.min(p[i],p[i+1],p[i+2]);hist[v[j]]++;}
@@ -2510,6 +2513,57 @@ async function readColorBox(img,bx,w){const X=bx.x*img.width,Y=bx.y*img.height,B
     bg.sort((a,b)=>a-b);const bm=bg.length?bg[bg.length>>1]:128;
     for(let i=0;i<p.length;i+=4){const mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);p[i]=p[i+1]=p[i+2]=mx-mn<Math.max(30,mx*.22)&&mn>bm*.6?0:255;}x.putImageData(d,0,0);out.push(await ocr(c));}
   return out;}
+/* titre écrit en blanc sur un bandeau noir (ex. SIERRA en haut de l'étiquette) : on trouve l'étiquette blanche, puis au-dessus ou au-dessous
+   les lignes presque entièrement noires et blanches (le carton autour, lui, est beige ou rayé) */
+function darkBands(img){const W=Math.round(img.width*Math.min(1,500/Math.max(img.width,img.height))),H=Math.round(img.height*W/img.width);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,0,0,W,H);const p=x.getImageData(0,0,W,H).data;
+  const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++){const mx=Math.max(p[i*4],p[i*4+1],p[i*4+2]),mn=Math.min(p[i*4],p[i*4+1],p[i*4+2]);m[i]=mn>165&&mx-mn<45?1:0;}
+  const seen=new Uint8Array(W*H),labs=[];
+  for(let s0=0;s0<W*H;s0++){if(!m[s0]||seen[s0])continue;const stk=[s0];seen[s0]=1;let n=0,x0=W,x1=0,y0=H,y1=0;
+    while(stk.length){const k=stk.pop();n++;const xx=k%W,yy=(k/W)|0;if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy;
+      for(const d of [1,-1,W,-W]){const q=k+d;if(q<0||q>=W*H||seen[q]||!m[q]||(d===1&&xx===W-1)||(d===-1&&xx===0))continue;seen[q]=1;stk.push(q);}}
+    if(n>W*H*.01&&n/((x1-x0+1)*(y1-y0+1))>.5)labs.push({x0,x1,y0,y1,n});}
+  labs.sort((a,b)=>b.n-a.n);const out=[];
+  for(const L of labs.slice(0,2)){const xa=Math.round(L.x0+(L.x1-L.x0)*.2),xb=Math.round(L.x1-(L.x1-L.x0)*.2),nw=xb-xa+1,h=L.y1-L.y0;
+    const row=y=>{let ne=0,dk=0;for(let xx=xa;xx<=xb;xx++){const i=(y*W+xx)*4,mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);if(mx-mn<30){ne++;if(mx<110)dk++;}}return [ne/nw,dk/nw];};
+    let y=Math.max(0,L.y0-Math.round(h*.7)),cur=null;const Y1=Math.min(H-1,L.y1+Math.round(h*.4));
+    for(;y<=Y1;y++){const [ne,dk]=row(y);if(ne>=.8&&dk>=.15){if(!cur)cur={a:y,b:y,pk:0};cur.b=y;if(dk>=.6)cur.pk++;}else if(cur){if(cur.b-cur.a>=4&&cur.pk>=2)out.push({a:cur.a,b:cur.b,L});cur=null;}}
+    if(cur&&cur.b-cur.a>=4&&cur.pk>=2)out.push({a:cur.a,b:cur.b,L});}
+  return out.map(({a,b,L})=>{const xa=Math.max(0,L.x0-Math.round((L.x1-L.x0)*.3)),xb=Math.min(W-1,L.x1+Math.round((L.x1-L.x0)*.3)),bh=b-a+1;let lx0=W,lx1=0;
+    for(let xx=xa;xx<=xb;xx++){let ne=0,wh=0;for(let yy=a;yy<=b;yy++){const i=(yy*W+xx)*4,mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);if(mx-mn<30){ne++;if(mn>150)wh++;}}
+      if(ne>=bh*.9&&wh>=2&&wh<bh*.8){if(xx<lx0)lx0=xx;if(xx>lx1)lx1=xx;}}
+    const k=img.width/W;return {x:lx0*k,y:a*k,w:(lx1-lx0+1)*k,h:bh*k};}).filter(r=>r.w>r.h*1.2).slice(0,3);}
+/* lit le bandeau : on ne garde que les lettres blanches (même hauteur, même ligne), redessinées en noir sur blanc, sans les reflets ni le carton */
+async function bandText(img,bd,w){const sc=Math.min(1.5,140/bd.h),X=Math.round(bd.x-bd.h*.1),Y=Math.round(bd.y-bd.h*.15),Wd=Math.round(bd.w+bd.h*.2),Hd=Math.round(bd.h*1.3),W=Math.round(Wd*sc),H=Math.round(Hd*sc);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,X,Y,Wd,Hd,0,0,W,H);const p=x.getImageData(0,0,W,H).data;
+  const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++){const mx=Math.max(p[i*4],p[i*4+1],p[i*4+2]),mn=Math.min(p[i*4],p[i*4+1],p[i*4+2]);m[i]=mn>150&&mx-mn<35?1:0;}
+  const lab=new Int32Array(W*H).fill(-1),cs=[];
+  for(let s0=0;s0<W*H;s0++){if(!m[s0]||lab[s0]>=0)continue;const id=cs.length,stk=[s0];lab[s0]=id;let n=0,x0=W,x1=0,y0=H,y1=0;
+    while(stk.length){const k=stk.pop();n++;const xx=k%W,yy=(k/W)|0;if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy;
+      for(const d of [1,-1,W,-W]){const q=k+d;if(q<0||q>=W*H||lab[q]>=0||!m[q]||(d===1&&xx===W-1)||(d===-1&&xx===0))continue;lab[q]=id;stk.push(q);}}
+    cs.push({x0,x1,y0,y1,n,bh:y1-y0+1,bw:x1-x0+1});}
+  let L=cs.filter(c=>c.bh>=H*.15&&c.bh<=H*.8&&c.y0>0&&c.y1<H-1&&c.n/(c.bw*c.bh)>.18&&c.bw<=c.bh*3);
+  if(L.length<2)return '';const hs=L.map(c=>c.bh).sort((a,b)=>a-b),med=hs[hs.length>>1];L=L.filter(c=>Math.abs(c.bh-med)<=med*.3);
+  const ym=L.map(c=>(c.y0+c.y1)/2).sort((a,b)=>a-b)[L.length>>1];L=L.filter(c=>Math.abs((c.y0+c.y1)/2-ym)<med*.3);if(L.length<2)return '';
+  const by0=Math.min(...L.map(c=>c.y0)),by1=Math.max(...L.map(c=>c.y1)),lh=by1-by0+1;
+  const ext=cs.filter(c=>c.bw<W*.5&&Math.min(c.y1,by1)-Math.max(c.y0,by0)+1>=lh*.7&&c.bw<=lh*2.5); /* lettres collées ou qui touchent un reflet : gardées, coupées à la hauteur de la ligne */
+  const keep=new Set(ext.map(c=>cs.indexOf(c)));let bx0=Math.min(...L.map(c=>c.x0)),bx1=Math.max(...L.map(c=>c.x1));
+  for(let it=0;it<6;it++)ext.forEach(c=>{if(c.x1>=bx0-lh*.6&&c.x0<=bx1+lh*.6){bx0=Math.min(bx0,c.x0);bx1=Math.max(bx1,c.x1);}});
+  const k2=70/lh,pad=25,o=document.createElement('canvas');o.width=Math.round((bx1-bx0+1)*k2)+2*pad;o.height=Math.round(lh*k2)+2*pad;
+  const t=document.createElement('canvas');t.width=bx1-bx0+1;t.height=lh;const tx=t.getContext('2d'),td=tx.createImageData(t.width,t.height);
+  for(let yy=by0;yy<=by1;yy++)for(let xx=bx0;xx<=bx1;xx++){const j=((yy-by0)*t.width+(xx-bx0))*4,v=keep.has(lab[yy*W+xx])?0:255;td.data[j]=td.data[j+1]=td.data[j+2]=v;td.data[j+3]=255;}tx.putImageData(td,0,0);
+  const ox=o.getContext('2d');ox.fillStyle='#fff';ox.fillRect(0,0,o.width,o.height);ox.imageSmoothingQuality='high';ox.drawImage(t,pad,pad,o.width-2*pad,o.height-2*pad);
+  const {data}=await w.recognize(o);return data.confidence>=40?(data.text||'').trim():'';}
+/* tableau des tailles « US 10.0 · EU 43.0 · UK 9.0 · MP 28.0 » : on garde la pointure du rayon (US pour le snow, MP pour le ski).
+   Si « US » est mal lu (l'ordre des lignes lues n'est pas sûr) : l'US = MP − 18 (homme) ou MP − 17 (femme), et l'US est toujours plus grande que l'UK. */
+function tableSz(text){const tk=norm(text||'').replace(/,/g,'.').split(/[^a-z0-9.]+/).filter(Boolean),L=[];
+  tk.forEach((w,i)=>{if(/^\d{1,2}\.[05]$/.test(w))L.push({v:String(+w),p:tk[i-1]||''});});if(L.length<2)return [];
+  let hit=L.filter(o=>SKI?o.p==='mp'||o.p==='cm':o.p==='us');
+  if(!hit.length){if(SKI)hit=L.filter(o=>+o.v>=20&&+o.v<=33.5);
+    else{const sm=L.filter(o=>+o.v>=3&&+o.v<=15.5&&!['uk','eu','mp','cm'].includes(o.p)),mp=L.filter(o=>+o.v>=20&&+o.v<=33.5).map(o=>+o.v);
+      hit=mp.length?sm.filter(o=>mp.some(m=>m-o.v>=17&&m-o.v<=18)):[];
+      if(!hit.length&&sm.length)hit=[sm.reduce((a,b)=>+b.v>+a.v?b:a)];}}
+  const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...new Set(hit.map(o=>o.v))].filter(z=>ok.has(z));}
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
@@ -2527,10 +2581,13 @@ async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
     let boxSz=[];try{const img=wbImg,B=colorBoxes(img);if(B.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789./,'});
       for(const b of B){const votes=new Map();(await readColorBox(img,b,w)).forEach(r=>sizeGuess(r).forEach(z=>votes.set(z,(votes.get(z)||0)+1)));
         boxSz.push(...[...votes.entries()].sort((x,y)=>y[1]-x[1]).map(e=>e[0]));if(boxSz.length)break;} /* toutes les tailles valables lues, la plus lue d'abord */}}catch(e){console.warn('Cadre de couleur',e);}
+    let band='';try{const BD=darkBands(wbImg);if(BD.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});for(const bd of BD){const t=await bandText(wbImg,bd,w);if(t)band+=' '+t;}}}catch(e){console.warn('Bandeau noir',e);} /* titre blanc sur bandeau noir (ex. SIERRA) */
+    big2=(band+' '+big2).trim();
     await w.terminate();
+    tableSz(data&&data.text).forEach(z=>{if(!boxSz.includes(z))boxSz.unshift(z);}); /* taille du tableau US/EU/UK/MP */
     big2=big2.trim();const big=[big2,...bigL.map(l=>l.t)].filter(Boolean).join(' ');
     const text=((data&&data.text||'').trim()+(big2?' \n'+big2:'')+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
-    const m=ocrMatch(text,big);st.pkScan={text,big,boxSz,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
+    const m=ocrMatch(text,big,boxSz);st.pkScan={text,big,boxSz,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
   catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
   render();}
 function scanBox(){const sc=st.pkScan;if(!sc)return '';
@@ -2539,7 +2596,7 @@ function scanBox(){const sc=st.pkScan;if(!sc)return '';
   if(sc.err)return `<div class="alert warn">La photo n'a pas pu être lue (connexion ?). Réessayez, ou cherchez l'article ci-dessous.</div>`;
   const L=(sc.ids||[]).map(art).filter(a=>a&&qOf(a)>0),lu=esc((sc.text||'').replace(/\s+/g,' ').slice(0,90));
   const tok=new Set(norm(sc.text||'').replace(/,/g,'.').split(/[^a-z0-9./]+/)),sizeOk=L.some(a=>tok.has(norm(a.taille).replace(/\s*cm$/,''))),sizeSeen=[...tok].some(w=>sizesOf('botte').some(z=>norm(z).replace(/\s*cm$/,'')===w));
-  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »${(sc.boxSz||[]).length?` · <b>taille lue dans le cadre de couleur</b> : ${esc(sc.boxSz.join(' / '))}`:''}</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">${sizeSeen?'La taille lue sur l’étiquette n’est pas en stock (ou mal lue)':'La taille n’a pas pu être lue sur la photo'} : vérifiez la taille sur l'étiquette avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}${brandSeen(a)?'':' <small class="opt">(marque déduite du modèle)</small>'}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
+  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »${(sc.boxSz||[]).length?` · <b>taille lue</b> : ${esc(sc.boxSz.join(' / '))}`:''}</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">${sizeSeen?'La taille lue sur l’étiquette n’est pas en stock (ou mal lue)':'La taille n’a pas pu être lue sur la photo'} : vérifiez la taille sur l'étiquette avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}${brandSeen(a)?'':' <small class="opt">(marque déduite du modèle)</small>'}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
       <div class="acts"><button type="button" class="btn sm${i?'':' primary'}" data-act="pkscan" data-id="${a.id}">${(st.pk||{})[a.id]?'✓ Ajoutée':'Je prends'}</button></div></div>`).join(''):`<div class="alert warn">Article non reconnu. Reprenez la photo bien en face et nette, ou cherchez-le ci-dessous.</div>`}
     <button type="button" class="btn sm ghost" data-act="pkscanx">Fermer</button></div>`;}
 function pickGo(){const pk=st.pk||{},L=Object.entries(pk).map(([id,k])=>[art(id),k]).filter(([a,k])=>a&&k>0);if(!L.length)return;
