@@ -2589,10 +2589,12 @@ function avgBox(){if(SLOTC.has('__avg'))return SLOTC.get('__avg');let n=0,L=0,l=
   const r=n?{L:Math.round(L/n*2)/2,l:Math.round(l/n*2)/2,H:Math.round(H/n*2)/2}:typBox('botte');SLOTC.set('__avg',r);return r;}
 /* place restante d'un niveau mesuré, en boîtes de taille moyenne (niveau partagé : les deux côtés ensemble) */
 function shareInfo(code){const b=avgBox();if(!slotCap(code,b))return '';const q=pairOf(code);
-  const n=e=>e?S.articles.filter(a=>a.emp===e).reduce((t,a)=>t+qOf(a),0):0,n1=n(code),n2=n(q),u=locUse(code),free=locFree(code,b)||0,pct=Math.min(999,Math.round(u*100));
+  const n=e=>e?S.articles.filter(a=>a.emp===e).reduce((t,a)=>t+qOf(a),0):0,n1=n(code),n2=n(q),u=locUse(code),free=locFree(code,b)||0,pct=Math.min(100,Math.round(u*100));
   const moy=`<small class="opt">boîte moyenne ${String(b.L).replace('.',',')} × ${String(b.l).replace('.',',')} × ${String(b.H).replace('.',',')} cm</small>`;
   if(!free){if(q&&n2)return `<div class="alert warn sm"><b>Les ${n2} boîtes de ${spc(q)} prennent toute la profondeur du niveau</b>${n1?` (avec les ${n1} d'ici)`:''} : ${n1?'plus de place ici.':`<b>${spc(code)} n'est pas utilisable</b>.`}</div>`;
-    return `<div class="alert warn sm"><b>Niveau plein</b> (${pct} %) : plus de place pour une boîte de bottes de taille moyenne. ${moy}</div>`;}
+    const tot=n1+n2,maxB=u>0?Math.floor(tot/u):0,top=/\.4$/.test(code)||(()=>{const z=(/^([A-Z]+)/.exec(code)||[])[1];return !/^(G|WS|WN|HG|HD|AG|AD|BG|BD)$/.test(z)&&/\.3$/.test(code);})();
+    if(u>1.05)return `<div class="alert warn sm"><b>Niveau plein.</b> ⚠ D'après les mesures, il ne tiendrait qu'environ <b>${maxB} boîtes</b> ici, or il y en a <b>${tot}</b> : <b>les mesures de ce niveau ne collent pas</b>${top?' (niveau du haut : les boîtes peuvent être empilées plus haut que la hauteur mesurée)':''}. Vérifiez-les dans Réglages › Dimensions. ${moy}</div>`;
+    return `<div class="alert warn sm"><b>Niveau plein</b> : plus de place pour une boîte de bottes de taille moyenne. ${moy}</div>`;}
   return `<div class="info sm">Place restante : <b>≈ ${free} boîte${free>1?'s':''} de bottes</b> · rempli à <b>${pct} %</b>${q?` · niveau partagé avec <b>${spc(q)}</b>${n2?` (${n2} boîte${n2>1?'s':''})`:''}`:''}<br>${moy}</div>`;}
 function openLoc(code){
   const list=sortArts(S.articles.filter(a=>a.emp===code));
