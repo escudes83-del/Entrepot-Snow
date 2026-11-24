@@ -2449,7 +2449,7 @@ function vShopPick(){const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{con
     <div class="card pkscan"><div class="pkscan-h"><label class="btn primary" style="cursor:pointer;flex:1">📷 Photo de l'étiquette<input type="file" id="pkPhoto" accept="image/*"${pkTest()?'':' capture="environment"'} hidden></label>
       <label class="btn" style="cursor:pointer;flex:1">🖼 Photo de la galerie<input type="file" id="pkGal" accept="image/*" hidden></label>
       <button type="button" class="btn testbtn${pkTest()?' on':''}" data-act="pktest" aria-pressed="${pkTest()}">${pkTest()?'🧪 Mode test : ON':'🧪 Mode test'}</button></div>
-      <small class="opt">${pkTest()?'En mode test, vous pouvez aussi choisir une photo déjà prise. L\'appli montre tout ce qu\'elle a lu et sa note pour chaque article.':'Photographiez l\'étiquette de la boîte (modèle, taille, couleur), ou choisissez une photo déjà prise dans la galerie : l\'appli trouve l\'article dans le stock.'}</small>${scanBox()}</div>
+      <small class="opt">${pkTest()?'En mode test, l\'appli montre tout ce qu\'elle a lu et sa note pour chaque article.':'Photographiez l\'étiquette de la boîte (modèle, taille, couleur), ou choisissez une photo déjà prise dans la galerie : l\'appli trouve l\'article dans le stock.'}</small>${scanBox()}</div>
     ${basket}${filterBar()}
     ${show?`<div class="count">${sumLine(list,{shop:1})}</div><div class="list">${list.slice(0,MAX).map(row).join('')||'<div class="empty">Rien trouvé.</div>'}</div>${list.length>MAX?`<p class="sub">Les ${MAX} premiers sont affichés : précisez la recherche.</p>`:''}`
       :'<p class="sub">Tapez une marque, un modèle ou une taille pour trouver la boîte et son emplacement.</p>'}`;}
