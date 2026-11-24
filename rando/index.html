@@ -2468,17 +2468,18 @@ function ocrMatch(text,big){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]+/g,'
     const mq=norm(a.marque),bh=mq.length>2?hasIn(mq):has(mq);if(bh)sc+=3; /* marque courte (K2) : mot entier */
     const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0,mb=0;mw.forEach(w=>{if(has(w)||(w.length>3&&hasIn(w)))mh++;if(B.includes(' '+w+' ')||(w.length>3&&B.includes(w)))mb++;});
     const numOnly=!mw.some(w=>/[a-z]/.test(w))&&!bh,k=numOnly?.4:1; /* modèle fait de chiffres (« 120 S ») sans la marque lue : « 120 » ne suffit pas */
-    if(mw.length){sc+=(mh/mw.length*6+mb/mw.length*8)*k;} /* modèle écrit en grand : bonus fort */
-    if(mw.length>1&&has(mw.join(' ')))sc+=5*k; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
+    let ms=0;if(mw.length){ms+=(mh/mw.length*6+mb/mw.length*8)*k;} /* modèle écrit en grand : bonus fort */
+    if(mw.length>1&&has(mw.join(' ')))ms+=5*k;sc+=ms; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
     let zh=false;const z=norm(a.taille).replace(/\s*cm$/,'');if(z&&(nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4,zh=true;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
     if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
     if(a.genre==='F'&&/ (w|women|womens|femme|wmn|wms) /.test(t))sc+=.5;
-    return {a,sc,zh};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
-  const top=res.length?res[0].sc:0;let r=res.filter(x=>x.sc>=top*.7);if(r[0]&&r[0].zh)r=r.filter(x=>x.zh); /* taille lue : seulement cette taille */return r.slice(0,5);} /* seulement les articles proches du meilleur */
+    return {a,sc,zh,ms};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
+  const top=res.length?res[0].sc:0;let r=res.filter(x=>x.sc>=top*.7);if(r[0]&&r[0].zh)r=r.filter(x=>x.zh); /* taille lue : seulement cette taille */
+  const mMax=Math.max(0,...r.map(x=>x.ms));r=r.filter(x=>x.ms>=mMax*.85); /* un modèle dont on a lu une moins grande part du nom passe après… et disparaît */return r.slice(0,5);} /* seulement les articles proches du meilleur */
 /* taille écrite en blanc dans un cadre de couleur (ex. 29.5 sur fond rouge) : on corrige la lumière (photo sombre ou jaune),
    on repère les cadres colorés bien rectangulaires, on garde le texte blanc, on lit les chiffres */
 async function labelWB(img){const k=Math.min(1,2000/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
-  const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);const d=x.getImageData(0,0,c.width,c.height),p=d.data;
+  const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,0,0,c.width,c.height);const d=x.getImageData(0,0,c.width,c.height),p=d.data;
   const h=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)],step=Math.max(1,Math.floor(p.length/4/200000))*4;let n=0;
   for(let i=0;i<p.length;i+=step){h[0][p[i]]++;h[1][p[i+1]]++;h[2][p[i+2]]++;n++;}
   const g=h.map(hh=>{let t=0;for(let v=255;v>=0;v--){t+=hh[v];if(t>=n*.03)return 255/Math.max(v,40);}return 1;}); /* le blanc de l'étiquette redevient blanc */
@@ -2512,16 +2513,23 @@ async function readColorBox(img,bx,w){const X=bx.x*img.width,Y=bx.y*img.height,B
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
-  try{const T=await ocrLoad(),wbImg=await labelWB(await createImageBitmap(file)),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* lumière corrigée (photo sombre ou jaune) */const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
+  try{const T=await ocrLoad(),wbImg=await labelWB(await createImageBitmap(file)),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* réduction douce : une grande photo de téléphone reste nette */ /* lumière corrigée (photo sombre ou jaune) */const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
     const {data}=await w.recognize(cv,{},{text:true,blocks:true});
+    /* lignes du texte avec leur hauteur : les plus grandes = le modèle */
+    const lines=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])).filter(l=>l.text&&l.text.trim()).map(l=>({t:l.text.trim(),h:l.bbox?l.bbox.y1-l.bbox.y0:0,c:l.confidence||0,b:l.bbox})).filter(l=>(l.t.match(/[a-z0-9]/gi)||[]).length>=3);
+    const sure=lines.filter(l=>l.c>=40),hmax=Math.max(0,...sure.map(l=>l.h)),bigL=sure.filter(l=>l.h>=hmax*.8); /* pas les traits des codes-barres */
+    const reL=lines.slice().sort((x,y)=>y.h-x.h).slice(0,3); /* les 3 plus grandes lignes, même mal lues, sont relues de près */
+    /* 2e lecture, plus nette, de la ligne écrite en grand (le modèle) : découpée dans la photo et agrandie */
+    let big2='';try{const f=wbImg.width/cv.width;await w.setParameters({tessedit_pageseg_mode:'7'});
+      for(const l of reL){if(!l.b)continue;const bh=(l.b.y1-l.b.y0)*f,X=Math.max(0,l.b.x0*f-bh*.3),Y=Math.max(0,l.b.y0*f-bh*.25),W=Math.min(wbImg.width-X,(l.b.x1-l.b.x0)*f+bh*.6),H=Math.min(wbImg.height-Y,bh*1.5),k=90/H;
+        const c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*k));c.height=90;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.6)';x.drawImage(wbImg,X,Y,W,H,0,0,c.width,c.height);
+        const r=await w.recognize(c);big2+=' '+(r.data.text||'').trim();}}catch(e){console.warn('Relecture du modèle',e);}
     let boxSz=[];try{const img=wbImg,B=colorBoxes(img);if(B.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789./,'});
       for(const b of B){const votes=new Map();(await readColorBox(img,b,w)).forEach(r=>sizeGuess(r).forEach(z=>votes.set(z,(votes.get(z)||0)+1)));
         boxSz.push(...[...votes.entries()].sort((x,y)=>y[1]-x[1]).map(e=>e[0]));if(boxSz.length)break;} /* toutes les tailles valables lues, la plus lue d'abord */}}catch(e){console.warn('Cadre de couleur',e);}
     await w.terminate();
-    const text=((data&&data.text||'').trim()+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
-    /* lignes du texte avec leur hauteur : les plus grandes = le modèle */
-    const lines=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])).filter(l=>l.text&&l.text.trim()).map(l=>({t:l.text.trim(),h:l.bbox?l.bbox.y1-l.bbox.y0:0,c:l.confidence||0})).filter(l=>(l.t.match(/[a-z0-9]/gi)||[]).length>=3&&l.c>=50); /* pas les traits des codes-barres */
-    const hmax=Math.max(0,...lines.map(l=>l.h)),big=lines.filter(l=>l.h>=hmax*.8).map(l=>l.t).join(' ');
+    big2=big2.trim();const big=[big2,...bigL.map(l=>l.t)].filter(Boolean).join(' ');
+    const text=((data&&data.text||'').trim()+(big2?' \n'+big2:'')+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
     const m=ocrMatch(text,big);st.pkScan={text,big,boxSz,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
   catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
   render();}
