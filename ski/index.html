@@ -207,6 +207,7 @@ textarea{resize:vertical;min-height:60px}
 .chip.has{background:var(--fill);color:var(--ink);border-color:var(--fill-line)}
 .chip.hit{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 .chip.void{visibility:hidden}
+.chip.blocked{background:repeating-linear-gradient(45deg,var(--surface) 0 3px,var(--line) 3px 5px);color:var(--muted);font-weight:800}
 .zone-lbl{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--f-disp);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:center}
 .plz{display:flex;gap:3px}.plz .pl{flex:0 0 38%}.plz>.zone-lbl:last-child{flex:1}
 .pl{background:repeating-linear-gradient(-55deg,var(--hatch) 0 2px,transparent 2px 7px);border-radius:3px}
@@ -939,6 +940,7 @@ function chip(code,l,H,count){
   const f=count.__hit&&count.__hit[code];
   if(f){const ms=[...f.m.values()].sort((x,y)=>y.p-x.p),show=ms.slice(0,6);
     txt=`Recherche : ${f.p} pièce${f.p>1?'s':''} (${ms.length} modèle${ms.length>1?'s':''})&#10;${show.map(x=>`• ${esc(x.lbl)} : ${x.p}`).join('&#10;')}${ms.length>6?`&#10;+ ${ms.length-6} autre${ms.length-6>1?'s':''}`:''}&#10;Total ici : ${p} pièce${p>1?'s':''}`;}
+  const bk=!n&&blockedBy(code);if(bk)return `<button type="button" class="chip blocked" data-act="loc" data-code="${code}" title="${code} · inutilisable : les boîtes de ${spc(bk)} prennent toute la profondeur" aria-label="${code}, inutilisable : les boîtes de ${spc(bk)} prennent toute la profondeur">✕</button>`;
   return `<button type="button" class="${cls}" data-act="loc" data-code="${code}" title="${code} · ${txt}" aria-label="${code}, ${txt}">${l}</button>`;}
 function chips(z,r,H,count,levels=LV,all=LV){const f=`${z}${r}.0`;return `<div class="chips">${LOCS.includes(f)||S.articles.some(a=>a.emp===f&&qOf(a)>0)?chip(f,'0',H,count):''}${all.map(l=>levels.includes(l)?chip(`${z}${r}.${l}`,l,H,count):`<span class="chip void"></span>`).join('')}</div>`;}
 
@@ -1404,7 +1406,7 @@ function planRando(H,count){const row=(lbl,inner)=>`<div class="rack"><span clas
     <div class="rd-ed">${ctz('Z1','h')}<div class="pass">↕ passage</div>${row('ED1',chips('ED',1,H,count))}</div>
     <div class="rd-ed rd-ed2">${ctz('Z2','h')}<div class="pass">↕ passage</div>${row('ED2',chips('ED',2,H,count))}</div>
     <div class="rd-note mface">ED : contre le mur de l'entrée · niveau 1 skis debout · rangées A et B : 2 faces</div></div></div>
-    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
+    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="chip blocked">✕</span>Inutilisable (boîtes d'en face)</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 /* plan 2D du rayon ski */
 function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class="rk">${lbl}</span>${inner}</div>`,ctz=(c,cls='')=>`<div class="ctz ${cls}" title="${esc(locLabel(c))}"><b>${c}</b>${chip(c,'📦',H,count)}</div>`,hrow=(c,rk)=>`<div class="hrow">${c?ctz(c):'<div class="ctz-sp"></div>'}${rk}</div>`;
   let f='',h=`<div class="hrow bh"><div class="ctz-sp"></div>${ctz('Z10','h')}</div>`;
@@ -1425,7 +1427,7 @@ function planSki(H,count){const row=(lbl,inner)=>`<div class="rack"><span class=
       <div class="pk-side b-en"><div class="mface" title="contre le mur">À GAUCHE DE L'ENTRÉE</div>${ctz('Z1','h')}<div class="pass">↕ passage</div>${row('EN1',chips('EN',1,H,count))}<div class="mface">niv. 1 : skis debout</div></div>
       <div class="ent"><span>▲ Entrée</span></div>
       <div class="pk-side b-ed"><div class="mface" title="contre le mur">À DROITE DE L'ENTRÉE</div><div class="rack off" title="ED 1, ED 2 et leurs zones de stockage sont gérés par l'appli Rando"><span class="rk">ED1 · ED2 → rayon rando</span></div></div></div></div></div></div>
-    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
+    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="chip blocked">✕</span>Inutilisable (boîtes d'en face)</span><span><span class="ctz-k"></span>Zone cartons au sol</span><span>Racks numérotés depuis l'entrée · niveau 1 en bas</span></div>`;}
 function vPlan(){
   const H=hits(),count={};S.articles.forEach(a=>{const c=count[a.emp]=count[a.emp]||{l:0,m:new Set(),p:0};c.l++;c.m.add([a.type,a.marque,a.modele,a.genre].join('|'));c.p+=qOf(a);});
   if(!st.focus&&!focusOrd()&&filtering()){const h=count.__hit={};S.articles.filter(a=>matches(a)).forEach(a=>{const c=h[a.emp]=h[a.emp]||{m:new Map(),p:0};const k=[a.type,a.marque,a.modele,a.genre].join('|');
@@ -1461,7 +1463,7 @@ function vPlan(){
       <div class="arrz"><div class="mface">ZONE D'ARRIVÉE · au sol, devant M1</div><div class="rack"><span class="rk">ARRIVÉE</span><div class="chips">${chip('ARR1','🚚',H,count)}</div></div></div>
       <div class="ext"><div class="mface">ÉTAGÈRE · BLOC</div>${ext}</div>
     </div></div>
-    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span>G4 : fins de série, niveaux 3 et 4 (1 et 2 derrière les planches)</span></div>
+    <div class="legend"><span><span class="chip">1</span>Vide</span><span><span class="chip has">1</span>Occupé</span><span><span class="chip hit">1</span>Résultat de la recherche</span><span><span class="chip blocked">✕</span>Inutilisable (boîtes d'en face)</span><span>G4 : fins de série, niveaux 3 et 4 (1 et 2 derrière les planches)</span></div>
     <div class="legend">${[['D','Droite'],['G','Gauche'],['M','Milieu'],['F','Fond'],['E','Étagère'],['B','Bloc']].map(([z,l])=>`<span><i style="width:12px;height:12px;border-radius:3px;background:var(--z${z})"></i>${l}</span>`).join('')}</div>`}`;}
 
 function lineRow(o,l,i){
@@ -2577,10 +2579,14 @@ function shopClick(act,t){
 function sheet(html){$('#sheetRoot').innerHTML=`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;tint($('#sheetRoot'));spaceCodes($('#sheetRoot'));}
 function closeSheet(){$('#sheetRoot').innerHTML='';st.armed=null;}
 /* niveau partagé avec l'autre côté (ex. HG 0.1 / HD 0.1) : place restante, d'après les mesures et les boîtes des deux côtés */
+/* côté inutilisable : vide, et les boîtes d'en face prennent toute la profondeur du niveau → renvoie le code d'en face */
+function blockedBy(code){const q=pairOf(code);if(!q||!slotCap(code,typBox('botte')))return null;const has=e=>S.articles.some(a=>a.emp===e&&qOf(a)>0);
+  return !has(code)&&has(q)&&locFree(code,typBox('botte'))===0?q:null;}
+const levelFull=code=>!!slotCap(code,typBox('botte'))&&locFree(code,typBox('botte'))===0; /* plus la place pour une boîte de bottes */
 function shareInfo(code){const q=pairOf(code);if(!q)return '';const b=typBox('botte');if(!slotCap(code,b))return '';
   const n=e=>S.articles.filter(a=>a.emp===e).reduce((t,a)=>t+qOf(a),0),n1=n(code),n2=n(q),u=locUse(code),free=locFree(code,b)||0,pct=Math.round(u*100);
   if(!n1&&!n2)return '';
-  if(u>=1)return `<div class="alert warn sm">${n2?`<b>Les ${n2} boîtes de ${spc(q)} prennent toute la profondeur du niveau</b>${n1?` (avec les ${n1} d'ici)`:''} : `:'<b>Niveau plein sur toute la profondeur</b> : '}${n1?'plus de place ici.':`<b>${spc(code)} n'est pas utilisable</b>.`}</div>`;
+  if(u>=1||!free)return `<div class="alert warn sm">${n2?`<b>Les ${n2} boîtes de ${spc(q)} prennent toute la profondeur du niveau</b>${n1?` (avec les ${n1} d'ici)`:''} : `:'<b>Niveau plein sur toute la profondeur</b> : '}${n1?'plus de place ici.':`<b>${spc(code)} n'est pas utilisable</b>.`}</div>`;
   return `<div class="info sm">Niveau partagé avec <b>${spc(q)}</b>${n2?` (${n2} boîte${n2>1?'s':''})`:''} · rempli à <b>${pct} %</b> · encore ≈ <b>${free} boîte${free>1?'s':''}</b> de bottes.</div>`;}
 function openLoc(code){
   const list=sortArts(S.articles.filter(a=>a.emp===code));
@@ -2600,7 +2606,7 @@ function openLoc(code){
   sheet(`<div class="sheet-h"><div><div class="code" style="display:inline-block;font-size:20px;cursor:default">${code}</div><p class="sub" style="margin-top:6px">${esc(locLabel(code))}</p></div><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
     ${list.length?`<p class="sub">${(()=>{const bx=list.filter(a=>a.type!=='board').reduce((t,a)=>t+qOf(a),0),bd=list.filter(a=>a.type==='board').reduce((t,a)=>t+qOf(a),0),w=SKI?['ski','skis']:['planche','planches'];return [bx?`<b>${bx} boîte${bx>1?'s':''}</b>`:'',bd?`<b>${bd} ${bd>1?w[1]:w[0]}</b>`:''].filter(Boolean).join(' · ');})()} · ${list.length} article${list.length>1?'s':''} · touchez une taille pour ${ent?'la modifier':'la commander'}.</p>`:''}
     ${shareInfo(code)}<div class="list">${rows||'<div class="empty">Emplacement vide.</div>'}</div>
-    ${ent?`<button type="button" class="btn primary" data-act="new" data-code="${code}">+ Ranger un nouveau modèle ici</button>`:''}`);}
+    ${ent?(levelFull(code)?`<button type="button" class="btn block" disabled>${list.length?'Niveau plein : pas de place pour un nouveau modèle':'Inutilisable tant que les boîtes d’en face prennent la place'}</button>`:`<button type="button" class="btn primary" data-act="new" data-code="${code}">+ Ranger un nouveau modèle ici</button>`):''}`);}
 function locOptions(cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
   const old=cur&&!LOCS.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)} (n'existe plus, à changer)</option>`:'';
   return old+Object.entries(groups).map(([z,cs])=>`<optgroup label="${ZONES[z]}">${cs.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('')}</optgroup>`).join('');}
