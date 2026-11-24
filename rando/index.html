@@ -972,7 +972,7 @@ const capFor=(r,Lc,Hc,LN)=>LN.reduce((s,ln)=>{const [a,,h]=boxOri(ln.o,r);return
 /* files de boîtes depuis l'allée ; plusieurs façons de remplir la profondeur, on garde celle qui loge le plus */
 function laneSet(pose,P,r,Lc,Hc){const mk=(front,back)=>{const out=[];let v=0;const put=(o,d)=>{out.push({v,o,d});v+=d;};
     if(front){const d=boxOri(front,r)[1];if(d<=P+.5)put(front,d);}const db=boxOri(back,r)[1];while(v+db<=P+.5)put(back,db);return out;};
-  const C=pose==='tranche'?[[null,'book'],[null,'edge']]:pose==='mixte'?[['flat','edge'],['flatL','edge'],[null,'flat'],[null,'flatL']]:[[null,'flat'],[null,'flatL']];
+  const C=pose==='auto'?[[null,'flat'],[null,'flatL'],[null,'book'],[null,'edge'],['flat','edge'],['flatL','edge']]:pose==='tranche'?[[null,'book'],[null,'edge']]:pose==='mixte'?[['flat','edge'],['flatL','edge'],[null,'flat'],[null,'flatL']]:[[null,'flat'],[null,'flatL']];
   let best=null,bc=-1;C.forEach(([f,b])=>{const ln=mk(f,b);if(!ln.length)return;const c=capFor(r,Lc,Hc,ln);if(c>bc){bc=c;best=ln;}});
   return best||[{v:0,o:'flat',d:P}];}
 const boxOf=a=>boxFor(a)||BOX_DEF[a.type]||BOX_DEF.botte;
@@ -980,7 +980,7 @@ const SLOTC=new Map(); /* vidé à chaque affichage */
 /* nombre de boîtes de format b qui tiennent dans un emplacement mesuré (0 = pas mesuré) */
 function slotCap(code,b){const k=code+'|'+b.L+'|'+b.l+'|'+b.H;if(SLOTC.has(k))return SLOTC.get(k);const d=locDims(code);let c=0;
   const P=pairOf(code)?d.P*2:d.P; /* niveau partagé : toute la profondeur, de l'allée d'un côté à celle de l'autre */
-  if(d.L&&P&&d.H&&capGroup(code))c=capFor(b,d.L,d.H,laneSet(d.pose||'plat',P,b,d.L,d.H));SLOTC.set(k,c);return c;}
+  if(d.L&&P&&d.H&&capGroup(code))c=capFor(b,d.L,d.H,laneSet(d.pose||'auto',P,b,d.L,d.H)) /* « Boîtes posées » non choisi : la meilleure façon (à plat, sur la tranche ou les deux) */;SLOTC.set(k,c);return c;}
 /* boîte moyenne d'un type (d'après les boîtes mesurées), et boîte d'un modèle (la plus grande de ses tailles) */
 function typBox(t){const bs=dims().boxes.filter(b=>b.type===t&&b.L&&b.l&&b.H);if(!bs.length)return BOX_DEF[t]||BOX_DEF.botte;const m=k=>Math.round(bs.reduce((s,b)=>s+b[k],0)/bs.length*10)/10;return {L:m('L'),l:m('l'),H:m('H')};}
 function modelBox(t,marque,modele){const bs=dims().boxes.filter(b=>b.type===t&&b.L&&b.l&&b.H&&(!b.marque||norm(b.marque)===norm(marque))&&(!b.modele||norm(b.modele)===norm(modele)));
@@ -2198,7 +2198,7 @@ function vDims(){const d=dims();
   const inp=(attr,v,lbl)=>`<input type="text" inputmode="decimal" ${attr} value="${v!=null?String(v).replace('.',','):''}" placeholder="cm" aria-label="${lbl}" class="dim-in">`;
   const one=(g,lbl,sn)=>{const pl=(DIM_GROUPS[g]||[])[1]||'Profondeur',o=d.locs[g]||{};return `<div class="dimg"><b>${lbl}${sn?` <span class="snowb">❄ ${esc(sn)}</span>`:''}</b>
     <div class="dimf"><label>Longueur${inp(`data-dim="${g}:L"`,o.L,'Longueur')}</label><label>${g[0]==='M'||g.startsWith('BH')?'Profondeur totale':'Profondeur'}${inp(`data-dim="${g}:P"`,o.P,pl)}</label><label>Hauteur${inp(`data-dim="${g}:H"`,o.H,'Hauteur')}</label></div>
-    <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">—</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;};
+    <label class="dimp">Boîtes posées <select data-dim="${g}:pose"><option value="">Au mieux (l'appli essaie tout)</option>${Object.entries(POSE).map(([k,l])=>`<option value="${k}"${o.pose===k?' selected':''}>${l}</option>`).join('')}</select></label></div>`;};
   const grp=DIM_SECS.map(([t,n,L],k)=>{const ex=Object.entries(d.over).filter(([e])=>DIM_SEC_RX[k].test(e)).sort((a,b)=>dimRank(a[0])-dimRank(b[0]));
     return `<details class="dimsec"><summary>${t}${ex.length?` <span class="snowb exb">${ex.length} mesuré${ex.length>1?'s':''} à part</span>`:''}</summary>${n?`<p class="sub">${n}</p>`:''}${ex.length?`<div class="info dimex"><b>Mesures à part</b> (plus bas, « Un emplacement a des mesures différentes ? ») :${ex.map(([e,o])=>`<div><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''}</div>`).join('')}</div>`:''}<div class="dimgs">${L.map(([g,l,sn])=>one(g,l,sn)).join('')}</div></details>`;}).join('');
   const ov=Object.entries(d.over).sort((a,b)=>dimRank(a[0])-dimRank(b[0])).map(([e,o])=>`<div class="dimrow"><b class="mono">${e}</b> ${fmtD(o,['L','P','H'])} cm${o.note?' · '+esc(o.note):''} <button type="button" class="btn sm ghost" data-act="dimoverdel" data-e="${e}" aria-label="Retirer">✕</button></div>`).join('');
