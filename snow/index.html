@@ -2492,20 +2492,31 @@ function colorBoxes(img){const W=Math.round(img.width*Math.min(1,400/Math.max(im
       for(const d of [1,-1,W,-W]){const q=k+d;if(q<0||q>=W*H||seen[q]||!m[q]||(d===1&&xx===W-1)||(d===-1&&xx===0))continue;seen[q]=1;stk.push(q);}}
     const bw=x1-x0+1,bh=y1-y0+1,f=n/(bw*bh);if(n>W*H*.0015&&n<W*H*.2&&bw>=bh*.9&&f>.45)out.push({x:x0/W,y:y0/H,w:bw/W,h:bh/H,f});}
   return out.sort((a,b)=>b.f-a.f).slice(0,5);}
-async function readColorBox(img,bx,w){const X=bx.x*img.width,Y=bx.y*img.height,BW=bx.w*img.width,BH=bx.h*img.height,k=120/BH;
-  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(BW*k));c.height=120;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,X,Y,BW,BH,0,0,c.width,c.height);
-  const d=x.getImageData(0,0,c.width,c.height),p=d.data,bg=[];for(let i=0;i<p.length;i+=4){const mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);if(mx-mn>55)bg.push(mx);}
-  bg.sort((a,b)=>a-b);const bm=bg.length?bg[bg.length>>1]:128;
-  for(let i=0;i<p.length;i+=4){const mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);p[i]=p[i+1]=p[i+2]=mx-mn<Math.max(30,mx*.22)&&mn>bm*.6?0:255;}x.putImageData(d,0,0);
-  const pad=document.createElement('canvas');pad.width=c.width+40;pad.height=c.height+40;const px=pad.getContext('2d');px.fillStyle='#fff';px.fillRect(0,0,pad.width,pad.height);px.drawImage(c,20,20);
-  const {data}=await w.recognize(pad);return (data.text||'').replace(/,/g,'.').replace(/[^0-9./]/g,'');}
+/* lit le cadre de 3 façons (le texte blanc peut être fin, flou ou rosé selon la photo) ; renvoie les lectures */
+async function readColorBox(img,bx,w){const X=bx.x*img.width,Y=bx.y*img.height,BW=bx.w*img.width,BH=bx.h*img.height,out=[];
+  const crop=H0=>{const c=document.createElement('canvas');c.width=Math.max(1,Math.round(BW*H0/BH));c.height=H0;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,X,Y,BW,BH,0,0,c.width,c.height);return c;};
+  const ocr=async c=>{const pad=document.createElement('canvas');pad.width=c.width+40;pad.height=c.height+40;const px=pad.getContext('2d');px.fillStyle='#fff';px.fillRect(0,0,pad.width,pad.height);px.drawImage(c,20,20);
+    const {data}=await w.recognize(pad);return (data.text||'').replace(/,/g,'.').replace(/[^0-9./]/g,'');};
+  /* 1 et 2 : le plus clair des 3 couleurs (texte blanc = clair, fond coloré = foncé), inversé ; contraste étiré, ou coupé en deux (Otsu) */
+  const gray=(c,mode)=>{const x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height),p=d.data,v=new Uint8Array(p.length/4),hist=new Uint32Array(256);
+    for(let i=0,j=0;i<p.length;i+=4,j++){v[j]=Math.min(p[i],p[i+1],p[i+2]);hist[v[j]]++;}
+    let lo,hi;if(mode==='etire'){const pct=q=>{let t=0;for(let k=0;k<256;k++){t+=hist[k];if(t>=v.length*q)return k;}return 255;};lo=pct(.5);hi=Math.max(lo+20,pct(.98));}
+    else{let sum=0;for(let k=0;k<256;k++)sum+=k*hist[k];let sB=0,wB=0,best=0,th=128;for(let k=0;k<256;k++){wB+=hist[k];if(!wB)continue;const wF=v.length-wB;if(!wF)break;sB+=k*hist[k];const mB=sB/wB,mF=(sum-sB)/wF,b=wB*wF*(mB-mF)**2;if(b>best){best=b;th=k;}}lo=th-1;hi=th+1;}
+    for(let i=0,j=0;i<p.length;i+=4,j++){const t=Math.max(0,Math.min(1,(v[j]-lo)/(hi-lo)));p[i]=p[i+1]=p[i+2]=255-Math.round(t*255);}x.putImageData(d,0,0);return c;};
+  out.push(await ocr(gray(crop(120),'etire')));out.push(await ocr(gray(crop(70),'otsu')));
+  /* 3 : pixels peu colorés et clairs = texte */
+  {const c=crop(120),x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height),p=d.data,bg=[];for(let i=0;i<p.length;i+=4){const mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);if(mx-mn>55)bg.push(mx);}
+    bg.sort((a,b)=>a-b);const bm=bg.length?bg[bg.length>>1]:128;
+    for(let i=0;i<p.length;i+=4){const mx=Math.max(p[i],p[i+1],p[i+2]),mn=Math.min(p[i],p[i+1],p[i+2]);p[i]=p[i+1]=p[i+2]=mx-mn<Math.max(30,mx*.22)&&mn>bm*.6?0:255;}x.putImageData(d,0,0);out.push(await ocr(c));}
+  return out;}
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
-  try{const T=await ocrLoad(),cv=await ocrPrep(file);const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
+  try{const T=await ocrLoad(),wbImg=await labelWB(await createImageBitmap(file)),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* lumière corrigée (photo sombre ou jaune) */const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
     const {data}=await w.recognize(cv,{},{text:true,blocks:true});
-    let boxSz=[];try{const img=await labelWB(await createImageBitmap(file)),B=colorBoxes(img);if(B.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789./,'});
-      for(const b of B){const r=await readColorBox(img,b,w);if(/\d/.test(r))boxSz.push(...sizeGuess(r));if(boxSz.length)break;}}}catch(e){console.warn('Cadre de couleur',e);}
+    let boxSz=[];try{const img=wbImg,B=colorBoxes(img);if(B.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789./,'});
+      for(const b of B){const votes=new Map();(await readColorBox(img,b,w)).forEach(r=>sizeGuess(r).forEach(z=>votes.set(z,(votes.get(z)||0)+1)));
+        boxSz.push(...[...votes.entries()].sort((x,y)=>y[1]-x[1]).map(e=>e[0]));if(boxSz.length)break;} /* toutes les tailles valables lues, la plus lue d'abord */}}catch(e){console.warn('Cadre de couleur',e);}
     await w.terminate();
     const text=((data&&data.text||'').trim()+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
     /* lignes du texte avec leur hauteur : les plus grandes = le modèle */
