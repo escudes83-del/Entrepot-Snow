@@ -2460,33 +2460,35 @@ function ocrPrep(file){return new Promise((ok,ko)=>{const img=new Image();img.on
   const x=c.getContext('2d');x.filter='grayscale(1) contrast(1.4)';x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);ok(c);};img.onerror=ko;img.src=URL.createObjectURL(file);});}
 /* note chaque article du stock d'après le texte lu */
 function ocrMatch(text,big){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ';const t=' '+norm(text).replace(/,/g,'.').replace(/[^a-z0-9./ ]+/g,' ').replace(/\s+/g,' ')+' ',has=w=>w&&t.includes(' '+w+' '),hasIn=w=>w.length>2&&t.includes(w);
-  const nums=new Set(t.split(' ').filter(w=>/^\d{1,3}(\.5)?$/.test(w))); /* nombres entiers du texte (pas des morceaux de 2026) */
+  const nums=new Set(t.split(' ').filter(w=>/^\d{1,3}(\.5)?$/.test(w)));if(SKI)t.split(/[ .]/).forEach(w=>{if(/^\d{3}$/.test(w)&&+w>=150&&+w<=335&&/[05]$/.test(w))nums.add(String(+w/10));}); /* 295 = 29.5 (code article) */ /* nombres entiers du texte (pas des morceaux de 2026) */
   const res=S.articles.filter(a=>qOf(a)>0).map(a=>{let sc=0;
-    const mq=norm(a.marque);if(mq.length>2?hasIn(mq):has(mq))sc+=3; /* marque courte (K2) : mot entier */
+    const mq=norm(a.marque),bh=mq.length>2?hasIn(mq):has(mq);if(bh)sc+=3; /* marque courte (K2) : mot entier */
     const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0,mb=0;mw.forEach(w=>{if(has(w)||(w.length>3&&hasIn(w)))mh++;if(B.includes(' '+w+' ')||(w.length>3&&B.includes(w)))mb++;});
-    if(mw.length){sc+=mh/mw.length*6;sc+=mb/mw.length*8;} /* modèle écrit en grand : bonus fort */
-    if(mw.length>1&&has(mw.join(' ')))sc+=5; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
+    const numOnly=!mw.some(w=>/[a-z]/.test(w))&&!bh,k=numOnly?.4:1; /* modèle fait de chiffres (« 120 S ») sans la marque lue : « 120 » ne suffit pas */
+    if(mw.length){sc+=(mh/mw.length*6+mb/mw.length*8)*k;} /* modèle écrit en grand : bonus fort */
+    if(mw.length>1&&has(mw.join(' ')))sc+=5*k; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
     const z=norm(a.taille).replace(/\s*cm$/,'');if(z&&(nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
     if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
     if(a.genre==='F'&&/ (w|women|womens|femme|wmn|wms) /.test(t))sc+=.5;
     return {a,sc};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
-  return res.slice(0,5);}
+  const top=res.length?res[0].sc:0;return res.filter(x=>x.sc>=top*.7).slice(0,5);} /* seulement les articles proches du meilleur */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
   try{const T=await ocrLoad(),cv=await ocrPrep(file);const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
     const {data}=await w.recognize(cv,{},{text:true,blocks:true});await w.terminate();
     const text=(data&&data.text||'').trim();
     /* lignes du texte avec leur hauteur : les plus grandes = le modèle */
-    const lines=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])).filter(l=>l.text&&l.text.trim()).map(l=>({t:l.text.trim(),h:l.bbox?l.bbox.y1-l.bbox.y0:0}));
+    const lines=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])).filter(l=>l.text&&l.text.trim()).map(l=>({t:l.text.trim(),h:l.bbox?l.bbox.y1-l.bbox.y0:0,c:l.confidence||0})).filter(l=>(l.t.match(/[a-z0-9]/gi)||[]).length>=3&&l.c>=50); /* pas les traits des codes-barres */
     const hmax=Math.max(0,...lines.map(l=>l.h)),big=lines.filter(l=>l.h>=hmax*.8).map(l=>l.t).join(' ');
     const m=ocrMatch(text,big);st.pkScan={text,big,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
   catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
   render();}
 function scanBox(){const sc=st.pkScan;if(!sc)return '';
+  const T=' '+norm(sc.text||'').replace(/[^a-z0-9]+/g,' ')+' ',brandSeen=a=>{const m=norm(a.marque).replace(/[^a-z0-9]+/g,' ').trim();return !!m&&(m.length>2?T.includes(m):T.includes(' '+m+' '));};
   if(sc.busy)return `<div class="info">Lecture de l'étiquette… <small class="opt">(la première fois, l'appli télécharge l'outil de lecture : quelques secondes)</small></div>`;
   if(sc.err)return `<div class="alert warn">La photo n'a pas pu être lue (connexion ?). Réessayez, ou cherchez l'article ci-dessous.</div>`;
   const L=(sc.ids||[]).map(art).filter(a=>a&&qOf(a)>0),lu=esc((sc.text||'').replace(/\s+/g,' ').slice(0,90));
-  const tok=new Set(norm(sc.text||'').replace(/,/g,'.').split(/[^a-z0-9./]+/)),sizeOk=L.some(a=>tok.has(norm(a.taille).replace(/\s*cm$/,'')));
-  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Texte lu</b> (lisibilité ${sc.conf||0} %) :<pre>${esc(sc.text||'(rien)')}</pre><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">La taille lue sur l'étiquette n'est pas en stock (ou mal lue) : vérifiez la taille avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
+  const tok=new Set(norm(sc.text||'').replace(/,/g,'.').split(/[^a-z0-9./]+/)),sizeOk=L.some(a=>tok.has(norm(a.taille).replace(/\s*cm$/,''))),sizeSeen=[...tok].some(w=>sizesOf('botte').some(z=>norm(z).replace(/\s*cm$/,'')===w));
+  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Texte lu</b> (lisibilité ${sc.conf||0} %) :<pre>${esc(sc.text||'(rien)')}</pre><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">${sizeSeen?'La taille lue sur l’étiquette n’est pas en stock (ou mal lue)':'La taille n’a pas pu être lue sur la photo'} : vérifiez la taille sur l'étiquette avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}${brandSeen(a)?'':' <small class="opt">(marque déduite du modèle)</small>'}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
       <div class="acts"><button type="button" class="btn sm${i?'':' primary'}" data-act="pkscan" data-id="${a.id}">${(st.pk||{})[a.id]?'✓ Ajoutée':'Je prends'}</button></div></div>`).join(''):`<div class="alert warn">Article non reconnu. Reprenez la photo bien en face et nette, ou cherchez-le ci-dessous.</div>`}
     <button type="button" class="btn sm ghost" data-act="pkscanx">Fermer</button></div>`;}
 function pickGo(){const pk=st.pk||{},L=Object.entries(pk).map(([id,k])=>[art(id),k]).filter(([a,k])=>a&&k>0);if(!L.length)return;
