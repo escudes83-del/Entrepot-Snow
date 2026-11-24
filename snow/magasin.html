@@ -2479,9 +2479,10 @@ function ocrMatch(text,big,sure){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]
     let zh=false;const z=norm(a.taille).replace(/\s*cm$/,''),zs=!!(sure&&sure.includes(z));if(z&&(zs||nums.has(z)||has(z)||has(z.replace('.',','))))sc+=4,zh=true;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
     if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
     if(a.genre==='F'&&/ (w|women|womens|femme|wmn|wms) /.test(t))sc+=.5;
-    return {a,sc,zh,zs,ms};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
+    return {a,sc,zh,zs,ms,mw,full:mw.length>0&&mh>=mw.length};}).filter(x=>x.sc>=6).sort((x,y)=>y.sc-x.sc);
   const top=res.length?res[0].sc:0;let r=res.filter(x=>x.sc>=top*.7);if(r[0]&&r[0].zh)r=r.filter(x=>x.zh); /* taille lue : seulement cette taille */
-  if(r.some(x=>x.zs))r=r.filter(x=>x.zs); /* taille sûre (cadre de couleur, ligne US/MP du tableau) : pas les autres nombres de l'étiquette */
+  if(r.some(x=>x.zs))r=r.filter(x=>x.zs);
+  r=r.filter(x=>!r.some(y=>y.full&&y.mw.length>x.mw.length&&x.mw.every(v=>y.mw.includes(v)))); /* « Speed 80 HV+ » lu en entier : pas « Speed 80 » */ /* taille sûre (cadre de couleur, ligne US/MP du tableau) : pas les autres nombres de l'étiquette */
   const mMax=Math.max(0,...r.map(x=>x.ms));r=r.filter(x=>x.ms>=mMax*.85); /* un modèle dont on a lu une moins grande part du nom passe après… et disparaît */return r.slice(0,5);} /* seulement les articles proches du meilleur */
 /* taille écrite en blanc dans un cadre de couleur (ex. 29.5 sur fond rouge) : on corrige la lumière (photo sombre ou jaune),
    on repère les cadres colorés bien rectangulaires, on garde le texte blanc, on lit les chiffres */
@@ -2500,6 +2501,22 @@ function colorBoxes(img){const W=Math.round(img.width*Math.min(1,400/Math.max(im
       for(const d of [1,-1,W,-W]){const q=k+d;if(q<0||q>=W*H||seen[q]||!m[q]||(d===1&&xx===W-1)||(d===-1&&xx===0))continue;seen[q]=1;stk.push(q);}}
     const bw=x1-x0+1,bh=y1-y0+1,f=n/(bw*bh);if(n>W*H*.0015&&n<W*H*.2&&bw>=bh*.9&&f>.45)out.push({x:x0/W,y:y0/H,w:bw/W,h:bh/H,f});}
   return out.sort((a,b)=>b.f-a.f).slice(0,5);}
+/* taille écrite en noir dans un cadre fin (ex. « SIZE [32.5] » chez Rossignol) : on cherche les cadres sur l'étiquette et on lit les chiffres dedans */
+function frameBoxes(img){const W=Math.round(img.width*Math.min(1,900/Math.max(img.width,img.height))),H=Math.round(img.height*W/img.width);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.drawImage(img,0,0,W,H);const p=x.getImageData(0,0,W,H).data;
+  const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++){m[i]=(p[i*4]+p[i*4+1]+p[i*4+2])/3<190?1:0;}
+  const seen=new Uint8Array(W*H),out=[];
+  for(let s0=0;s0<W*H;s0++){if(!m[s0]||seen[s0])continue;const stk=[s0];seen[s0]=1;let n=0,x0=W,x1=0,y0=H,y1=0;
+    while(stk.length){const k=stk.pop();n++;const xx=k%W,yy=(k/W)|0;if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy;
+      for(const d of [1,-1,W,-W]){const q=k+d;if(q<0||q>=W*H||seen[q]||!m[q]||(d===1&&xx===W-1)||(d===-1&&xx===0))continue;seen[q]=1;stk.push(q);}}
+    const bw=x1-x0+1,bh=y1-y0+1,f=n/(bw*bh);
+    if(bw>=W*.06&&bh>=H*.02&&bw<=W*.6&&bw/bh>=1.1&&bw/bh<=5&&f<.35){const ym=((y0+y1)/2)|0;let L=0,R=0; /* un cadre : noir sur les bords, clair dedans */
+      for(let xx=x0;xx<x0+bw*.15;xx++)L|=m[ym*W+xx];for(let xx=Math.round(x1-bw*.15);xx<=x1;xx++)R|=m[ym*W+xx];
+      if((L&&R)||f<.12)out.push({x:x0/W,y:y0/H,w:bw/W,h:bh/H});}}
+  return out.sort((a,b)=>b.w*b.h-a.w*a.h).slice(0,6);}
+async function readFrame(img,bx,w){const X=(bx.x+bx.w*.03)*img.width,Y=(bx.y+bx.h*.15)*img.height,BW=bx.w*.94*img.width,BH=bx.h*.7*img.height, /* le dernier chiffre touche souvent le bord droit du cadre */k=70/BH,c=document.createElement('canvas');
+  c.width=Math.round(BW*k)+40;c.height=110;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.5)';x.drawImage(img,X,Y,BW,BH,20,20,c.width-40,70);
+  const {data}=await w.recognize(c);return (data.text||'').replace(/,/g,'.').replace(/[^0-9./]/g,'').replace(/^[./]+|[./]+$/g,'');}
 /* lit le cadre de 3 façons (le texte blanc peut être fin, flou ou rosé selon la photo) ; renvoie les lectures */
 async function readColorBox(img,bx,w){const X=(bx.x+bx.w*.06)*img.width,Y=(bx.y+bx.h*.12)*img.height,BW=bx.w*.88*img.width,BH=bx.h*.76*img.height,out=[]; /* sans les bords du cadre */
   const crop=H0=>{const c=document.createElement('canvas');c.width=Math.max(1,Math.round(BW*H0/BH));c.height=H0;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,X,Y,BW,BH,0,0,c.width,c.height);return c;};
@@ -2577,7 +2594,15 @@ const mp0=L=>{const o=L.find(x=>x.p==='mp'||(+x.v>=20&&+x.v<=33.5));return o?o.v
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};st.pkTodo=false;PK_IMG=null;render();
-  try{const bmp=await createImageBitmap(file);try{PK_IMG=photoSmall(bmp);}catch(e){}const T=await ocrLoad(),wbImg=await labelWB(bmp),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* réduction douce : une grande photo de téléphone reste nette */ /* lumière corrigée (photo sombre ou jaune) */const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
+  try{const bmp=await createImageBitmap(file);try{PK_IMG=photoSmall(bmp);}catch(e){}const T=await ocrLoad(),w=await T.createWorker('eng');let best=null;
+    /* étiquette de travers (photo en portrait, boîte couchée) : si rien de sûr n'est trouvé, on relit la photo tournée d'un quart de tour, dans un sens puis dans l'autre */
+    try{for(const rot of [0,-90,90,180]){const r=await readLabel(rot?rotImg(bmp,rot):bmp,w);if(!best||r.score>best.score)best=r;if(best.score>=11&&best.sure)break;}}finally{await w.terminate();}
+    st.pkScan=best.scan;}
+  catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
+  render();}
+function rotImg(img,deg){const c=document.createElement('canvas'),q=Math.abs(deg)%180===90;c.width=q?img.height:img.width;c.height=q?img.width:img.height;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);x.drawImage(img,-img.width/2,-img.height/2);return c;}
+async function readLabel(src,w){await w.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:''});
+  {const wbImg=await labelWB(src),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* réduction douce : une grande photo de téléphone reste nette */ /* lumière corrigée (photo sombre ou jaune) *//* texte épars : lit aussi le modèle écrit en très grand */
     const {data}=await w.recognize(cv,{},{text:true,blocks:true});
     /* lignes du texte avec leur hauteur : les plus grandes = le modèle */
     const lines=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])).filter(l=>l.text&&l.text.trim()).map(l=>({t:l.text.trim(),h:l.bbox?l.bbox.y1-l.bbox.y0:0,c:l.confidence||0,b:l.bbox})).filter(l=>(l.t.match(/[a-z0-9]/gi)||[]).length>=3);
@@ -2591,15 +2616,15 @@ async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};st.pkTodo=f
     let boxSz=[];try{const img=wbImg,B=colorBoxes(img);if(B.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789./,'});
       for(const b of B){const votes=new Map();(await readColorBox(img,b,w)).forEach(r=>sizeGuess(r).forEach(z=>votes.set(z,(votes.get(z)||0)+1)));
         boxSz.push(...[...votes.entries()].sort((x,y)=>y[1]-x[1]).map(e=>e[0]));if(boxSz.length)break;} /* toutes les tailles valables lues, la plus lue d'abord */}}catch(e){console.warn('Cadre de couleur',e);}
+    if(!boxSz.length)try{const img=wbImg,F=frameBoxes(img);if(F.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789./,'});
+      for(const b of F){sizeGuess(await readFrame(img,b,w)).forEach(z=>{if(!boxSz.includes(z))boxSz.push(z);});if(boxSz.length)break;}}}catch(e){console.warn('Cadre fin',e);} /* taille dans un cadre noir fin */
     let band='';try{const BD=darkBands(wbImg);if(BD.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});for(const bd of BD){const t=await bandText(wbImg,bd,w);if(t)band+=' '+t;}}}catch(e){console.warn('Bandeau noir',e);} /* titre blanc sur bandeau noir (ex. SIERRA) */
     big2=(band+' '+big2).trim();
-    await w.terminate();
     const tz=tableSz((data&&data.text||'')+' '+big2);tz.forEach(z=>{if(!boxSz.includes(z))boxSz.unshift(z);}); /* taille du tableau US/EU/UK/MP */
     big2=big2.trim();const big=[big2,...bigL.map(l=>l.t)].filter(Boolean).join(' ');
     const text=((data&&data.text||'').trim()+(big2?' \n'+big2:'')+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
-    let m=ocrMatch(text,big,boxSz);if(tz.fromMp){const g=m.filter(x=>norm(x.a.taille)===String(+tz.fromMp-(x.a.genre==='F'?17:18)));if(g.length)m=g;} /* US déduite de la MP : homme MP−18, femme MP−17 */st.pkScan={text,big,boxSz,fromMp:tz.fromMp||0,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
-  catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
-  render();}
+    let m=ocrMatch(text,big,boxSz);if(tz.fromMp){const g=m.filter(x=>norm(x.a.taille)===String(+tz.fromMp-(x.a.genre==='F'?17:18)));if(g.length)m=g;} /* US déduite de la MP : homme MP−18, femme MP−17 */
+    return {score:m.length?m[0].sc:0,sure:!!(m.length&&m[0].zh&&new Set(m.map(x=>norm(x.a.taille))).size===1),scan:{text,big,boxSz,fromMp:tz.fromMp||0,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)}};}}
 function scanBox(){const sc=st.pkScan;if(!sc)return '';
   const T=' '+norm(sc.text||'').replace(/[^a-z0-9]+/g,' ')+' ',brandSeen=a=>{const m=norm(a.marque).replace(/[^a-z0-9]+/g,' ').trim();return !!m&&(m.length>2?T.includes(m):T.includes(' '+m+' '));};
   if(sc.busy)return `<div class="info">Lecture de l'étiquette… <small class="opt">(la première fois, l'appli télécharge l'outil de lecture : quelques secondes)</small></div>`;
