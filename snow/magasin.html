@@ -288,6 +288,9 @@ h3.sec{margin:16px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:
 .warnc{border-color:var(--accent)}.mvl{margin-top:6px}.pe{color:var(--accent)}.bad{color:var(--bad)}
 .arr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .testbtn{white-space:nowrap;flex:none}.testbtn.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.sccard{display:flex;gap:12px;align-items:flex-start}.sccard img{width:110px;height:150px;object-fit:cover;border-radius:8px;cursor:zoom-in;flex-shrink:0;background:#000}
+.sccard .scinfo{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:14px}.scbig{width:100%;max-height:70vh;object-fit:contain;border-radius:8px;background:#000}
+.sctag{background:#7c3aed;color:#fff;border-radius:6px;padding:1px 6px;font-size:12px;font-weight:700}.todo-f{display:flex;flex-direction:column;gap:10px;border:1px solid var(--warn,#f59e0b)}
 .testban{background:#7c3aed;color:#fff;font-weight:700;border-radius:8px;padding:8px 12px;font-size:13px}
 .tsz{margin-top:6px;padding:6px 8px;border-left:3px solid #7c3aed;background:color-mix(in srgb,#7c3aed 10%,transparent);font-size:13px;display:flex;flex-direction:column;gap:3px}
 .chk{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:5px}
@@ -870,7 +873,7 @@ function render(){SLOTC.clear();updUndo();
   const tabs=$('#tabs');tabs.innerHTML=TABS[role].map(([k,l,i])=>`<button type="button" data-tab="${k}"${k===st.tab?' aria-current="page"':''}>${IC[i]}${l}</button>`).join('');
   document.querySelectorAll('#roleSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.role===role));
   document.querySelectorAll('#tabs button').forEach(b=>{
-    if(b.dataset.tab==='orders'||b.dataset.tab==='mine'){const n=unread().length;if(n)b.insertAdjacentHTML('beforeend',`<span class="badge">${n}</span>`);}});
+    if(b.dataset.tab==='orders'||b.dataset.tab==='mine'){const n=unread().length+(b.dataset.tab==='orders'?(cloud.scans||[]).length:0);if(n)b.insertAdjacentHTML('beforeend',`<span class="badge">${n}</span>`);}});
   const v=$('#view');
   v.innerHTML=role==='magasin'?bell()+(st.tab==='find'?vShopFind():st.tab==='pick'?vShopPick():st.tab==='mine'?vShopMine():vShopCmd())
     :cloudBanner()+(st.tab==='search'?vSearch():st.tab==='plan'?vPlan():st.tab==='move'?vMove():st.tab==='orders'?vOrders():st.tab==='arr'?vArrivage():vSettings());
@@ -1593,6 +1596,7 @@ function vOrders(){
   const done=S.orders.filter(o=>o.status==='prete'||o.status==='recue').sort((a,b)=>b.at-a.at);
   return `<div><h2>Commandes du magasin</h2><p class="sub">Les plus anciennes en premier. Touchez une commande pour la préparer.</p></div>${intro}
     <div style="max-width:640px">${nameField('Qui prépare ? (touchez votre nom)',NOMS.entrepot,'Autre nom…')}</div>
+    ${scanSection()}
     <h3>À traiter (${todo.length})</h3>
     <div style="display:flex;flex-direction:column;gap:8px">${todo.map(orderCard).join('')||'<div class="empty">Rien à préparer.</div>'}</div>
     <h3>Terminées</h3>
@@ -2453,6 +2457,9 @@ function vShopPick(){const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{con
 /* ---------- Pick-up : lire l'étiquette sur une photo (texte) et retrouver l'article ----------
    La lecture se fait sur le téléphone (Tesseract, chargé la première fois). Le texte lu est comparé au stock : marque, modèle, taille, couleur. */
 let ocrLib=null;
+let PK_IMG=null; /* photo réduite de la dernière étiquette lue, pour « à traiter » */
+function photoSmall(bmp){const k=Math.min(1,1100/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
+  const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(bmp,0,0,c.width,c.height);let q=.72,u=c.toDataURL('image/jpeg',q);while(u.length>700000&&q>.3){q-=.12;u=c.toDataURL('image/jpeg',q);}return u;}
 let PK_TEST=null;const pkTest=()=>{if(PK_TEST===null){try{PK_TEST=localStorage.getItem(KEY+'-pktest')==='1';}catch(e){PK_TEST=false;}}return PK_TEST;};
 function ocrLoad(){if(!ocrLib)ocrLib=new Promise((ok,ko)=>{const e=document.createElement('script');e.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';e.onload=()=>ok(window.Tesseract);e.onerror=ko;document.head.appendChild(e);});return ocrLib;}
 /* photo réduite et en niveaux de gris, plus rapide et plus lisible */
@@ -2564,8 +2571,8 @@ function tableSz(text){const tk=norm(text||'').replace(/,/g,'.').split(/[^a-z0-9
   const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...new Set(hit.map(o=>o.v))].filter(z=>ok.has(z));}
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
-async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};render();
-  try{const T=await ocrLoad(),wbImg=await labelWB(await createImageBitmap(file)),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* réduction douce : une grande photo de téléphone reste nette */ /* lumière corrigée (photo sombre ou jaune) */const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
+async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};st.pkTodo=false;PK_IMG=null;render();
+  try{const bmp=await createImageBitmap(file);try{PK_IMG=photoSmall(bmp);}catch(e){}const T=await ocrLoad(),wbImg=await labelWB(bmp),cv=document.createElement('canvas');{const k=Math.min(1,1600/Math.max(wbImg.width,wbImg.height));cv.width=Math.round(wbImg.width*k);cv.height=Math.round(wbImg.height*k);const x=cv.getContext('2d');x.imageSmoothingQuality='high';x.filter='grayscale(1) contrast(1.4)';x.drawImage(wbImg,0,0,cv.width,cv.height);} /* réduction douce : une grande photo de téléphone reste nette */ /* lumière corrigée (photo sombre ou jaune) */const w=await T.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'}); /* texte épars : lit aussi le modèle écrit en très grand */
     const {data}=await w.recognize(cv,{},{text:true,blocks:true});
     /* lignes du texte avec leur hauteur : les plus grandes = le modèle */
     const lines=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])).filter(l=>l.text&&l.text.trim()).map(l=>({t:l.text.trim(),h:l.bbox?l.bbox.y1-l.bbox.y0:0,c:l.confidence||0,b:l.bbox})).filter(l=>(l.t.match(/[a-z0-9]/gi)||[]).length>=3);
@@ -2596,7 +2603,57 @@ function scanBox(){const sc=st.pkScan;if(!sc)return '';
   const tok=new Set(norm(sc.text||'').replace(/,/g,'.').split(/[^a-z0-9./]+/)),sizeOk=L.some(a=>tok.has(norm(a.taille).replace(/\s*cm$/,''))),sizeSeen=[...tok].some(w=>sizesOf('botte').some(z=>norm(z).replace(/\s*cm$/,'')===w));
   return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »${(sc.boxSz||[]).length?` · <b>taille lue</b> : ${esc(sc.boxSz.join(' / '))}`:''}</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">${sizeSeen?'La taille lue sur l’étiquette n’est pas en stock (ou mal lue)':'La taille n’a pas pu être lue sur la photo'} : vérifiez la taille sur l'étiquette avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}${brandSeen(a)?'':' <small class="opt">(marque déduite du modèle)</small>'}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
       <div class="acts"><button type="button" class="btn sm${i?'':' primary'}" data-act="pkscan" data-id="${a.id}">${(st.pk||{})[a.id]?'✓ Ajoutée':'Je prends'}</button></div></div>`).join(''):`<div class="alert warn">Article non reconnu. Reprenez la photo bien en face et nette, ou cherchez-le ci-dessous.</div>`}
-    <button type="button" class="btn sm ghost" data-act="pkscanx">Fermer</button></div>`;}
+    ${scanTodo(L.length)}<button type="button" class="btn sm ghost" data-act="pkscanx">Fermer</button></div>`;}
+/* ---------- Photos « à traiter » : la boîte n'est pas reconnue, le magasin la prend quand même ; l'entrepôt retrouve l'article plus tard ---------- */
+function scanTodo(n){if(!PK_IMG)return '';
+  if(!st.pkTodo)return `<button type="button" class="btn${n?' sm':' primary'} block" data-act="pktodo">📌 ${n?'Ce n’est pas le bon : je prends quand même, l’entrepôt traitera':'Je prends quand même : l’entrepôt traitera la photo'}</button>`;
+  const basket=Object.keys(st.pk||{}).length;
+  return `<div class="card todo-f"><b>📌 Photo à traiter par l'entrepôt</b><small class="opt">Prenez la boîte. La photo part à l'entrepôt, qui retrouvera l'article et le retirera du stock.</small>
+    <div class="inline"><div class="field" style="max-width:110px"><label for="pkTodoQ">Boîtes prises</label><input type="number" id="pkTodoQ" min="1" max="20" value="1" inputmode="numeric"></div>
+      <div class="field" style="flex:1"><label for="pkTodoNote">Note (facultatif)</label><input type="text" id="pkTodoNote" maxlength="200" placeholder="ex. taille 42, boîte abîmée…" autocomplete="off"></div></div>
+    ${basket?'':nameField('Qui prend ? (touchez votre nom)',NOMS.magasin,'Autre nom…')}
+    <div class="inline"><button type="button" class="btn primary" data-act="pktodogo">📌 Envoyer à l'entrepôt</button><button type="button" class="btn ghost" data-act="pktodox">Annuler</button></div></div>`;}
+async function scanTodoSave(){const who=me();if(!who){needName();return;}if(!PK_IMG)return;
+  if(!cloud.on||!cloud.fs){toast('Hors ligne : la photo ne peut pas partir. Réessayez quand le téléphone a du réseau.');return;}
+  const q=Math.max(1,Math.min(20,parseInt(($('#pkTodoQ')||{}).value)||1)),note=(($('#pkTodoNote')||{}).value||'').trim().slice(0,200),at=Date.now(),id=at+'-'+Math.random().toString(36).slice(2,6),sc=st.pkScan||{};
+  const doc={st:'todo',at,by:who,qty:q,note,read:(sc.text||'').replace(/\s+/g,' ').slice(0,300),sz:(sc.boxSz||[]).join(' / '),img:PK_IMG,test:pkTest()};
+  const b=$('[data-act="pktodogo"]');if(b){b.disabled=true;b.textContent='Envoi…';}
+  try{await cloud.fs.setDoc(cloud.fs.doc(cloud.db,C('scans'),id),doc);}
+  catch(e){console.warn('Photo à traiter',e);toast('L’envoi a échoué (connexion ?). Réessayez.');if(b){b.disabled=false;b.textContent='📌 Envoyer à l’entrepôt';}return;}
+  if(!doc.test){notify('entrepot',`📌 Photo à traiter : ${who} a pris ${q} boîte${q>1?'s':''} non reconnue${q>1?'s':''}`);save();}
+  st.pkScan=null;st.pkTodo=false;PK_IMG=null;render();
+  toast(doc.test?'🧪 <b>Essai</b> : photo envoyée à l’entrepôt (marquée « essai », le stock ne changera pas).':'<b>Photo envoyée</b> : l’entrepôt retirera la boîte du stock en la traitant. Merci !');}
+const scanOf=id=>(cloud.scans||[]).find(s=>s.id===id);
+const scanImg=s=>/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s.img||'')?s.img:'';
+function scanCard(s){return `<div class="card sccard">${scanImg(s)?`<img src="${scanImg(s)}" alt="Photo de l'étiquette" data-act="scview" data-id="${esc(s.id)}">`:''}<div class="scinfo">
+  <div><b>×${s.qty||1}</b> · pris par <b>${esc(s.by||'?')}</b> · ${fmtDT(s.at)}${s.test?' <span class="sctag">🧪 essai</span>':''}</div>
+  ${s.note?`<div>📝 ${esc(s.note)}</div>`:''}${s.sz?`<small class="opt">Taille lue : ${esc(s.sz)}</small>`:''}
+  <div class="inline"><button type="button" class="btn sm primary" data-act="scfind" data-id="${esc(s.id)}">🔎 Trouver l'article</button><button type="button" class="btn sm ghost" data-act="scnone" data-id="${esc(s.id)}">Rien à retirer</button></div></div></div>`;}
+function scanSection(){const L=cloud.scans||[];if(!L.length)return '';
+  return `<h3>📌 Photos à traiter (${L.length})</h3><p class="sub">Boîtes prises au magasin alors que l'appli n'a pas reconnu l'étiquette. Retrouvez l'article : la boîte sera retirée du stock.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">${L.map(scanCard).join('')}</div>`;}
+function scanRows(s,q){const w=norm(q||'').split(/\s+/).filter(Boolean);let L;
+  if(w.length)L=sortArts(S.articles.filter(a=>qOf(a)>0&&w.every(x=>norm(`${a.marque} ${a.modele} ${szLbl(a.type,a.taille)} ${a.taille} ${a.couleur||''} ${a.emp} ${GENRE[a.genre]||''}`).includes(x)))).slice(0,40);
+  else L=ocrMatch(s.read||'','',s.sz?s.sz.split(' / '):[]).map(x=>x.a);
+  if(!L.length)return `<div class="empty">${w.length?'Rien trouvé.':'Tapez la marque, le modèle ou la taille.'}</div>`;
+  return (w.length?'':'<small class="opt">Proposé d’après la photo :</small>')+L.map(a=>`<div class="row"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock</div></div>
+    <div class="acts"><button type="button" class="btn sm primary" data-act="scdo" data-id="${esc(s.id)}" data-aid="${esc(a.id)}">Retirer ×${Math.min(s.qty||1,qOf(a))}</button></div></div>`).join('');}
+function scanFind(id){const s=scanOf(id);if(!s)return;
+  sheet(`<div class="sheet-in" style="display:flex;flex-direction:column;gap:12px"><div class="sheet-h"><h2>Quel article ?</h2><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
+    ${scanImg(s)?`<img class="scbig" style="max-height:40vh" src="${scanImg(s)}" alt="Photo de l'étiquette">`:''}
+    <div><b>×${s.qty||1}</b> · pris par <b>${esc(s.by||'?')}</b> · ${fmtDT(s.at)}${s.note?` · 📝 ${esc(s.note)}`:''}${s.test?' <span class="sctag">🧪 essai : le stock ne changera pas</span>':''}</div>
+    <div class="field"><label for="scq">Chercher l'article (marque, modèle, taille…)</label><input type="search" id="scq" data-scan="${esc(s.id)}" autocomplete="off"></div>
+    <div class="list" id="scres">${scanRows(s,'')}</div></div>`);}
+async function scanClose(id,patch){const s=scanOf(id);if(!s||!cloud.on)return false;
+  try{await cloud.fs.updateDoc(cloud.fs.doc(cloud.db,C('scans'),id),{st:'done',doneAt:Date.now(),doneBy:me()||'',...patch});return true;}
+  catch(e){console.warn('Photo à traiter',e);toast('Échec (connexion ?). Réessayez.');return false;}}
+async function scanDo(id,aid){const s=scanOf(id),a=art(aid);if(!s||!a)return;const q=Math.min(s.qty||1,qOf(a));
+  if(!await scanClose(id,{aid:a.id,took:s.test?0:q}))return;
+  if(!s.test&&q>0){const at=Date.now(),d=new Date(at),pre=String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0'),k=S.orders.filter(o=>o.pickup&&o.num&&o.num.startsWith('P'+pre+'-')).length+1,by=s.by||'Magasin';
+    const o={id:at,num:`P${pre}-${k}`,at,by,status:'recue',pickup:true,deducted:true,readyAt:at,fromScan:id,lines:[{aid:a.id,qty:q,st:'ok',done:q,by}]};
+    a.qty=qOf(a)-q;S.orders.push(o);pushMeta={kind:'pickup',ref:String(o.id),label:'Photo traitée (pick-up de '+by+')'};save();}
+  closeSheet();cloud.scans=(cloud.scans||[]).filter(x=>x.id!==id);render();
+  toast(s.test?'🧪 Essai traité : rien n’a changé dans le stock.':`<b>${esc(artName(a))} ${esc(szLbl(a.type,a.taille))}</b> : ${q} boîte${q>1?'s':''} retirée${q>1?'s':''} de ${esc(a.emp)}.`);}
 function pickGo(){const pk=st.pk||{},L=Object.entries(pk).map(([id,k])=>[art(id),k]).filter(([a,k])=>a&&k>0);if(!L.length)return;
   const who=me();if(!who){needName();return;}st.pkScan=null;
   if(pkTest()){const n=L.reduce((t,[a,q])=>t+Math.min(q,qOf(a)),0);st.pk={};render();toast(`🧪 <b>Essai</b> : ${n} boîte${n>1?'s auraient été retirées':' aurait été retirée'} du stock. Rien n'a changé.`);return;}
@@ -3049,7 +3106,15 @@ document.addEventListener('click',e=>{
     case'pkdec':{const a=art(t.dataset.id);if(!a||!st.pk)break;st.pk[a.id]=(st.pk[a.id]||0)-1;if(st.pk[a.id]<=0)delete st.pk[a.id];render();break;}
     case'pkscan':{st.pk=st.pk||{};const a=art(t.dataset.id);if(!a)break;st.pk[a.id]=Math.min(qOf(a),(st.pk[a.id]||0)+1);render();toast(`<b>${esc(artName(a))} ${esc(szLbl(a.type,a.taille))}</b> ajoutée. Une autre photo, ou « J'ai pris » pour valider.`);break;}
     case'pktest':PK_TEST=!pkTest();try{localStorage.setItem(KEY+'-pktest',PK_TEST?'1':'0');}catch(e){}st.pkScan=null;render();break;
-    case'pkscanx':st.pkScan=null;render();break;
+    case'pkscanx':st.pkScan=null;st.pkTodo=false;render();break;
+    case'pktodo':st.pkTodo=true;render();setTimeout(()=>{const f=$('#pkTodoQ');if(f)f.scrollIntoView({block:'center'});},50);break;
+    case'pktodox':st.pkTodo=false;render();break;
+    case'pktodogo':scanTodoSave();break;
+    case'scview':{const s=scanOf(t.dataset.id);if(s&&scanImg(s))sheet(`<div class="sheet-in" style="display:flex;flex-direction:column;gap:12px"><div class="sheet-h"><h2>Photo de l'étiquette</h2><button type="button" class="btn ghost" data-act="close">Fermer</button></div><img class="scbig" src="${scanImg(s)}" alt="Photo de l'étiquette"><button type="button" class="btn primary" data-act="scfind" data-id="${esc(s.id)}">🔎 Trouver l'article</button></div>`);break;}
+    case'scfind':scanFind(t.dataset.id);break;
+    case'scdo':scanDo(t.dataset.id,t.dataset.aid);break;
+    case'scnone':{if(st.armed!=='scnone'+t.dataset.id){st.armed='scnone'+t.dataset.id;t.textContent='Confirmer : rien à retirer';t.classList.add('armed');break;}st.armed=null;
+      scanClose(t.dataset.id,{none:true}).then(ok=>{if(ok){cloud.scans=(cloud.scans||[]).filter(x=>x.id!==t.dataset.id);render();toast('Photo classée : rien retiré du stock.');}});break;}
     case'pkclear':st.pk={};render();break;
     case'pkgo':pickGo();break;
     case'pkundo':{const id=t.dataset.o;if(st.armed!=='pku'+id){st.armed='pku'+id;render();break;}st.armed=null;pickUndo(id);break;}
@@ -3140,6 +3205,7 @@ document.addEventListener('input',e=>{
   else if(t.dataset&&t.dataset.gqi!==undefined){const gq=st.sh.gq=st.sh.gq||{};gq[t.dataset.gqi]=Math.max(0,Math.min(50,parseInt(t.value)||0));
     const b=$('#gaddBtn'),n=gridTot();if(b){b.disabled=!n;b.textContent=n?`Ajouter ${n} à la commande`:'Choisissez les quantités';}const row=t.closest('.grow');row.classList.toggle('on',!!gq[t.dataset.gqi]);
     const pr=shGridPool().rows.find(r=>r.z===t.dataset.gqi);if(pr)row.classList.toggle('warn',gq[t.dataset.gqi]>pr.n);}
+  else if(t.id==='scq'){const s=scanOf(t.dataset.scan),r=$('#scres');if(s&&r){r.innerHTML=scanRows(s,t.value);tint(r);spaceCodes(r);}}
   else if(t.id==='cartNote'){S.cartNote=t.value;save();}
   else if(t.id==='myName'){S.myName=t.value;save();}
   else if(t.id==='arrNote'){arr().note=t.value;saveLocal();}
@@ -3256,7 +3322,8 @@ async function backupMake(id,why){const {fs,db}=cloud,at=Date.now();
   await fs.setDoc(ix,{list});cloud.backups=list;}
 async function dailyBackup(){if(cloud.bk||role!=='entrepot'||!cloud.on||!cloud.sent.arts||!cloud.sent.arts.size)return;cloud.bk=1;
   try{const {fs,db}=cloud,id=dayId(),d=await fs.getDoc(fs.doc(db,C('backups'),id));if(!d.exists())await backupMake(id,'Sauvegarde du jour');
-    const old=await fs.getDocs(fs.query(fs.collection(db,C('journal')),fs.where('at','<',Date.now()-30*864e5)));old.forEach(x=>fs.deleteDoc(x.ref).catch(()=>{}));}
+    const old=await fs.getDocs(fs.query(fs.collection(db,C('journal')),fs.where('at','<',Date.now()-30*864e5)));old.forEach(x=>fs.deleteDoc(x.ref).catch(()=>{}));
+    const oldP=await fs.getDocs(fs.query(fs.collection(db,C('scans')),fs.where('doneAt','<',Date.now()-30*864e5)));oldP.forEach(x=>fs.deleteDoc(x.ref).catch(()=>{})); /* photos traitées : gardées 30 jours */}
   catch(e){console.warn('Sauvegarde',e);}}
 async function backupsLoad(){if(!cloud.on)return;try{const d=await cloud.fs.getDoc(cloud.fs.doc(cloud.db,C('cfg'),'backups'));cloud.backups=d.exists()&&d.data().list||[];}catch(e){cloud.backups=[];}softRender();}
 async function doRestore(id){if(!cloud.on)return;const {fs,db}=cloud;
@@ -3326,6 +3393,9 @@ async function cloudStart(){
         if(key==='notifs'&&!first){const fresh=unread().filter(n=>!before.has(String(n.id)));
           if(fresh.length){toast(`🔔 <b>${esc(fresh[fresh.length-1].text)}</b>`,true);try{navigator.vibrate&&navigator.vibrate([200,100,200]);}catch(e){}}}
       },cloudErr);});
+    /* photos à traiter (entrepôt) : seulement celles pas encore traitées */
+    if(role==='entrepot')fs.onSnapshot(fs.query(fs.collection(db,C('scans')),fs.where('st','==','todo')),qs=>{
+      cloud.scans=qs.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>x.at-y.at);softRender();},e=>console.warn('Photos à traiter',e));
     /* historique : les 20 dernières modifications du stock */
     if(role==='entrepot')fs.onSnapshot(fs.query(fs.collection(db,C('journal')),fs.orderBy('at','desc'),fs.limit(20)),qs=>{
       cloud.journal=qs.docs.map(d=>({id:d.id,...d.data()}));updUndo();if(st.tab==='settings'||st.tab==='move')softRender();},e=>console.warn('Historique',e));
