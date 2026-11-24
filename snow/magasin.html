@@ -944,15 +944,22 @@ function chips(z,r,H,count,levels=LV,all=LV){const f=`${z}${r}.0`;return `<div c
 const BOX_DEF={botte:{L:46,l:37,H:14.5},fix:{L:40,l:32,H:16},board:{L:155,l:30,H:6}};
 /* mesures d'un emplacement : les siennes s'il en a, sinon celles du groupe ; au milieu, la profondeur est partagée entre G et D */
 const FSN=76; /* fond : profondeur du côté snow (F1), ajoutée à celle du côté ski pour FS2 qui est tout au ski */
+/* les deux côtés d'un même niveau (HG/HD, MG/MD, AG/AD, BG/BD) partagent la profondeur */
+const PAIRZ={HG:'HD',HD:'HG',MG:'MD',MD:'MG',AG:'AD',AD:'AG',BG:'BD',BD:'BG'};
+const pairOf=c=>{const m=/^([A-Z]+)(\d+\.[1-9])$/.exec(c||'');return m&&PAIRZ[m[1]]&&(SKI?!RANDO&&m[1][0]==='H'||RANDO:m[1][0]==='M')?PAIRZ[m[1]]+m[2]:null;};
+/* mesures à part d'un emplacement (aussi « HD 0.1 » écrit avec un espace) ; pour un niveau partagé, celles de l'autre côté valent aussi */
+const overOf=(d,c)=>{const f=x=>x&&(d.over[x]||d.over[x.replace(/^([A-Z]+)/,'$1 ')]),q=pairOf(c);const o=f(c)||(q?f(q):null);return o?Object.fromEntries(Object.entries(o).filter(([,v])=>v!=null&&v!=='')):null;}; /* une mesure laissée vide garde celle du groupe */
 function locDims(code){const d=dims(),m=/^([A-Z]+)(\d+)\.(\d)$/.exec(code||'');if(!m||m[3]==='0')return {L:0,P:0,H:0,pose:''};const[,z,r,l]=m;let g=null,o=null;
-  if(RANDO){g=z==='ED'?d.locs['ED'+l]:z==='AG'||z==='AD'?d.locs['RA'+l]:z==='BG'||z==='BD'?d.locs['RB'+l]:null;o=d.over[code];const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^[AB][GD]$/.test(z)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
-  if(SKI){g=z==='WS'||z==='WN'?d.locs['BF'+l]:z==='HG'||z==='HD'?d.locs['BH'+l]:z==='FS'?(d.locs['FS'+l]||d.locs.FS):z==='EN'?d.locs['EN'+l]:z==='ED'?d.locs['ED'+l]:null;o=d.over[code];const x=Object.assign({},g||{},o||{});
+  if(RANDO){g=z==='ED'?d.locs['ED'+l]:z==='AG'||z==='AD'?d.locs['RA'+l]:z==='BG'||z==='BD'?d.locs['RB'+l]:null;o=overOf(d,code);const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^[AB][GD]$/.test(z)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
+  if(SKI){g=z==='WS'||z==='WN'?d.locs['BF'+l]:z==='HG'||z==='HD'?Object.assign({},d.locs['BF'+l]||{},...Object.entries(d.locs['BH'+l]||{}).filter(([,v])=>v!=null&&v!=='').map(([k,v])=>({[k]:v}))):z==='FS'?(d.locs['FS'+l]||d.locs.FS):z==='EN'?d.locs['EN'+l]:z==='ED'?d.locs['ED'+l]:null;o=overOf(d,code);const x=Object.assign({},g||{},o||{});
     const w5=z==='FS'?d.locs['BF'+l]||d.locs.BF1:null,wP=w5&&w5.P||0;
     if(z==='FS')return {L:x.L?x.L+wP:0,P:x.P||0,H:x.H||0,pose:(g&&g.pose)||'',deep:wP&&x.P?{len:wP,P:x.P+FSN}:null}; /* fond : FS1 + le bout derrière W5 (pleine profondeur) */
-    return {L:x.L||0,P:x.P?(z[0]==='H'?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
+    /* rack H : profondeur d'un côté = mesure à part (d'un côté, comme les racks W), sinon la moitié de « Bottes homme » (profondeur totale), sinon celle des racks W */
+    if(z[0]==='H'){const bh=d.locs['BH'+l]||{},bf=d.locs['BF'+l]||{},P=o&&o.P?o.P:bh.P?bh.P/2:bf.P||0;return {L:x.L||0,P,H:x.H||0,pose:x.pose||bf.pose||''};}
+    return {L:x.L||0,P:x.P||0,H:x.H||0,pose:(g&&g.pose)||''};}
   /* racks de gauche : mesures du groupe « Gauche », les mêmes pour tous ; niveau 1 sans hauteur = celle de D1.1 */
   if(z==='G'){const x=d.locs['G'+l]||{};return {L:x.L||0,P:x.P||0,H:x.H||(l==='1'?locDims('D1.1').H:0),pose:x.pose||''};}
-  if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=d.over[code];}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=d.over[`M${r}.${l}`];}else if(z==='F'){g=d.locs['F'+l];o=d.over[code];}
+  if(z==='D'){g=d.locs[l==='3'?'D3':'D12'];o=overOf(d,code);}else if(z==='MG'||z==='MD'){g=d.locs['M'+l];o=overOf(d,code)||d.over[`M${r}.${l}`];}else if(z==='F'){g=d.locs['F'+l];o=overOf(d,code);}
   const x=Object.assign({},g||{},o||{});return {L:x.L||0,P:x.P?(/^M[GD]/.test(code)?x.P/2:x.P):0,H:x.H||0,pose:(g&&g.pose)||''};}
 /* une boîte posée : [long du rack, profondeur, hauteur] selon qu'elle est à plat ou sur la tranche */
 const boxOri=(o,b)=>o==='flat'?[b.L,b.l,b.H]:o==='flatL'?[b.l,b.L,b.H]:o==='edge'?[b.L,b.H,b.l]:[b.H,b.L,b.l];
@@ -967,13 +974,14 @@ const boxOf=a=>boxFor(a)||BOX_DEF[a.type]||BOX_DEF.botte;
 const SLOTC=new Map(); /* vidé à chaque affichage */
 /* nombre de boîtes de format b qui tiennent dans un emplacement mesuré (0 = pas mesuré) */
 function slotCap(code,b){const k=code+'|'+b.L+'|'+b.l+'|'+b.H;if(SLOTC.has(k))return SLOTC.get(k);const d=locDims(code);let c=0;
-  if(d.L&&d.P&&d.H&&capGroup(code))c=capFor(b,d.L,d.H,laneSet(d.pose||'plat',d.P,b,d.L,d.H));SLOTC.set(k,c);return c;}
+  const P=pairOf(code)?d.P*2:d.P; /* niveau partagé : toute la profondeur, de l'allée d'un côté à celle de l'autre */
+  if(d.L&&P&&d.H&&capGroup(code))c=capFor(b,d.L,d.H,laneSet(d.pose||'plat',P,b,d.L,d.H));SLOTC.set(k,c);return c;}
 /* boîte moyenne d'un type (d'après les boîtes mesurées), et boîte d'un modèle (la plus grande de ses tailles) */
 function typBox(t){const bs=dims().boxes.filter(b=>b.type===t&&b.L&&b.l&&b.H);if(!bs.length)return BOX_DEF[t]||BOX_DEF.botte;const m=k=>Math.round(bs.reduce((s,b)=>s+b[k],0)/bs.length*10)/10;return {L:m('L'),l:m('l'),H:m('H')};}
 function modelBox(t,marque,modele){const bs=dims().boxes.filter(b=>b.type===t&&b.L&&b.l&&b.H&&(!b.marque||norm(b.marque)===norm(marque))&&(!b.modele||norm(b.modele)===norm(modele)));
   const spec=bs.filter(b=>b.modele),use=spec.length?spec:bs.filter(b=>b.marque);if(!use.length)return null;return use.slice().sort((x,y)=>y.L*y.l*y.H-x.L*x.l*x.H)[0];}
 /* part déjà prise : chaque boîte rangée compte 1 / (nombre de boîtes de son format qui tiennent ici) */
-function locUse(code){let f=0;S.articles.forEach(a=>{if(a.emp!==code)return;const q=qOf(a);if(!q)return;const c=slotCap(code,boxOf(a));if(c)f+=q/c;});return f;}
+function locUse(code){let f=0;const q2=pairOf(code);S.articles.forEach(a=>{if(a.emp!==code&&a.emp!==q2)return;const q=qOf(a);if(!q)return;const c=slotCap(a.emp,boxOf(a));if(c)f+=q/c;});return f;}
 function locFree(code,b){const c=slotCap(code,b);return c?Math.max(0,Math.floor((1-locUse(code))*c+1e-6)):null;}
 /* ---------- Déplacer des articles (menu Déplacer et 3D) ----------
    L'article change d'emplacement ; s'il existe déjà là-bas (même modèle, taille, couleur), les quantités s'additionnent
@@ -1862,7 +1870,7 @@ const caps=()=>{if(!S.caps||!S.caps[Object.keys(CAP_GROUPS)[0]])S.caps=capsCalc(
 /* place d'un emplacement : d'après les mesures s'il est mesuré (bx = boîte du modèle qu'on range), sinon d'après les capacités de Réglages */
 function capCtx(occ,bx){const C=caps(),typ=t=>bx&&bx.t===t&&bx.b?bx.b:typBox(t),meas=emp=>!!slotCap(emp,BOX_DEF.botte);
   const cap=(emp,t)=>{const g=capGroup(emp);if(!g)return 0;const m=slotCap(emp,typ(t));if(m)return m;return t==='botte'?C[g].botte:C[g].fix;};
-  const fill=emp=>{const g=capGroup(emp);if(!g)return 1;const o=occ[emp]||{botte:0,fix:0,board:0,f:0};if(meas(emp))return o.f||0;return (o.botte||0)/C[g].botte+((o.fix||0)+(o.board||0))/C[g].fix;};
+  const fill=emp=>{const g=capGroup(emp);if(!g)return 1;const o=occ[emp]||{botte:0,fix:0,board:0,f:0};if(meas(emp)){const q2=pairOf(emp);return (o.f||0)+(q2&&occ[q2]?occ[q2].f||0:0);}return (o.botte||0)/C[g].botte+((o.fix||0)+(o.board||0))/C[g].fix;};
   const free=(emp,t)=>Math.max(0,Math.floor((1-fill(emp))*cap(emp,t)+1e-6));
   const add=(emp,t,n)=>{const x=occ[emp]=occ[emp]||{botte:0,fix:0,board:0,f:0};x[t]=(x[t]||0)+n;const c=slotCap(emp,typ(t));if(c)x.f=(x.f||0)+n/c;};
   return {cap,fill,free,add};}
@@ -2564,6 +2572,12 @@ function shopClick(act,t){
 /* ---------- Fenêtres ---------- */
 function sheet(html){$('#sheetRoot').innerHTML=`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;tint($('#sheetRoot'));spaceCodes($('#sheetRoot'));}
 function closeSheet(){$('#sheetRoot').innerHTML='';st.armed=null;}
+/* niveau partagé avec l'autre côté (ex. HG 0.1 / HD 0.1) : place restante, d'après les mesures et les boîtes des deux côtés */
+function shareInfo(code){const q=pairOf(code);if(!q)return '';const b=typBox('botte');if(!slotCap(code,b))return '';
+  const n=e=>S.articles.filter(a=>a.emp===e).reduce((t,a)=>t+qOf(a),0),n1=n(code),n2=n(q),u=locUse(code),free=locFree(code,b)||0,pct=Math.round(u*100);
+  if(!n1&&!n2)return '';
+  if(u>=1)return `<div class="alert warn sm">${n2?`<b>Les ${n2} boîtes de ${spc(q)} prennent toute la profondeur du niveau</b>${n1?` (avec les ${n1} d'ici)`:''} : `:'<b>Niveau plein sur toute la profondeur</b> : '}${n1?'plus de place ici.':`<b>${spc(code)} n'est pas utilisable</b>.`}</div>`;
+  return `<div class="info sm">Niveau partagé avec <b>${spc(q)}</b>${n2?` (${n2} boîte${n2>1?'s':''})`:''} · rempli à <b>${pct} %</b> · encore ≈ <b>${free} boîte${free>1?'s':''}</b> de bottes.</div>`;}
 function openLoc(code){
   const list=sortArts(S.articles.filter(a=>a.emp===code));
   /* Un modèle = une ligne, avec ses tailles en boutons */
@@ -2581,7 +2595,7 @@ function openLoc(code){
       ${ent?`<div class="acts" style="flex-direction:column;align-items:stretch"><button type="button" class="btn sm" data-act="model" data-id="${a.id}">Modifier tout</button><button type="button" class="btn sm" data-act="more" data-id="${a.id}">+ Tailles</button></div>`:''}</div>`;}).join('');
   sheet(`<div class="sheet-h"><div><div class="code" style="display:inline-block;font-size:20px;cursor:default">${code}</div><p class="sub" style="margin-top:6px">${esc(locLabel(code))}</p></div><button type="button" class="btn ghost" data-act="close">Fermer</button></div>
     ${list.length?`<p class="sub">${(()=>{const bx=list.filter(a=>a.type!=='board').reduce((t,a)=>t+qOf(a),0),bd=list.filter(a=>a.type==='board').reduce((t,a)=>t+qOf(a),0),w=SKI?['ski','skis']:['planche','planches'];return [bx?`<b>${bx} boîte${bx>1?'s':''}</b>`:'',bd?`<b>${bd} ${bd>1?w[1]:w[0]}</b>`:''].filter(Boolean).join(' · ');})()} · ${list.length} article${list.length>1?'s':''} · touchez une taille pour ${ent?'la modifier':'la commander'}.</p>`:''}
-    <div class="list">${rows||'<div class="empty">Emplacement vide.</div>'}</div>
+    ${shareInfo(code)}<div class="list">${rows||'<div class="empty">Emplacement vide.</div>'}</div>
     ${ent?`<button type="button" class="btn primary" data-act="new" data-code="${code}">+ Ranger un nouveau modèle ici</button>`:''}`);}
 function locOptions(cur){const groups={};LOCS.forEach(c=>{const z=/^[A-Z]+/.exec(c)[0];(groups[z]=groups[z]||[]).push(c);});
   const old=cur&&!LOCS.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)} (n'existe plus, à changer)</option>`:'';
