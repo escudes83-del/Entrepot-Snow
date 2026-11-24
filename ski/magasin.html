@@ -2576,14 +2576,20 @@ function sheet(html){$('#sheetRoot').innerHTML=`<div class="scrim"><div class="s
 function closeSheet(){$('#sheetRoot').innerHTML='';st.armed=null;}
 /* niveau partagé avec l'autre côté (ex. HG 0.1 / HD 0.1) : place restante, d'après les mesures et les boîtes des deux côtés */
 /* côté inutilisable : vide, et les boîtes d'en face prennent toute la profondeur du niveau → renvoie le code d'en face */
-function blockedBy(code){const q=pairOf(code);if(!q||!slotCap(code,typBox('botte')))return null;const has=e=>S.articles.some(a=>a.emp===e&&qOf(a)>0);
-  return !has(code)&&has(q)&&locFree(code,typBox('botte'))===0?q:null;}
-const levelFull=code=>!!slotCap(code,typBox('botte'))&&locFree(code,typBox('botte'))===0; /* plus la place pour une boîte de bottes */
-function shareInfo(code){const q=pairOf(code);if(!q)return '';const b=typBox('botte');if(!slotCap(code,b))return '';
-  const n=e=>S.articles.filter(a=>a.emp===e).reduce((t,a)=>t+qOf(a),0),n1=n(code),n2=n(q),u=locUse(code),free=locFree(code,b)||0,pct=Math.round(u*100);
-  if(!n1&&!n2)return '';
-  if(u>=1||!free)return `<div class="alert warn sm">${n2?`<b>Les ${n2} boîtes de ${spc(q)} prennent toute la profondeur du niveau</b>${n1?` (avec les ${n1} d'ici)`:''} : `:'<b>Niveau plein sur toute la profondeur</b> : '}${n1?'plus de place ici.':`<b>${spc(code)} n'est pas utilisable</b>.`}</div>`;
-  return `<div class="info sm">Niveau partagé avec <b>${spc(q)}</b>${n2?` (${n2} boîte${n2>1?'s':''})`:''} · rempli à <b>${pct} %</b> · encore ≈ <b>${free} boîte${free>1?'s':''}</b> de bottes.</div>`;}
+function blockedBy(code){const q=pairOf(code);if(!q||!slotCap(code,avgBox()))return null;const has=e=>S.articles.some(a=>a.emp===e&&qOf(a)>0);
+  return !has(code)&&has(q)&&locFree(code,avgBox())===0?q:null;}
+const levelFull=code=>!!slotCap(code,avgBox())&&locFree(code,avgBox())===0; /* plus la place pour une boîte de bottes */
+/* boîte de bottes moyenne : moyenne des boîtes de toutes les paires en stock (chaque paire compte) */
+function avgBox(){if(SLOTC.has('__avg'))return SLOTC.get('__avg');let n=0,L=0,l=0,H=0;
+  S.articles.forEach(a=>{if(a.type!=='botte')return;const q=qOf(a);if(!q)return;const b=boxOf(a);n+=q;L+=b.L*q;l+=b.l*q;H+=b.H*q;});
+  const r=n?{L:Math.round(L/n*2)/2,l:Math.round(l/n*2)/2,H:Math.round(H/n*2)/2}:typBox('botte');SLOTC.set('__avg',r);return r;}
+/* place restante d'un niveau mesuré, en boîtes de taille moyenne (niveau partagé : les deux côtés ensemble) */
+function shareInfo(code){const b=avgBox();if(!slotCap(code,b))return '';const q=pairOf(code);
+  const n=e=>e?S.articles.filter(a=>a.emp===e).reduce((t,a)=>t+qOf(a),0):0,n1=n(code),n2=n(q),u=locUse(code),free=locFree(code,b)||0,pct=Math.min(999,Math.round(u*100));
+  const moy=`<small class="opt">boîte moyenne ${String(b.L).replace('.',',')} × ${String(b.l).replace('.',',')} × ${String(b.H).replace('.',',')} cm</small>`;
+  if(!free){if(q&&n2)return `<div class="alert warn sm"><b>Les ${n2} boîtes de ${spc(q)} prennent toute la profondeur du niveau</b>${n1?` (avec les ${n1} d'ici)`:''} : ${n1?'plus de place ici.':`<b>${spc(code)} n'est pas utilisable</b>.`}</div>`;
+    return `<div class="alert warn sm"><b>Niveau plein</b> (${pct} %) : plus de place pour une boîte de bottes de taille moyenne. ${moy}</div>`;}
+  return `<div class="info sm">Place restante : <b>≈ ${free} boîte${free>1?'s':''} de bottes</b> · rempli à <b>${pct} %</b>${q?` · niveau partagé avec <b>${spc(q)}</b>${n2?` (${n2} boîte${n2>1?'s':''})`:''}`:''}<br>${moy}</div>`;}
 function openLoc(code){
   const list=sortArts(S.articles.filter(a=>a.emp===code));
   /* Un modèle = une ligne, avec ses tailles en boutons */
