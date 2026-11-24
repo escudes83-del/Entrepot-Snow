@@ -828,8 +828,9 @@ function notify(to,text){S.notifs.push({id:Date.now()+Math.random(),to,text,at:D
 const RAYON_LBL={snow:'Snow',ski:'Ski',rando:'Rando'}[RAYON]||RAYON;
 function ntfyPush(to,text,test){const N=S.ntfy||{},topic=N[to];if(!topic||(!test&&N.off&&N.off[to]))return Promise.resolve(false);
   let click='';try{const u=new URL(to==='entrepot'?'index.html':'magasin.html',location.href);u.search=NS?'?ns='+NS:'';u.hash='';click=u.href;}catch(e){}
-  const tag=/^Nouvelle/.test(text)?'shopping_cart':/corrigée/.test(text)?'pencil2':/annulé/.test(text)?'x':/prête/.test(text)?'white_check_mark':/Pick-up/.test(text)?'package':'bell';
-  return fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic,title:`${to==='entrepot'?'Entrepôt':'Magasin'} ${RAYON_LBL}`,message:text,tags:[tag],priority:/^Nouvelle/.test(text)?5:4,click})}).then(r=>r.ok).catch(()=>false);}
+  const todo=/Photo à traiter/.test(text),tag=todo?'pushpin':/^Nouvelle/.test(text)?'shopping_cart':/corrigée/.test(text)?'pencil2':/annulé/.test(text)?'x':/prête/.test(text)?'white_check_mark':/Pick-up/.test(text)?'package':'bell';
+  /* plus fort (5) quand l'entrepôt doit agir : nouvelle commande, photo à traiter */
+  return fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic,title:`${to==='entrepot'?'Entrepôt':'Magasin'} ${RAYON_LBL}`,message:todo?text.replace(/^📌\s*/,''):text,tags:[tag],priority:/^Nouvelle/.test(text)||todo?5:4,click})}).then(r=>r.ok).catch(()=>false);}
 const ntfyTopic=to=>`${NS?NS+'-':''}${to}-${RAYON}-${Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('')}`;
 function vNotif(){const N=S.ntfy;
   if(!N)return `<div class="card"><h3>Notifications sur les téléphones</h3>
@@ -2696,7 +2697,8 @@ function pickGo(){const pk=st.pk||{},L=Object.entries(pk).map(([id,k])=>[art(id)
   toast(`<b>Noté : ${n} boîte${n>1?'s':''}</b> retirée${n>1?'s':''} du stock. L'entrepôt est prévenu.`);}
 function pickUndo(id){const o=S.orders.find(x=>String(x.id)===String(id)&&x.pickup);if(!o){toast('Pick-up introuvable');return;}
   o.lines.forEach(l=>{const a=art(l.aid);if(a)a.qty=qOf(a)+doneOf(l);});S.orders=S.orders.filter(x=>x!==o);
-  notify('entrepot',`Pick-up #${onum(o)} annulé : les boîtes sont remises en stock`);
+  const back=o.lines.map(l=>[art(l.aid),doneOf(l)]).filter(([a,q])=>a&&q>0),nb=back.reduce((t,[,q])=>t+q,0);
+  notify('entrepot',`Pick-up #${onum(o)} annulé par ${me()||'le magasin'} : ${back.length?back.slice(0,3).map(([a,q])=>`${q>1?q+' × ':''}${a.marque} ${a.modele} ${szLbl(a.type,a.taille)} en ${a.emp}`).join(', ')+(back.length>3?'…':'')+` (${nb} boîte${nb>1?'s':''} remise${nb>1?'s':''} en stock)`:'les boîtes sont remises en stock'}`);
   pushMeta={kind:'undo',label:'Pick-up annulé'};save();render();toast('<b>Pick-up annulé</b> : les boîtes sont remises en stock');}
 function shopOrder(o){
   const live=o.status==='demandee'||o.status==='prep';
