@@ -2563,15 +2563,20 @@ async function bandText(img,bd,w){const sc=Math.min(1.5,140/bd.h),X=Math.round(b
   const {data}=await w.recognize(o);return data.confidence>=40?(data.text||'').trim():'';}
 /* tableau des tailles « US 10.0 · EU 43.0 · UK 9.0 · MP 28.0 » : on garde la pointure du rayon (snow : US, parfois EU ; ski : MP).
    Si « US » est mal lu (l'ordre des lignes lues n'est pas sûr) : l'US = MP − 18 (homme) ou MP − 17 (femme), et l'US est toujours plus grande que l'UK. */
-function tableSz(text){const tk=norm(text||'').replace(/,/g,'.').split(/[^a-z0-9.]+/).filter(Boolean),L=[];
-  tk.forEach((w,i)=>{if(/^\d{1,2}\.[05]$/.test(w))L.push({v:String(+w),p:tk[i-1]||''});});if(L.length<2)return [];
+function tableSz(text){let fromMp=false;const tk=norm(text||'').replace(/,/g,'.').split(/[^a-z0-9.]+/).filter(Boolean),L=[];
+  tk.forEach((w,i)=>{if(/^\d{1,2}\.[05]$/.test(w))L.push({v:String(+w),p:tk[i-1]||''});
+    else{const m=/^m?p(\d{3,4})$/.exec(w)||(/^(mp|p|np)$/.test(w)&&/^\d{3,4}$/.test(tk[i+1]||'')?[0,tk[i+1]]:null); /* « MP: 29.0 » lu « P 290 » ou « P2290 » */
+      if(m){const v=+m[1].slice(-3)/10;if(v>=20&&v<=33.5&&v*2===Math.round(v*2))L.push({v:String(v),p:'mp'});}}});
+  if(!L.length)return [];
   let hit=L.filter(o=>SKI?o.p==='mp'||o.p==='cm':o.p==='us');
   if(!hit.length){if(SKI)hit=L.filter(o=>+o.v>=20&&+o.v<=33.5);
     else{const sm=L.filter(o=>+o.v>=3&&+o.v<=15.5&&!['uk','eu','mp','cm'].includes(o.p)),mp=L.filter(o=>+o.v>=20&&+o.v<=33.5).map(o=>+o.v);
       hit=mp.length?sm.filter(o=>mp.some(m=>m-o.v>=17&&m-o.v<=18)):[];
-      if(!hit.length&&sm.length)hit=[sm.reduce((a,b)=>+b.v>+a.v?b:a)];}}
+      if(!hit.length&&sm.length)hit=[sm.reduce((a,b)=>+b.v>+a.v?b:a)];
+      if(!hit.length&&mp.length&&!L.some(o=>+o.v>=33&&+o.v<=50)){hit=[18,17].map(d=>({v:String(mp[0]-d)}));fromMp=true;}}} /* seule la MP est lisible : US déduite (homme MP−18, femme MP−17) */
   if(!SKI)hit=hit.concat(L.filter(o=>o.p==='eu'||(+o.v>=33&&+o.v<=50))); /* snow : l'US d'abord, l'EU si l'article est noté en EU ; jamais l'UK ni la MP */
-  const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...new Set(hit.map(o=>o.v))].filter(z=>ok.has(z));}
+  const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,''))),r=[...new Set(hit.map(o=>o.v))].filter(z=>ok.has(z));r.fromMp=fromMp&&r.length?mp0(L):0;return r;}
+const mp0=L=>{const o=L.find(x=>x.p==='mp'||(+x.v>=20&&+x.v<=33.5));return o?o.v:0;};
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};st.pkTodo=false;PK_IMG=null;render();
@@ -2592,10 +2597,10 @@ async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};st.pkTodo=f
     let band='';try{const BD=darkBands(wbImg);if(BD.length){await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});for(const bd of BD){const t=await bandText(wbImg,bd,w);if(t)band+=' '+t;}}}catch(e){console.warn('Bandeau noir',e);} /* titre blanc sur bandeau noir (ex. SIERRA) */
     big2=(band+' '+big2).trim();
     await w.terminate();
-    tableSz(data&&data.text).forEach(z=>{if(!boxSz.includes(z))boxSz.unshift(z);}); /* taille du tableau US/EU/UK/MP */
+    const tz=tableSz((data&&data.text||'')+' '+big2);tz.forEach(z=>{if(!boxSz.includes(z))boxSz.unshift(z);}); /* taille du tableau US/EU/UK/MP */
     big2=big2.trim();const big=[big2,...bigL.map(l=>l.t)].filter(Boolean).join(' ');
     const text=((data&&data.text||'').trim()+(big2?' \n'+big2:'')+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
-    const m=ocrMatch(text,big,boxSz);st.pkScan={text,big,boxSz,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
+    let m=ocrMatch(text,big,boxSz);if(tz.fromMp){const g=m.filter(x=>norm(x.a.taille)===String(+tz.fromMp-(x.a.genre==='F'?17:18)));if(g.length)m=g;} /* US déduite de la MP : homme MP−18, femme MP−17 */st.pkScan={text,big,boxSz,fromMp:tz.fromMp||0,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)};}
   catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
   render();}
 function scanBox(){const sc=st.pkScan;if(!sc)return '';
@@ -2604,7 +2609,7 @@ function scanBox(){const sc=st.pkScan;if(!sc)return '';
   if(sc.err)return `<div class="alert warn">La photo n'a pas pu être lue (connexion ?). Réessayez, ou cherchez l'article ci-dessous.</div>`;
   const L=(sc.ids||[]).map(art).filter(a=>a&&qOf(a)>0),lu=esc((sc.text||'').replace(/\s+/g,' ').slice(0,90));
   const tok=new Set(norm(sc.text||'').replace(/,/g,'.').split(/[^a-z0-9./]+/)),sizeOk=L.some(a=>tok.has(norm(a.taille).replace(/\s*cm$/,''))),sizeSeen=[...tok].some(w=>sizesOf('botte').some(z=>norm(z).replace(/\s*cm$/,'')===w));
-  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »${(sc.boxSz||[]).length?` · <b>taille lue</b> : ${esc(sc.boxSz.join(' / '))}`:''}</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&!sizeOk?`<div class="alert warn sm">${sizeSeen?'La taille lue sur l’étiquette n’est pas en stock (ou mal lue)':'La taille n’a pas pu être lue sur la photo'} : vérifiez la taille sur l'étiquette avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}${brandSeen(a)?'':' <small class="opt">(marque déduite du modèle)</small>'}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
+  return `<div class="scanres">${pkTest()?`<div class="pktxt"><b>Écrit en grand (pris pour le modèle)</b> : « ${esc(sc.big||'')} »${(sc.boxSz||[]).length?` · <b>taille lue</b> : ${esc(sc.boxSz.join(' / '))}`:''}</div>`:`<div class="opt">Lu : « ${lu||'…'} »</div>`}${L.length&&sc.fromMp?`<div class="alert warn sm">Taille US illisible : déduite de la MP ${esc(sc.fromMp)} (US ${+sc.fromMp-18} homme, US ${+sc.fromMp-17} femme). Vérifiez avant de prendre.</div>`:''}${L.length&&!sizeOk?`<div class="alert warn sm">${sizeSeen?'La taille lue sur l’étiquette n’est pas en stock (ou mal lue)':'La taille n’a pas pu être lue sur la photo'} : vérifiez la taille sur l'étiquette avant de prendre.</div>`:''}${L.length?L.map((a,i)=>`<div class="row pkrow${i?'':' on'}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}${brandSeen(a)?'':' <small class="opt">(marque déduite du modèle)</small>'}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${pkTest()&&sc.sc?` · <b>note ${sc.sc[a.id]}</b>`:''}</div></div>
       <div class="acts"><button type="button" class="btn sm${i?'':' primary'}" data-act="pkscan" data-id="${a.id}">${(st.pk||{})[a.id]?'✓ Ajoutée':'Je prends'}</button></div></div>`).join(''):`<div class="alert warn">Article non reconnu. Reprenez la photo bien en face et nette, ou cherchez-le ci-dessous.</div>`}
     ${scanTodo(L.length)}<button type="button" class="btn sm ghost" data-act="pkscanx">Fermer</button></div>`;}
 /* ---------- Photos « à traiter » : la boîte n'est pas reconnue, le magasin la prend quand même ; l'entrepôt retrouve l'article plus tard ---------- */
