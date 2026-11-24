@@ -2551,7 +2551,7 @@ async function bandText(img,bd,w){const sc=Math.min(1.5,140/bd.h),X=Math.round(b
   for(let yy=by0;yy<=by1;yy++)for(let xx=bx0;xx<=bx1;xx++){const j=((yy-by0)*t.width+(xx-bx0))*4,v=keep.has(lab[yy*W+xx])?0:255;td.data[j]=td.data[j+1]=td.data[j+2]=v;td.data[j+3]=255;}tx.putImageData(td,0,0);
   const ox=o.getContext('2d');ox.fillStyle='#fff';ox.fillRect(0,0,o.width,o.height);ox.imageSmoothingQuality='high';ox.drawImage(t,pad,pad,o.width-2*pad,o.height-2*pad);
   const {data}=await w.recognize(o);return data.confidence>=40?(data.text||'').trim():'';}
-/* tableau des tailles « US 10.0 · EU 43.0 · UK 9.0 · MP 28.0 » : on garde la pointure du rayon (US pour le snow, MP pour le ski).
+/* tableau des tailles « US 10.0 · EU 43.0 · UK 9.0 · MP 28.0 » : on garde la pointure du rayon (snow : US, parfois EU ; ski : MP).
    Si « US » est mal lu (l'ordre des lignes lues n'est pas sûr) : l'US = MP − 18 (homme) ou MP − 17 (femme), et l'US est toujours plus grande que l'UK. */
 function tableSz(text){const tk=norm(text||'').replace(/,/g,'.').split(/[^a-z0-9.]+/).filter(Boolean),L=[];
   tk.forEach((w,i)=>{if(/^\d{1,2}\.[05]$/.test(w))L.push({v:String(+w),p:tk[i-1]||''});});if(L.length<2)return [];
@@ -2560,6 +2560,7 @@ function tableSz(text){const tk=norm(text||'').replace(/,/g,'.').split(/[^a-z0-9
     else{const sm=L.filter(o=>+o.v>=3&&+o.v<=15.5&&!['uk','eu','mp','cm'].includes(o.p)),mp=L.filter(o=>+o.v>=20&&+o.v<=33.5).map(o=>+o.v);
       hit=mp.length?sm.filter(o=>mp.some(m=>m-o.v>=17&&m-o.v<=18)):[];
       if(!hit.length&&sm.length)hit=[sm.reduce((a,b)=>+b.v>+a.v?b:a)];}}
+  if(!SKI)hit=hit.concat(L.filter(o=>o.p==='eu'||(+o.v>=33&&+o.v<=50))); /* snow : l'US d'abord, l'EU si l'article est noté en EU ; jamais l'UK ni la MP */
   const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...new Set(hit.map(o=>o.v))].filter(z=>ok.has(z));}
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
