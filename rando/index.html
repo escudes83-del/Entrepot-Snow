@@ -2880,7 +2880,7 @@ function openArt(id,code,tplId){
   let rows=[],nk=0;const sizeList=()=>sizesOf(f.dataset.type);
   const genColor=()=>$('#f-couleur').value.trim();
   const readRows=()=>{if(!multi)return;rows.forEach(r=>{const s=f.querySelector(`[data-fs="${r.k}"]`),c=f.querySelector(`[data-fc="${r.k}"]`),q=f.querySelector(`[data-fqi="${r.k}"]`);
-    if(s)r.s=s.value;if(c)r.c=c.value.trim();if(q)r.q=Math.max(1,Math.min(999,parseInt(q.value)||1));});};
+    if(s)r.s=s.value;if(c)r.c=c.value.trim();if(q)r.q=Math.max(0,Math.min(999,parseInt(q.value)||0));});};
   const haveHere=()=>{const m=norm($('#f-marque').value.trim()),mo=norm($('#f-modele').value.trim()),emp=$('#f-emp').value,co=norm(fixColor(genColor())),ge=$('#f-genre').value;
     return new Set(S.articles.filter(x=>x.type===f.dataset.type&&norm(x.marque)===m&&norm(x.modele)===mo&&x.emp===emp&&x.genre===ge&&norm(x.couleur)===co).map(x=>x.taille));};
   function renderSizes(){if(!multi)return;readRows();const have=haveHere(),used=new Set(rows.map(r=>r.s));
@@ -2891,7 +2891,7 @@ function openArt(id,code,tplId){
     const n=rows.length,tot=rows.reduce((x,r)=>x+r.q,0),ph=esc(genColor()||'Couleur');
     const qrows=rows.map(r=>`<div class="qrow m3"><select data-fs="${r.k}" aria-label="Taille" style="padding:6px 2px;font:700 13px var(--f-mono)">${sizeList().map(s=>`<option${s===r.s?' selected':''}>${esc(s)}</option>`).join('')}</select>
       <input type="text" data-fc="${r.k}" list="dl-couleurs" value="${esc(r.c)}" placeholder="${ph}" autocomplete="off" aria-label="Couleur">
-      <div class="stepper"><div class="in"><button type="button" data-fq="${r.k}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-fqi="${r.k}" min="1" max="999" value="${r.q}" inputmode="numeric" aria-label="Quantité"><button type="button" data-fq="${r.k}" data-d="1" aria-label="Plus">+</button></div></div>
+      <div class="stepper"><div class="in"><button type="button" data-fq="${r.k}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-fqi="${r.k}" min="0" max="999" value="${r.q}" inputmode="numeric" aria-label="Quantité"><button type="button" data-fq="${r.k}" data-d="1" aria-label="Plus">+</button></div></div>
       <button type="button" class="del" data-fdel="${r.k}" title="Retirer cette ligne" aria-label="Retirer cette ligne">✕</button></div>`).join('');
     $('#f-sizes').innerHTML=html+(n?`<div class="qrows"><div class="qhead m3"><span>Taille</span><span>Couleur</span><span>Quantité</span><span></span></div>${qrows}
       <div><button type="button" class="btn sm" data-fadd>+ Même taille, autre couleur</button></div></div>`:'')
@@ -2915,12 +2915,12 @@ function openArt(id,code,tplId){
   renderSizes();
   f.addEventListener('click',e=>{
     const wo=e.target.closest('[data-fwhere]');if(wo){const r=$('#f-where')._res[+wo.dataset.fwhere];whereSel=r;$('#f-emp').value=r.emp;lpSync('f-emp');renderSizes();return;}
-    const z=e.target.closest('[data-fz]');if(z){readRows();const s=z.dataset.fz;if(rows.some(r=>r.s===s))rows=rows.filter(r=>r.s!==s);else rows.push({k:'r'+(++nk),s,c:'',q:1});renderSizes();return;}
-    const ad=e.target.closest('[data-fadd]');if(ad){readRows();const last=rows[rows.length-1];const k='r'+(++nk);rows.push({k,s:last?last.s:sizeList()[0],c:'',q:1});renderSizes();const c=f.querySelector(`[data-fc="${k}"]`);if(c)c.focus();return;}
+    const z=e.target.closest('[data-fz]');if(z){readRows();const s=z.dataset.fz;if(rows.some(r=>r.s===s))rows=rows.filter(r=>r.s!==s);else rows.push({k:'r'+(++nk),s,c:'',q:0});renderSizes();return;}
+    const ad=e.target.closest('[data-fadd]');if(ad){readRows();const last=rows[rows.length-1];const k='r'+(++nk);rows.push({k,s:last?last.s:sizeList()[0],c:'',q:0});renderSizes();const c=f.querySelector(`[data-fc="${k}"]`);if(c)c.focus();return;}
     const dl=e.target.closest('[data-fdel]');if(dl){readRows();rows=rows.filter(r=>r.k!==dl.dataset.fdel);renderSizes();return;}
     const qb=e.target.closest('[data-fq]');if(qb){const s=qb.dataset.fq,d=+qb.dataset.d;
       if(s==='__one'){const i=$('#f-qty');i.value=Math.max(0,Math.min(999,(parseInt(i.value)||0)+d));}
-      else{const i=f.querySelector(`[data-fqi="${s}"]`);if(i)i.value=Math.max(1,Math.min(999,(parseInt(i.value)||1)+d));renderSizes();}return;} /* renderSizes relit les cases : on change la case elle-même */
+      else{const i=f.querySelector(`[data-fqi="${s}"]`);if(i)i.value=Math.max(0,Math.min(999,(parseInt(i.value)||0)+d));renderSizes();}return;} /* renderSizes relit les cases : on change la case elle-même */
     const b=e.target.closest('[data-ft]');if(!b)return;f.dataset.type=b.dataset.ft;
     f.querySelectorAll('[data-ft]').forEach(x=>x.setAttribute('aria-pressed',x===b));
     $('#f-serrage-w').hidden=b.dataset.ft!=='botte';
@@ -2936,6 +2936,8 @@ function openArt(id,code,tplId){
     const modele=sameAs($('#f-modele').value.trim(),[...new Set(S.articles.filter(x=>x.marque===marque).map(x=>x.modele))]);if(!modele){$('#f-modele').focus();toast('Indiquez le modèle');return;}
     readRows();
     if(multi&&!rows.length){toast('Choisissez au moins une taille');return;}
+    /* quantité à 0 par défaut : on refuse d'enregistrer une ligne sans quantité */
+    if(multi){const z=rows.find(r=>!r.q);if(z){const q=f.querySelector(`[data-fqi="${z.k}"]`);if(q)q.focus();toast(`Indiquez la quantité pour la taille <b>${esc(z.s)}</b>`);return;}}
     if(!S.brands.includes(marque)){S.brands.push(marque);S.brands.sort((x,y)=>x.localeCompare(y));}
     const known=[...new Set(S.articles.map(x=>x.couleur).filter(Boolean))];
     const base={type:f.dataset.type,marque,modele,genre:$('#f-genre').value,annee:parseInt($('#f-annee').value)||'',emp:$('#f-emp').value,note:$('#f-note').value.trim(),
@@ -3018,7 +3020,7 @@ function openModel(id){
     const def=prev?(prev.querySelector('[data-ns]')?.value||list.find(x=>prev.querySelector(`[data-mc="${x.id}"]`))?.taille||sizeList[0]):sizeList[0];
     $('#m-new').insertAdjacentHTML('beforeend',`<div class="qrow m3" data-newrow="${k}"><select data-ns="${k}" aria-label="Taille" style="padding:6px 2px;font:700 13px var(--f-mono)">${sizeList.map(s=>`<option${s===def?' selected':''}>${esc(s)}</option>`).join('')}</select>
       <input type="text" data-mc="${k}" list="dl-couleurs" placeholder="Couleur" autocomplete="off" aria-label="Couleur nouvelle taille">
-      <div class="stepper"><div class="in"><button type="button" data-mq="${k}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-mqi="${k}" min="0" max="999" value="1" inputmode="numeric" aria-label="Quantité nouvelle taille"><button type="button" data-mq="${k}" data-d="1" aria-label="Plus">+</button></div></div>
+      <div class="stepper"><div class="in"><button type="button" data-mq="${k}" data-d="-1" aria-label="Moins">−</button><input type="number" class="qty" data-mqi="${k}" min="0" max="999" value="0" inputmode="numeric" aria-label="Quantité nouvelle taille"><button type="button" data-mq="${k}" data-d="1" aria-label="Plus">+</button></div></div>
       <button type="button" class="del" data-mnew="${k}" title="Annuler cette ligne" aria-label="Annuler cette ligne">✕</button></div>`);
     f.querySelector(`[data-mc="${k}"]`).focus();subBtn();});
   subBtn();
@@ -3033,6 +3035,7 @@ function openModel(id){
     const modele=$('#m-modele').value.trim();if(!modele){$('#m-modele').focus();toast('Indiquez le modèle');return;}
     if(!S.brands.includes(marque)){S.brands.push(marque);S.brands.sort((x,y)=>x.localeCompare(y));}
     const known=[...new Set(S.articles.map(x=>x.couleur).filter(Boolean))];
+    {const z=newIds().find(k=>!(parseInt(f.querySelector(`[data-mqi="${k}"]`).value)>0));if(z){f.querySelector(`[data-mqi="${z}"]`).focus();toast('Indiquez la quantité de la nouvelle taille');return;}}
     const an=$('#m-annee').value.trim(),ser=bot?$('#m-serrage').value:'__keep',emp=$('#m-emp').value;
     list.forEach(x=>{
       Object.assign(x,{marque,modele,genre:$('#m-genre').value,emp,
