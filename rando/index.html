@@ -2440,7 +2440,7 @@ function vShopFind(){
 
 /* ---------- Pick-up : un employé du magasin monte chercher lui-même ----------
    Il note ce qu'il prend : le stock baisse tout de suite, l'entrepôt est prévenu, et c'est gardé dans « Mes commandes ». */
-function vShopPick(){const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{const a=art(id);if(!a||!qOf(a))delete pk[id];else pk[id]=Math.min(qOf(a),Math.max(1,pk[id]));});
+function vShopPick(){if(!ocrW&&navigator.onLine!==false)setTimeout(()=>{ocrWorker().catch(()=>{});},1200);const pk=st.pk||(st.pk={});Object.keys(pk).forEach(id=>{const a=art(id);if(!a||!qOf(a))delete pk[id];else pk[id]=Math.min(qOf(a),Math.max(1,pk[id]));});
   const list=sortArts(S.articles.filter(a=>matches(a)&&qOf(a)>0)),show=filtering(),MAX=60;
   const chosen=Object.keys(pk).map(art).filter(Boolean),nb=chosen.reduce((t,a)=>t+pk[a.id],0);
   const row=a=>{const n=pk[a.id]||0,av=availOf(a);return `<div class="row pkrow${n?' on':''}"><span class="code">${esc(a.emp)}</span><div class="main"><div class="t">${esc(artName(a))}</div><div class="d">${esc(GENRE[a.genre]||'')} · <b>${esc(szLbl(a.type,a.taille))}</b>${a.couleur?' · '+esc(a.couleur):''} · ${qOf(a)} en stock${av<qOf(a)?` <small class="opt">(dont ${qOf(a)-av} déjà en commande)</small>`:''}<br><small class="opt">📍 ${esc(locLabel(a.emp))}</small></div></div>
@@ -2466,7 +2466,11 @@ let PK_IMG=null; /* photo réduite de la dernière étiquette lue, pour « à tr
 function photoSmall(bmp){const k=Math.min(1,1100/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
   const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(bmp,0,0,c.width,c.height);let q=.72,u=c.toDataURL('image/jpeg',q);while(u.length>700000&&q>.3){q-=.12;u=c.toDataURL('image/jpeg',q);}return u;}
 let PK_TEST=null;const pkTest=()=>{if(PK_TEST===null){try{PK_TEST=localStorage.getItem(KEY+'-pktest')==='1';}catch(e){PK_TEST=false;}}return PK_TEST;};
-function ocrLoad(){if(!ocrLib)ocrLib=new Promise((ok,ko)=>{const e=document.createElement('script');e.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';e.onload=()=>ok(window.Tesseract);e.onerror=ko;document.head.appendChild(e);});return ocrLib;}
+function ocrLoad(){if(!ocrLib)ocrLib=new Promise((ok,ko)=>{const e=document.createElement('script');e.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';e.onload=()=>ok(window.Tesseract);e.onerror=()=>{ocrLib=null;ko(new Error('ocr'));};document.head.appendChild(e);});return ocrLib;}
+/* l'outil de lecture reste prêt entre deux photos (le créer prend du temps sur un téléphone) ; préparé dès l'ouverture du Pick-up */
+let ocrW=null;
+function ocrWorker(){if(!ocrW)ocrW=ocrLoad().then(T=>T.createWorker('eng')).catch(e=>{ocrW=null;throw e;});return ocrW;}
+function ocrReset(){const p=ocrW;ocrW=null;if(p)p.then(w=>w.terminate()).catch(()=>{});}
 /* photo réduite et en niveaux de gris, plus rapide et plus lisible */
 function ocrPrep(file){return new Promise((ok,ko)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
   const x=c.getContext('2d');x.filter='grayscale(1) contrast(1.4)';x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);ok(c);};img.onerror=ko;img.src=URL.createObjectURL(file);});}
@@ -2599,11 +2603,15 @@ const mp0=L=>{const o=L.find(x=>x.p==='mp'||(+x.v>=20&&+x.v<=33.5));return o?o.v
 /* chiffres lus → tailles possibles (le point est souvent perdu : 295 = 29.5, 95 = 9.5) */
 const sizeGuess=t=>{if(!t)return [];const o=new Set([t]);if(/^\d{2,3}$/.test(t)&&/5$/.test(t))o.add(t.slice(0,-1)+'.5');const ok=new Set(sizesOf('botte').map(z=>z.replace(/ cm$/,'')));return [...o].filter(z=>ok.has(z));}; /* seulement une vraie taille */
 async function pickPhoto(file){if(!file)return;st.pkScan={busy:true};st.pkTodo=false;PK_IMG=null;render();
-  try{const bmp=await createImageBitmap(file);try{PK_IMG=photoSmall(bmp);}catch(e){}const T=await ocrLoad(),w=await T.createWorker('eng');let best=null;
-    /* étiquette de travers (photo en portrait, boîte couchée) : si rien de sûr n'est trouvé, on relit la photo tournée d'un quart de tour, dans un sens puis dans l'autre */
-    try{for(const rot of [0,-90,90,180]){const r=await readLabel(rot?rotImg(bmp,rot):bmp,w);if(!best||r.score>best.score)best=r;if(best.score>=11&&best.sure)break;}}finally{await w.terminate();}
+  try{const bmp=await createImageBitmap(file);try{PK_IMG=photoSmall(bmp);}catch(e){}
+    /* photo du téléphone (12 Mpx) réduite une seule fois : tourner et corriger une image plus petite va bien plus vite */
+    let src=bmp;{const k=Math.min(1,2000/Math.max(bmp.width,bmp.height));if(k<1){const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(bmp,0,0,c.width,c.height);src=c;}}
+    const w=await ocrWorker();let best=null;
+    /* étiquette de travers (photo en portrait, boîte couchée) : si rien n'est trouvé, on relit la photo tournée d'un quart de tour, dans un sens puis dans l'autre.
+       Article trouvé avec des mots bien lus : la photo est dans le bon sens, inutile de la tourner (même si la taille n'est pas sûre) */
+    for(const rot of [0,-90,90,180]){const r=await readLabel(rot?rotImg(src,rot):src,w);if(!best||r.score>best.score)best=r;if(best.score>=11&&(best.sure||best.good>=2))break;}
     st.pkScan=best.scan;}
-  catch(e){console.warn('Lecture étiquette',e);st.pkScan={err:true};}
+  catch(e){console.warn('Lecture étiquette',e);ocrReset();st.pkScan={err:true};}
   render();}
 function rotImg(img,deg){const c=document.createElement('canvas'),q=Math.abs(deg)%180===90;c.width=q?img.height:img.width;c.height=q?img.width:img.height;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);x.drawImage(img,-img.width/2,-img.height/2);return c;}
 async function readLabel(src,w){await w.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:''});
@@ -2629,7 +2637,8 @@ async function readLabel(src,w){await w.setParameters({tessedit_pageseg_mode:'11
     big2=big2.trim();const big=[big2,...bigL.map(l=>l.t)].filter(Boolean).join(' ');
     const text=((data&&data.text||'').trim()+(big2?' \n'+big2:'')+(boxSz.length?' \n'+boxSz.join(' '):'')).trim();
     let m=ocrMatch(text,big,boxSz);if(tz.fromMp){const g=m.filter(x=>norm(x.a.taille)===String(+tz.fromMp-(x.a.genre==='F'?17:18)));if(g.length)m=g;} /* US déduite de la MP : homme MP−18, femme MP−17 */
-    return {score:m.length?m[0].sc:0,sure:!!(m.length&&m[0].zh&&new Set(m.map(x=>norm(x.a.taille))).size===1),scan:{text,big,boxSz,fromMp:tz.fromMp||0,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)}};}}
+    const good=((data&&data.blocks)||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))).filter(x=>x.confidence>=75&&/[a-z]{3,}|\d{2,}/i.test(x.text||'')).length; /* mots nets : la photo est à l'endroit */
+    return {good,score:m.length?m[0].sc:0,sure:!!(m.length&&m[0].zh&&new Set(m.map(x=>norm(x.a.taille))).size===1),scan:{text,big,boxSz,fromMp:tz.fromMp||0,ids:m.map(x=>x.a.id),sc:Object.fromEntries(m.map(x=>[x.a.id,Math.round(x.sc*10)/10])),conf:Math.round(data&&data.confidence||0)}};}}
 function scanBox(){const sc=st.pkScan;if(!sc)return '';
   const T=' '+norm(sc.text||'').replace(/[^a-z0-9]+/g,' ')+' ',brandSeen=a=>{const m=norm(a.marque).replace(/[^a-z0-9]+/g,' ').trim();return !!m&&(m.length>2?T.includes(m):T.includes(' '+m+' '));};
   if(sc.busy)return `<div class="info">Lecture de l'étiquette… <small class="opt">(la première fois, l'appli télécharge l'outil de lecture : quelques secondes)</small></div>`;
