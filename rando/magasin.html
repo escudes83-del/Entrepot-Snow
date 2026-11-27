@@ -805,7 +805,8 @@ function textMatch(a,q){q=joinCodes(q);
   const sz=toks.filter(isSizeTok),other=toks.filter(t=>!isSizeTok(t));
   if(sz.length){const full=norm(a.taille).replace(/\s*cm$/,''),parts=full.split('/');if(!sz.some(t=>t===full||parts.includes(t)))return false;}
   const hay=norm(`${a.marque} ${a.modele} ${TYPE[a.type]} ${a.type==='fix'?'fix fixation':a.type==='board'?(SKI?'ski skis':'snowboard board planche'):(SKI?'chaussure chaussures botte boots':'botte boots')} ${GENRE[a.genre]} ${a.taille} ${a.annee} ${a.emp} ${ZONE_LBL[zoneOf(a.emp)]||''} ${a.couleur||''} ${serOf(a)} ${a.note}`);
-  const words=new Set(hay.split(/\s+/));
+  /* mots entiers, aussi coupés sur la ponctuation : « HV » trouve « HV+ », « GW » trouve « GW/Pro » */
+  const words=new Set([...hay.split(/\s+/),...hay.split(/[^a-z0-9.]+/)]);
   return other.every(t=>(t.length<=2?words.has(t):hay.includes(t))||colorHit(t,hay));}
 /* compte en pièces (paires), comme le total affiché et l'appli magasin */
 function facet(skip,get){const Q=role==='magasin'?availOf:qOf,m=new Map();S.articles.filter(a=>matches(a,skip)).forEach(a=>{const k=String(get(a)??'');if(k)m.set(k,(m.get(k)||0)+Q(a));});return m;}
