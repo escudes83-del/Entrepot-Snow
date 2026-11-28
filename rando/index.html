@@ -2485,9 +2485,10 @@ function ocrMatch(text,big,sure){const B=' '+norm(big||'').replace(/[^a-z0-9./ ]
   const res=S.articles.filter(a=>qOf(a)>0).map(a=>{let sc=0;
     const mq=norm(a.marque),bh=mq.length>2?hasIn(mq):has(mq);if(bh)sc+=3; /* marque courte (K2) : mot entier */
     const mw=norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w.length>1);let mh=0,mb=0,strong=false,lh=false;mw.forEach(w=>{const nr=near(w),ok=has(w)||(w.length>3&&hasIn(w));if(ok)mh++;else if(nr)mh+=.8;if((ok||nr)&&/[a-z]/.test(w))lh=true;if((ok||nr)&&(w.length>2||/^\d+$/.test(w)))strong=true;if(B.includes(' '+w+' ')||(w.length>3&&B.includes(w)))mb++;else if(nr)mb+=.8;});
-    const numOnly=!bh&&(!mw.some(w=>/[a-z]/.test(w))||!lh), /* seul le nombre du modèle est lu (« 100 » de BFC 100), ni la marque ni un mot : peu fiable */k=(numOnly?.4:1)*(mh&&!strong&&!bh?.25:1); /* modèle fait de chiffres (« 120 S ») sans la marque lue : « 120 » ne suffit pas ; « AL » (2 lettres) seul non plus */
+    if(!bh&&!lh&&mw.some(w=>/[a-z]/.test(w)))return {a,sc:0}; /* aucun mot du modèle ni la marque lus : pas de devinette sur la taille et la couleur */
+    const numOnly=!bh&&!mw.some(w=>/[a-z]/.test(w)), /* seul le nombre du modèle est lu (« 100 » de BFC 100), ni la marque ni un mot : peu fiable */k=(numOnly?.4:1)*(mh&&!strong&&!bh?.25:1); /* modèle fait de chiffres (« 120 S ») sans la marque lue : « 120 » ne suffit pas ; « AL » (2 lettres) seul non plus */
     let ms=0;if(mw.length){ms+=(mh/mw.length*6+mb/mw.length*8)*k;} /* modèle écrit en grand : bonus fort */
-    let fz=false;if(mw.length>1&&has(mw.join(' ')))ms+=5*k;else if(mw.length>1&&new RegExp(' '+norm(a.modele).split(/[^a-z0-9]+/).filter(Boolean).join(' ?')+' ').test(t)){ms+=5*k;fz=true;} /* mots collés sur l'étiquette : « 120S » pour 120 S, « MACH1 » pour Mach 1 */else if(mw.length>2&&fzPhrase(mw)){ms+=5*k;fz=true;}sc+=ms; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
+    let fz=false;if(mw.length>1&&has(mw.join(' ')))ms+=5*k;else if(mw.length>1&&new RegExp(' '+norm(a.modele).split(/[^a-z0-9]+/).filter(Boolean).join(' ?')+' ').test(t)){ms+=5*k;fz=true;}else if(/(^| )gw( |$)/.test(norm(a.modele))&&new RegExp(' '+norm(a.modele).split(/[^a-z0-9]+/).filter(w=>w&&w!=='gw').join(' ?')+' ').test(t))ms+=5*k; /* « (GW) » souvent mal lu : bonus, mais pas « lu en entier » (HAWX PRIME 100 ≠ Hawx Prime 100 GW) */ /* mots collés sur l'étiquette : « 120S » pour 120 S, « MACH1 » pour Mach 1 */else if(mw.length>2&&fzPhrase(mw)){ms+=5*k;fz=true;}sc+=ms; /* le nom complet du modèle, mots dans l'ordre (BFC 120 ≠ BFC 100) */
     let zh=false;const z0=norm(a.taille).replace(/\s*cm$/,''),z=/^\d+\/\d+\.5$/.test(z0)?z0.split('/')[1]:z0,zs=!!(sure&&sure.includes(z)); /* double taille « 29/29.5 » : la demi-taille suffit */
     if(z&&(zs||nums.has(z)||has(z)||has(z0)||has(z.replace('.',','))))sc+=4,zh=true;else if(z&&/[a-z]/.test(z)&&has(z))sc+=3;
     if(a.couleur&&hasIn(norm(a.couleur)))sc+=1.5;
@@ -2595,7 +2596,7 @@ function tableSz(text){let fromMp=false;const tk=norm(text||'').replace(/,/g,'.'
     else{const m=/^m?p(\d{3,4})$/.exec(w)||(/^(mp|p|np)$/.test(w)&&/^\d{3,4}$/.test(tk[i+1]||'')?[0,tk[i+1]]:null); /* « MP: 29.0 » lu « P 290 » ou « P2290 » */
       if(m){const v=+m[1].slice(-3)/10;if(v>=20&&v<=33.5&&v*2===Math.round(v*2))L.push({v:String(v),p:'mp'});}}});
   /* double taille Atomic/Lange « 27/27.5 », lue « 27/275 » ou « 2727.5 » : le même nombre deux fois, puis .5 */
-  if(SKI)for(const m of norm(text||'').replace(/,/g,'.').matchAll(/(?:^|[^0-9])(2\d|3[0-3])\s?[\/|il1]?\s?\1\.?5(?![0-9])/g))L.push({v:m[1]+'.5',p:'mp'});
+  if(SKI)for(const m of norm(text||'').replace(/,/g,'.').matchAll(/(?:^|[^0-9])(2\d|3[0-3])(?:[.,]0)?\s?[\/|il1]{0,2}\s?\1\.?5(?![0-9])/g))L.push({v:m[1]+'.5',p:'mp'});
   if(!L.length)return [];
   let hit=L.filter(o=>SKI?o.p==='mp'||o.p==='cm':o.p==='us');
   if(!hit.length){if(SKI)hit=L.filter(o=>+o.v>=20&&+o.v<=33.5);
